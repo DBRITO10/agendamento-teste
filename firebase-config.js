@@ -1,22 +1,24 @@
-// Importe as funções que você vai usar do Firebase
+// Importe as funções necessárias dos SDKs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Suas credenciais do Firebase (vá no painel do seu novo projeto para pegar)
+// Sua configuração do aplicativo web do Firebase
 const firebaseConfig = {
-  apiKey: "SUA_API_KEY_AQUI",
-  authDomain: "SEU_AUTH_DOMAIN_AQUI",
-  projectId: "SEU_PROJECT_ID_AQUI",
-  storageBucket: "SEU_STORAGE_BUCKET_AQUI",
-  messagingSenderId: "SEU_MESSAGING_SENDER_ID_AQUI",
-  appId: "SEU_APP_ID_AQUI"
+  apiKey: "AIzaSyBSLPFwZT68GiwrKNtkPIgPB-7ybXtPTJo",
+  authDomain: "teste-de-agendamento-f96f9.firebaseapp.com",
+  projectId: "teste-de-agendamento-f96f9",
+  storageBucket: "teste-de-agendamento-f96f9.firebasestorage.app",
+  messagingSenderId: "1053441936208",
+  appId: "1:1053441936208:web:33e4195f5a51f510647a55"
 };
 
 // Inicialize o Firebase
 const app = initializeApp(firebaseConfig);
+
+// Inicialize os serviços que você vai usar
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Exporte as instâncias para usá-las em outros arquivos
+// Exporte as instâncias para que outros arquivos possam usá-las
 export { auth, db };
