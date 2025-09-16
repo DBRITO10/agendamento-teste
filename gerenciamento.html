@@ -3,19 +3,67 @@
 <head>
   <meta charset="UTF-8">
   <title>Gerenciamento de Agendamentos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    form { margin-bottom: 20px; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
-    input, button { display: block; width: 100%; margin-bottom: 10px; padding: 8px; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-    button.edit, button.delete { margin-left: 5px; cursor: pointer; }
+    body { font-family: Arial, sans-serif; padding: 20px; background-color: #fafafa; }
+    header { text-align: center; margin-bottom: 20px; }
+    h1 { color: #cc0000; font-size: 28px; margin: 10px 0 20px 0; font-weight: bold; }
+    form { margin-bottom: 20px; padding: 20px; border: 1px solid #ff9999; border-radius: 6px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    input, button { display: block; width: 100%; margin-bottom: 10px; padding: 8px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+    button { background: #d32f2f; color: white; font-weight: bold; cursor: pointer; }
+    button:hover { background: #b71c1c; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    thead th { background: #cc0000; color: white; }
+    button.edit, button.delete { margin-left: 5px; padding: 5px 10px; font-size: 12px; }
+    .table-container { overflow-x: auto; }
+    #userBar {
+        background: #E6E6E6;
+        padding: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 6px;
+        margin-bottom: 12px;
+    }
   </style>
 </head>
 <body>
 
-  <h1>Gerenciar Agendamentos</h1>
+<script>
+if (localStorage.getItem("isLoggedIn") !== "true") { window.location.href = "login.html"; }
+</script>
+
+<div id="userBar">
+  <button onclick="history.back()" style="
+    background: transparent; 
+    border: none; 
+    color: #333; 
+    font-size: 24px; 
+    cursor: pointer;
+    margin-right: 10px;
+  ">←</button>
+  <span id="welcomeUser" style="font-weight:bold; color:#333; flex-grow: 1;"></span>
+  <button onclick="logout()" style="background:#CC0000; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Sair</button>
+</div>
+<script>
+const username = localStorage.getItem("username") || "Usuário";
+document.addEventListener("DOMContentLoaded", ()=>{
+  document.getElementById("welcomeUser").textContent = "Bem-vindo, " + username;
+});
+function logout(){
+  localStorage.removeItem("isLoggedIn");
+  localStorage.removeItem("username");
+  window.history.replaceState(null, null, "login.html");
+  window.location.href = "login.html";
+}
+</script>
+
+<header>
+  <h1>Gerenciamento de Agendamentos</h1>
+</header>
   
+<div class="table-container">
   <form id="agendamentoForm">
     <h2>Adicionar/Editar Agendamento</h2>
     <input type="hidden" id="docId">
@@ -46,92 +94,112 @@
     <tbody>
       </tbody>
   </table>
+</div>
 
-  <script type="module" src="./firebase-config.js"></script>
-  <script type="module">
-    import { db } from "./firebase-config.js";
-    import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<script type="module" src="./firebase-config.js"></script>
+<script type="module">
+  import { db } from "./firebase-config.js";
+  import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    const form = document.getElementById('agendamentoForm');
-    const tabelaBody = document.querySelector('#agendamentosTabela tbody');
-    let editingId = null;
+  const form = document.getElementById('agendamentoForm');
+  const tabelaBody = document.querySelector('#agendamentosTabela tbody');
+  let editingId = null;
 
-    // Função para carregar e exibir agendamentos
-    function carregarAgendamentos() {
-      onSnapshot(collection(db, "agendamentos"), (snapshot) => {
-        tabelaBody.innerHTML = '';
-        snapshot.forEach((doc) => {
-          const dados = doc.data();
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${dados.senha}</td>
-            <td>${dados.data}</td>
-            <td>${dados.central}</td>
-            <td>${dados.cargas}</td>
-            <td>${dados.fornecedor}</td>
-            <td>${dados.tipoDeProduto}</td>
-            <td>${dados.produto}</td>
-            <td>
-              <button class="edit" data-id="${doc.id}">Editar</button>
-              <button class="delete" data-id="${doc.id}">Excluir</button>
-            </td>
-          `;
-          tabelaBody.appendChild(tr);
-        });
-      });
+  // Lógica de logout
+  window.logout = () => {
+    signOut(auth).then(() => {
+        localStorage.removeItem("isLoggedIn");
+        localStorage.removeItem("username");
+        window.location.href = "login.html";
+    }).catch((error) => {
+        console.error("Erro ao fazer logout: ", error);
+    });
+  };
+
+  // Redireciona se não estiver logado
+  onAuthStateChanged(auth, user => {
+    if (!user) {
+        window.location.href = "login.html";
     }
+  });
 
-    // Adiciona/Atualiza um agendamento
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const agendamento = {
-        senha: form['senha'].value,
-        data: form['data'].value,
-        central: form['central'].value,
-        cargas: form['cargas'].value,
-        fornecedor: form['fornecedor'].value,
-        tipoDeProduto: form['tipoDeProduto'].value,
-        produto: form['produto'].value
-      };
-
-      if (editingId) {
-        const docRef = doc(db, "agendamentos", editingId);
-        await updateDoc(docRef, agendamento);
-        editingId = null;
-      } else {
-        await addDoc(collection(db, "agendamentos"), agendamento);
-      }
-      form.reset();
+  // Função para carregar e exibir agendamentos
+  function carregarAgendamentos() {
+    onSnapshot(collection(db, "agendamentos"), (snapshot) => {
+      tabelaBody.innerHTML = '';
+      snapshot.forEach((doc) => {
+        const dados = doc.data();
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${dados.senha}</td>
+          <td>${dados.data}</td>
+          <td>${dados.central}</td>
+          <td>${dados.cargas}</td>
+          <td>${dados.fornecedor}</td>
+          <td>${dados.tipoDeProduto}</td>
+          <td>${dados.produto}</td>
+          <td>
+            <button class="edit" data-id="${doc.id}">Editar</button>
+            <button class="delete" data-id="${doc.id}">Excluir</button>
+          </td>
+        `;
+        tabelaBody.appendChild(tr);
+      });
     });
+  }
 
-    // Edita ou Exclui um agendamento
-    tabelaBody.addEventListener('click', async (e) => {
-      if (e.target.classList.contains('edit')) {
-        editingId = e.target.dataset.id;
-        const docRef = doc(db, "agendamentos", editingId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const dados = docSnap.data();
-          form['senha'].value = dados.senha;
-          form['data'].value = dados.data;
-          form['central'].value = dados.central;
-          form['cargas'].value = dados.cargas;
-          form['fornecedor'].value = dados.fornecedor;
-          form['tipoDeProduto'].value = dados.tipoDeProduto;
-          form['produto'].value = dados.produto;
-        }
-      } else if (e.target.classList.contains('delete')) {
-        const id = e.target.dataset.id;
-        const docRef = doc(db, "agendamentos", id);
-        if (confirm("Tem certeza que deseja excluir este agendamento?")) {
-          await deleteDoc(docRef);
-        }
+  // Adiciona/Atualiza um agendamento
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const agendamento = {
+      senha: form['senha'].value,
+      data: form['data'].value,
+      central: form['central'].value,
+      cargas: form['cargas'].value,
+      fornecedor: form['fornecedor'].value,
+      tipoDeProduto: form['tipoDeProduto'].value,
+      produto: form['produto'].value
+    };
+
+    if (editingId) {
+      const docRef = doc(db, "agendamentos", editingId);
+      await updateDoc(docRef, agendamento);
+      editingId = null;
+    } else {
+      await addDoc(collection(db, "agendamentos"), agendamento);
+    }
+    form.reset();
+  });
+
+  // Edita ou Exclui um agendamento
+  tabelaBody.addEventListener('click', async (e) => {
+    if (e.target.classList.contains('edit')) {
+      editingId = e.target.dataset.id;
+      const docRef = doc(db, "agendamentos", editingId);
+      const docSnap = await getDoc(docRef); // Usa getDoc para buscar o item
+      if (docSnap.exists()) {
+        const dados = docSnap.data();
+        form['senha'].value = dados.senha;
+        form['data'].value = dados.data;
+        form['central'].value = dados.central;
+        form['cargas'].value = dados.cargas;
+        form['fornecedor'].value = dados.fornecedor;
+        form['tipoDeProduto'].value = dados.tipoDeProduto;
+        form['produto'].value = dados.produto;
       }
-    });
+    } else if (e.target.classList.contains('delete')) {
+      const id = e.target.dataset.id;
+      const docRef = doc(db, "agendamentos", id);
+      if (confirm("Tem certeza que deseja excluir este agendamento?")) {
+        await deleteDoc(docRef);
+      }
+    }
+  });
 
-    // Carrega a lista quando a página é carregada
-    carregarAgendamentos();
+  // Carrega a lista quando a página é carregada
+  carregarAgendamentos();
+</script>
 
-  </script>
 </body>
 </html>
