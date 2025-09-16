@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciamento de Agendamentos</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    form { margin-bottom: 20px; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+    input, button { display: block; width: 100%; margin-bottom: 10px; padding: 8px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    button.edit, button.delete { margin-left: 5px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <h1>Gerenciar Agendamentos</h1>
+  
+  <form id="agendamentoForm">
+    <h2>Adicionar/Editar Agendamento</h2>
+    <input type="hidden" id="docId">
+    <input type="text" id="senha" placeholder="Senha" required>
+    <input type="date" id="data" required>
+    <input type="text" id="central" placeholder="Central" required>
+    <input type="text" id="cargas" placeholder="Cargas" required>
+    <input type="text" id="fornecedor" placeholder="Fornecedor" required>
+    <input type="text" id="tipoDeProduto" placeholder="Tipo de Produto" required>
+    <input type="text" id="produto" placeholder="Produto" required>
+    <button type="submit">Salvar Agendamento</button>
+  </form>
+
+  <h2>Lista de Agendamentos</h2>
+  <table id="agendamentosTabela">
+    <thead>
+      <tr>
+        <th>Senha</th>
+        <th>Data</th>
+        <th>Central</th>
+        <th>Cargas</th>
+        <th>Fornecedor</th>
+        <th>Tipo de Produto</th>
+        <th>Produto</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      </tbody>
+  </table>
+
+  <script type="module" src="./firebase-config.js"></script>
+  <script type="module">
+    import { db } from "./firebase-config.js";
+    import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const form = document.getElementById('agendamentoForm');
+    const tabelaBody = document.querySelector('#agendamentosTabela tbody');
+    let editingId = null;
+
+    // Função para carregar e exibir agendamentos
+    function carregarAgendamentos() {
+      onSnapshot(collection(db, "agendamentos"), (snapshot) => {
+        tabelaBody.innerHTML = '';
+        snapshot.forEach((doc) => {
+          const dados = doc.data();
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${dados.senha}</td>
+            <td>${dados.data}</td>
+            <td>${dados.central}</td>
+            <td>${dados.cargas}</td>
+            <td>${dados.fornecedor}</td>
+            <td>${dados.tipoDeProduto}</td>
+            <td>${dados.produto}</td>
+            <td>
+              <button class="edit" data-id="${doc.id}">Editar</button>
+              <button class="delete" data-id="${doc.id}">Excluir</button>
+            </td>
+          `;
+          tabelaBody.appendChild(tr);
+        });
+      });
+    }
+
+    // Adiciona/Atualiza um agendamento
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const agendamento = {
+        senha: form['senha'].value,
+        data: form['data'].value,
+        central: form['central'].value,
+        cargas: form['cargas'].value,
+        fornecedor: form['fornecedor'].value,
+        tipoDeProduto: form['tipoDeProduto'].value,
+        produto: form['produto'].value
+      };
+
+      if (editingId) {
+        const docRef = doc(db, "agendamentos", editingId);
+        await updateDoc(docRef, agendamento);
+        editingId = null;
+      } else {
+        await addDoc(collection(db, "agendamentos"), agendamento);
+      }
+      form.reset();
+    });
+
+    // Edita ou Exclui um agendamento
+    tabelaBody.addEventListener('click', async (e) => {
+      if (e.target.classList.contains('edit')) {
+        editingId = e.target.dataset.id;
+        const docRef = doc(db, "agendamentos", editingId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const dados = docSnap.data();
+          form['senha'].value = dados.senha;
+          form['data'].value = dados.data;
+          form['central'].value = dados.central;
+          form['cargas'].value = dados.cargas;
+          form['fornecedor'].value = dados.fornecedor;
+          form['tipoDeProduto'].value = dados.tipoDeProduto;
+          form['produto'].value = dados.produto;
+        }
+      } else if (e.target.classList.contains('delete')) {
+        const id = e.target.dataset.id;
+        const docRef = doc(db, "agendamentos", id);
+        if (confirm("Tem certeza que deseja excluir este agendamento?")) {
+          await deleteDoc(docRef);
+        }
+      }
+    });
+
+    // Carrega a lista quando a página é carregada
+    carregarAgendamentos();
+
+  </script>
+</body>
+</html>
