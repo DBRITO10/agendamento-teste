@@ -69,9 +69,20 @@
     .filter-popup label {
       display: block;
       cursor: pointer;
+      font-size: 14px;
     }
     .filter-popup label:hover {
       background: #f0f0f0;
+    }
+    .filter-popup button {
+        margin-top: 10px;
+        width: 100%;
+        padding: 5px;
+        background: #ccc;
+        color: #333;
+    }
+    .filter-popup button:hover {
+        background: #bbb;
     }
     #agendamentosTabela tfoot th {
       background-color: #f2f2f2;
@@ -80,6 +91,9 @@
     }
     .filter-row th {
         background-color: transparent !important;
+        border: none !important;
+        padding-top: 0;
+        padding-bottom: 0;
     }
     .filter-row .filter-button {
         position: relative;
@@ -87,6 +101,12 @@
         top: auto;
         transform: none;
         color: #333;
+        font-weight: normal;
+        margin: 0;
+    }
+    .filter-row .applied-filter {
+        color: #cc0000;
+        font-weight: bold;
     }
   </style>
 </head>
@@ -181,6 +201,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const form = document.getElementById('agendamentoForm');
   let editingId = null;
   let dataTable = null;
+  const colMap = {
+      "data": 1,
+      "central": 2,
+      "cargas": 3,
+      "fornecedor": 4,
+      "tipoDeProduto": 5,
+      "produto": 6
+  };
 
   onAuthStateChanged(auth, user => {
     if (!user) {
@@ -201,75 +229,157 @@ document.addEventListener("DOMContentLoaded", ()=>{
       const agendamentos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
       if (dataTable) {
+        const filters = loadFilters();
         dataTable.destroy();
+        
+        const dadosParaTabela = agendamentos.map(item => [
+            item.senha,
+            item.data,
+            item.central,
+            item.cargas,
+            item.fornecedor,
+            item.tipoDeProduto,
+            item.produto,
+            `<button class="edit" data-id="${item.id}">Editar</button> <button class="delete" data-id="${item.id}">Excluir</button>`
+        ]);
+        
+        dataTable = $('#agendamentosTabela').DataTable({
+            data: dadosParaTabela,
+            columns: [
+                { title: "Senha" },
+                { title: "Data" },
+                { title: "Central" },
+                { title: "Cargas" },
+                { title: "Fornecedor" },
+                { title: "Tipo de Produto" },
+                { title: "Produto" },
+                { title: "Ações", orderable: false, searchable: false }
+            ],
+            paging: false,
+            info: false,
+            order: [],
+        });
+        
+        applyFilters(filters);
+        
+      } else {
+        const dadosParaTabela = agendamentos.map(item => [
+            item.senha,
+            item.data,
+            item.central,
+            item.cargas,
+            item.fornecedor,
+            item.tipoDeProduto,
+            item.produto,
+            `<button class="edit" data-id="${item.id}">Editar</button> <button class="delete" data-id="${item.id}">Excluir</button>`
+        ]);
+
+        dataTable = $('#agendamentosTabela').DataTable({
+            data: dadosParaTabela,
+            columns: [
+                { title: "Senha" },
+                { title: "Data" },
+                { title: "Central" },
+                { title: "Cargas" },
+                { title: "Fornecedor" },
+                { title: "Tipo de Produto" },
+                { title: "Produto" },
+                { title: "Ações", orderable: false, searchable: false }
+            ],
+            paging: false,
+            info: false,
+            order: [],
+        });
+        
+        const filters = loadFilters();
+        applyFilters(filters);
       }
-
-      const dadosParaTabela = agendamentos.map(item => [
-        item.senha,
-        item.data,
-        item.central,
-        item.cargas,
-        item.fornecedor,
-        item.tipoDeProduto,
-        item.produto,
-        `<button class="edit" data-id="${item.id}">Editar</button> <button class="delete" data-id="${item.id}">Excluir</button>`
-      ]);
-
-      dataTable = $('#agendamentosTabela').DataTable({
-        data: dadosParaTabela,
-        columns: [
-          { title: "Senha" },
-          { title: "Data" },
-          { title: "Central" },
-          { title: "Cargas" },
-          { title: "Fornecedor" },
-          { title: "Tipo de Produto" },
-          { title: "Produto" },
-          { title: "Ações", orderable: false, searchable: false }
-        ],
-        paging: false,
-        info: false,
-        order: [],
-      });
-
-      dataTable.on('draw.dt', function () {
-        atualizarTotalCargas();
-      });
-      atualizarTotalCargas();
     });
+  }
+
+  // Funções para salvar/carregar filtros
+  function saveFilters(filters) {
+      localStorage.setItem('agendamento_filters', JSON.stringify(filters));
+  }
+
+  function loadFilters() {
+      const savedFilters = localStorage.getItem('agendamento_filters');
+      return savedFilters ? JSON.parse(savedFilters) : {};
+  }
+
+  function applyFilters(filters) {
+      for (const colName in filters) {
+          const colIndex = colMap[colName];
+          if (colIndex !== undefined) {
+              const searchValue = filters[colName];
+              dataTable.column(colIndex).search(searchValue).draw();
+              
+              if (searchValue !== "") {
+                  $(`.filter-button[data-col='${colName}']`).text('APLICADO').addClass('applied-filter');
+              }
+          }
+      }
+      atualizarTotalCargas();
   }
 
   // Lógica para o filtro de botão
   const filterPopupContainer = document.getElementById('filter-popup-container');
-  const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
   $(document).on('click', '.filter-button', function (e) {
     e.stopPropagation();
-    const columnIndex = dataTable.column($(this).closest('th')).index();
+    const colName = $(this).data('col');
+    const columnIndex = colMap[colName];
     const columnData = dataTable.column(columnIndex, { search: 'applied' }).data();
     
     let popupHtml = '<div><label><input type="radio" name="filter-radio" value="" checked> Todos</label></div>';
     
-    let uniqueValues;
-    if (columnIndex === 1) { // Coluna da Data
-        uniqueValues = columnData.map(d => d).unique().sort();
-    } else {
-        uniqueValues = columnData.unique().sort();
-    }
+    let uniqueValues = columnData.unique().sort();
     
     uniqueValues.each(value => {
         popupHtml += `<div><label><input type="radio" name="filter-radio" value="${value}"> ${value}</label></div>`;
     });
     
+    popupHtml += `<button id="clearFilterBtn">Limpar Filtro</button>`;
+
     filterPopupContainer.innerHTML = popupHtml;
     const buttonRect = this.getBoundingClientRect();
     filterPopupContainer.style.top = `${buttonRect.bottom + window.scrollY}px`;
     filterPopupContainer.style.left = `${buttonRect.left}px`;
     filterPopupContainer.classList.add('filter-popup');
+
+    const currentFilters = loadFilters();
+    if (currentFilters[colName]) {
+        $(`input[value='${currentFilters[colName]}']`).prop('checked', true);
+    }
     
+    // Aplica o filtro quando uma opção é clicada no popup
     $(filterPopupContainer).off('change').on('change', 'input', function () {
         const selectedValue = $(this).val();
         dataTable.column(columnIndex).search(selectedValue).draw();
+        
+        const currentFilters = loadFilters();
+        if (selectedValue === "") {
+            delete currentFilters[colName];
+            $(`.filter-button[data-col='${colName}']`).text('▼').removeClass('applied-filter');
+        } else {
+            currentFilters[colName] = selectedValue;
+            $(`.filter-button[data-col='${colName}']`).text('APLICADO').addClass('applied-filter');
+        }
+        saveFilters(currentFilters);
+        
+        filterPopupContainer.classList.remove('filter-popup');
+        filterPopupContainer.innerHTML = '';
+    });
+
+    // Limpa o filtro quando o botão é clicado
+    $(filterPopupContainer).off('click').on('click', '#clearFilterBtn', function() {
+        dataTable.column(columnIndex).search("").draw();
+        
+        const currentFilters = loadFilters();
+        delete currentFilters[colName];
+        saveFilters(currentFilters);
+        
+        $(`.filter-button[data-col='${colName}']`).text('▼').removeClass('applied-filter');
         filterPopupContainer.classList.remove('filter-popup');
         filterPopupContainer.innerHTML = '';
     });
