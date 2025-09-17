@@ -40,6 +40,17 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+        #userBar span {
+            flex-shrink: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #userBar button {
+            width: auto;
+            flex-shrink: 0;
+            margin-left: 10px;
+        }
         #exportButtons { margin-bottom: 15px; }
         #exportButtons button { display: inline-block; width: auto; margin-right: 10px; padding: 10px 20px; }
         #agendamentosTabela_filter { display: none; }
@@ -387,19 +398,29 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 if (contadorDoc.exists()) {
                     ultimaSenha = contadorDoc.data().ultima_senha;
                 }
-                ultimaSenha++;
                 
-                const rascunho = {
-                    userId: currentUserUid,
-                    senha: ultimaSenha,
-                    cargas: cargas,
-                    timestamp: new Date()
-                };
-                const newDocRef = doc(collection(db, "agendamentos-rascunho"));
-                transaction.set(newDocRef, rascunho);
+                const rascunhoRefs = [];
+                for (const carga of cargas) {
+                    ultimaSenha++;
+                    const newRascunho = {
+                        userId: currentUserUid,
+                        senha: ultimaSenha,
+                        data: carga.data,
+                        central: carga.central,
+                        cargas: carga.cargas,
+                        fornecedor: carga.fornecedor,
+                        tipoDeProduto: carga.tipoDeProduto,
+                        produto: carga.produto,
+                        timestamp: new Date()
+                    };
+                    const newDocRef = doc(collection(db, "agendamentos-rascunho"));
+                    transaction.set(newDocRef, newRascunho);
+                    rascunhoRefs.push(newDocRef.id);
+                }
                 transaction.update(contadorRef, { ultima_senha: ultimaSenha });
+
             });
-            alert('Agendamento salvo como rascunho!');
+            alert('Agendamento(s) salvo(s) como rascunho!');
             form.reset();
             numCargasInput.value = 1;
             numCargasInput.dispatchEvent(new Event('input'));
@@ -422,22 +443,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
             const dadosParaTabela = [];
             snapshot.forEach(doc => {
                 const rascunho = doc.data();
-                if (Array.isArray(rascunho.cargas)) {
-                    rascunho.cargas.forEach(carga => {
-                        dadosParaTabela.push([
-                            `<input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}" data-rascunho='${JSON.stringify(rascunho.cargas)}' data-senha="${rascunho.senha || 'Não Definida'}">`,
-                            rascunho.senha || "Não Definida",
-                            carga.cargas || "Não definido",
-                            carga.data || "Não definida",
-                            carga.central || "Não definido",
-                            carga.fornecedor || "Não definido",
-                            carga.tipoDeProduto || "Não definido",
-                            carga.produto || "Não definido"
-                        ]);
-                    });
-                } else {
-                    console.warn("Documento com estrutura inválida encontrado:", doc.id);
-                }
+                dadosParaTabela.push([
+                    `<input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}">`,
+                    rascunho.senha || "Não Definida",
+                    rascunho.cargas || "Não definido",
+                    rascunho.data || "Não definida",
+                    rascunho.central || "Não definido",
+                    rascunho.fornecedor || "Não definido",
+                    rascunho.tipoDeProduto || "Não definido",
+                    rascunho.produto || "Não definido"
+                ]);
             });
 
             rascunhosDataTable = $('#rascunhosTabela').DataTable({
@@ -487,25 +502,29 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         const checkbox = selectedCheckboxes[0];
         const rascunhoId = $(checkbox).data('id');
-        const rascunhoCargas = $(checkbox).data('rascunho');
-
+        
         document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
         
-        salvarBtn.textContent = "Atualizar Rascunho";
-        editRascunhoIdInput.value = rascunhoId;
-        numCargasInput.value = rascunhoCargas.length;
-        numCargasInput.dispatchEvent(new Event('input'));
-        const cargaItems = document.querySelectorAll('.carga-item');
-        rascunhoCargas.forEach((carga, index) => {
-            if (cargaItems[index]) {
-                cargaItems[index].querySelector('.data').value = carga.data;
-                cargaItems[index].querySelector('.central').value = carga.central;
-                cargaItems[index].querySelector('.cargas').value = carga.cargas;
-                cargaItems[index].querySelector('.fornecedor').value = carga.fornecedor;
-                cargaItems[index].querySelector('.tipoDeProduto').value = carga.tipoDeProduto;
-                cargaItems[index].querySelector('.produto').value = carga.produto;
+        const docRef = doc(db, "agendamentos-rascunho", rascunhoId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            const dados = docSnap.data();
+            numCargasInput.value = 1;
+            numCargasInput.dispatchEvent(new Event('input'));
+
+            const cargaItems = document.querySelectorAll('.carga-item');
+            if (cargaItems[0]) {
+                cargaItems[0].querySelector('.data').value = dados.data;
+                cargaItems[0].querySelector('.central').value = dados.central;
+                cargaItems[0].querySelector('.cargas').value = dados.cargas;
+                cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
+                cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
+                cargaItems[0].querySelector('.produto').value = dados.produto;
             }
-        });
+
+            salvarBtn.textContent = "Atualizar Rascunho";
+            editRascunhoIdInput.value = rascunhoId;
+        }
     });
 
     copiarSelecionadosRascunhoBtn.addEventListener('click', async () => {
@@ -550,29 +569,23 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         if (confirm(`Tem certeza que deseja salvar ${checkedRows.length} rascunho(s) selecionado(s) como agendamentos definitivos?`)) {
             const batch = writeBatch(db);
+            const rascunhoIdsToMove = [];
             
-            // Usar um Set para garantir que cada rascunho seja processado apenas uma vez, mesmo que tenha múltiplas cargas
-            const rascunhosUnicos = new Set();
             checkedRows.each(function() {
-                rascunhosUnicos.add($(this).data('id'));
+                rascunhoIdsToMove.push($(this).data('id'));
             });
 
             try {
-                for (const rascunhoId of rascunhosUnicos) {
+                for (const rascunhoId of rascunhoIdsToMove) {
                     const docRef = doc(db, "agendamentos-rascunho", rascunhoId);
                     const docSnap = await getDoc(docRef);
                     
                     if (docSnap.exists()) {
                         const rascunhoData = docSnap.data();
-                        const rascunhoCargas = rascunhoData.cargas;
-                        
-                        for (const carga of rascunhoCargas) {
-                            const newCarga = { ...carga, senha: rascunhoData.senha, userId: currentUserUid };
-                            const newDocRef = doc(collection(db, "agendamentos"));
-                            batch.set(newDocRef, newCarga);
-                            await adicionarHistorico("agendou uma nova carga (a partir de rascunho)", { id: newDocRef.id, ...newCarga });
-                        }
+                        const newDocRef = doc(collection(db, "agendamentos"));
+                        batch.set(newDocRef, { ...rascunhoData, timestamp: new Date() });
                         batch.delete(docRef);
+                        await adicionarHistorico("agendou uma nova carga (a partir de rascunho)", { id: newDocRef.id, ...rascunhoData });
                     }
                 }
                 
@@ -595,15 +608,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
         if (confirm(`Tem certeza que deseja excluir ${checkedRows.length} rascunho(s) selecionado(s)?`)) {
             const batch = writeBatch(db);
             const deletedIds = [];
-            const rascunhosUnicos = new Set();
+            
             checkedRows.each(function() {
                 const id = $(this).data('id');
-                if (!rascunhosUnicos.has(id)) {
-                    rascunhosUnicos.add(id);
-                    const docRef = doc(db, "agendamentos-rascunho", id);
-                    batch.delete(docRef);
-                    deletedIds.push(id);
-                }
+                const docRef = doc(db, "agendamentos-rascunho", id);
+                batch.delete(docRef);
+                deletedIds.push(id);
             });
 
             try {
@@ -746,7 +756,15 @@ document.addEventListener("DOMContentLoaded", ()=>{
             // Editando um rascunho existente
             const rascunhoRef = doc(db, "agendamentos-rascunho", rascunhoId);
             try {
-                await updateDoc(rascunhoRef, { cargas: cargas, timestamp: new Date() });
+                await updateDoc(rascunhoRef, { 
+                    data: cargas[0].data,
+                    central: cargas[0].central,
+                    cargas: cargas[0].cargas,
+                    fornecedor: cargas[0].fornecedor,
+                    tipoDeProduto: cargas[0].tipoDeProduto,
+                    produto: cargas[0].produto,
+                    timestamp: new Date() 
+                });
                 alert("Rascunho atualizado com sucesso!");
                 adicionarHistorico("atualizou um rascunho", { id: rascunhoId });
                 editRascunhoIdInput.value = "";
@@ -846,9 +864,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     };
 
     window.abrirHistorico = async () => {
-        console.log("Tentando abrir histórico para o UID:", currentUserUid);
         if (!currentUserUid) {
-            console.warn("currentUserUid é nulo. Não foi possível abrir o histórico.");
             historicoContent.innerHTML = '<p>Você precisa estar logado para ver o histórico.</p>';
             historicoModal.style.display = 'block';
             return;
@@ -864,7 +880,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 snapshot.forEach(doc => {
                     const acao = doc.data();
                     const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
-                    const acaoDetalhes = acao.detalhes && acao.detalhes.id ? `(ID: ${acao.detalhes.id})` : '';
+                    const acaoDetalhes = (acao.detalhes && (acao.detalhes.id || acao.detalhes.ids)) ? `(ID: ${acao.detalhes.id || acao.detalhes.ids})` : '';
                     historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} ${acaoDetalhes}.</p>`;
                 });
             }
