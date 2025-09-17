@@ -25,7 +25,7 @@
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         thead th { background: #cc0000; color: white; position: relative; }
-        button.edit, button.delete { margin-left: 5px; padding: 5px 10px; font-size: 12px; }
+        button.edit, button.delete, button.salvarRascunho, button.copiar, button.edit-rascunho { margin-left: 5px; padding: 5px 10px; font-size: 12px; }
         .table-container { overflow-x: auto; }
         #userBar {
             background: #E6E6E6;
@@ -251,7 +251,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
 <script type="module">
     import { db, auth } from "./firebase-config.js";
-    import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc, runTransaction, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc, runTransaction, query, where, getDocs, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const form = document.getElementById('agendamentoForm');
@@ -261,12 +261,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const totalCargasSpan = document.getElementById('totalCargas');
     const historicoModal = document.getElementById('historicoModal');
     const historicoContent = document.getElementById('historicoContent');
+    const salvarBtn = document.getElementById("salvarBtn");
     
-    let editingId = null;
+    let editingId = null; // Para editar um agendamento definitivo
+    let editingRascunhoId = null; // Para editar um rascunho
     let dataTable = null;
     let currentUserUid = null;
 
-    // A CORREÇÃO PRINCIPAL: Garante que as funções de carregamento só rodem após a autenticação
     onAuthStateChanged(auth, user => {
         if (user) {
             currentUserUid = user.uid;
@@ -378,11 +379,41 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 });
                 
                 rascunhoDiv.innerHTML = rascunhoContent;
+
+                // Botão de Editar Rascunho (específico)
+                const editarRascunhoBtn = document.createElement('button');
+                editarRascunhoBtn.textContent = 'Editar Rascunho';
+                editarRascunhoBtn.className = 'edit-rascunho';
+                editarRascunhoBtn.onclick = () => {
+                    document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
+                    editingRascunhoId = doc.id; // Define o ID do rascunho para edição
+                    editingId = null; // Garante que não está editando um agendamento definitivo
+                    salvarBtn.textContent = "Atualizar Rascunho";
+                    numCargasInput.value = rascunho.cargas.length;
+                    numCargasInput.dispatchEvent(new Event('input'));
+                    const cargaItems = document.querySelectorAll('.carga-item');
+                    rascunho.cargas.forEach((carga, index) => {
+                        if (cargaItems[index]) {
+                            cargaItems[index].querySelector('.data').value = carga.data;
+                            cargaItems[index].querySelector('.central').value = carga.central;
+                            cargaItems[index].querySelector('.cargas').value = carga.cargas;
+                            cargaItems[index].querySelector('.fornecedor').value = carga.fornecedor;
+                            cargaItems[index].querySelector('.tipoDeProduto').value = carga.tipoDeProduto;
+                            cargaItems[index].querySelector('.produto').value = carga.produto;
+                        }
+                    });
+                };
+                rascunhoDiv.appendChild(editarRascunhoBtn);
                 
+                // Botão de Copiar Dados (específico)
                 const copiarBtn = document.createElement('button');
-                copiarBtn.textContent = 'Copiar Dados para o Formulário';
+                copiarBtn.textContent = 'Copiar Dados';
+                copiarBtn.className = 'copiar';
                 copiarBtn.onclick = () => {
                     document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
+                    editingId = null; 
+                    editingRascunhoId = null; // Zera a edição de rascunho
+                    salvarBtn.textContent = "Salvar Agendamento"; // Volta ao modo de salvar novo
                     numCargasInput.value = rascunho.cargas.length;
                     numCargasInput.dispatchEvent(new Event('input'));
                     const cargaItems = document.querySelectorAll('.carga-item');
@@ -399,12 +430,25 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 };
                 rascunhoDiv.appendChild(copiarBtn);
 
+
+                // Botão de Salvar Definitivamente
+                const salvarRascunhoBtn = document.createElement('button');
+                salvarRascunhoBtn.textContent = 'Salvar Agendamento';
+                salvarRascunhoBtn.className = 'salvarRascunho';
+                salvarRascunhoBtn.onclick = async () => {
+                    await salvarRascunhoDefinitivamente(doc.id, rascunho.cargas);
+                };
+                rascunhoDiv.appendChild(salvarRascunhoBtn);
+
+                // Botão de Excluir
                 const deletarRascunhoBtn = document.createElement('button');
                 deletarRascunhoBtn.textContent = 'Excluir Rascunho';
+                deletarRascunhoBtn.className = 'delete';
                 deletarRascunhoBtn.onclick = async () => {
                     if (confirm("Tem certeza que deseja excluir este rascunho?")) {
                         const docRef = doc(db, "agendamentos-rascunho", doc.id);
                         await deleteDoc(docRef);
+                        alert("Rascunho excluído com sucesso.");
                     }
                 };
                 rascunhoDiv.appendChild(deletarRascunhoBtn);
@@ -412,6 +456,44 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 listaRascunhos.appendChild(rascunhoDiv);
             });
         });
+    }
+
+    // Move o rascunho para a coleção de agendamentos
+    async function salvarRascunhoDefinitivamente(rascunhoId, cargas) {
+        if (confirm("Tem certeza que deseja salvar este rascunho como um agendamento definitivo?")) {
+            const batch = writeBatch(db);
+            const contadorRef = doc(db, "metadados", "contador");
+
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const contadorDoc = await transaction.get(contadorRef);
+                    let ultimaSenha = 0;
+                    if (contadorDoc.exists()) {
+                        ultimaSenha = contadorDoc.data().ultima_senha;
+                    }
+
+                    for (const carga of cargas) {
+                        ultimaSenha++;
+                        const novaCarga = { ...carga, senha: ultimaSenha };
+                        const newDocRef = doc(collection(db, "agendamentos"));
+                        transaction.set(newDocRef, novaCarga);
+                        await adicionarHistorico("agendou uma nova carga (a partir de rascunho)", { id: newDocRef.id, ...novaCarga });
+                    }
+                    
+                    transaction.update(contadorRef, { ultima_senha: ultimaSenha });
+                });
+
+                // Exclui o rascunho da coleção de rascunhos
+                const rascunhoDocRef = doc(db, "agendamentos-rascunho", rascunhoId);
+                await deleteDoc(rascunhoDocRef);
+
+                alert("Rascunho salvo como agendamento com sucesso!");
+
+            } catch (e) {
+                console.error("Erro ao salvar rascunho definitivamente:", e);
+                alert("Ocorreu um erro ao salvar o agendamento. Tente novamente.");
+            }
+        }
     }
 
     // Carregar Agendamentos do Firestore
@@ -513,7 +595,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     });
 
-    // Adiciona/Atualiza um agendamento e registra no histórico
+    // Adiciona/Atualiza um agendamento ou um rascunho
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -550,6 +632,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
             await updateDoc(docRef, cargas[0]); // Pega apenas a primeira carga
             await adicionarHistorico("editou um agendamento", { id: editingId, ...cargas[0] });
             editingId = null;
+        } else if (editingRascunhoId) {
+            // Edita o rascunho existente
+            const rascunhoDocRef = doc(db, "agendamentos-rascunho", editingRascunhoId);
+            await updateDoc(rascunhoDocRef, { cargas: cargas, timestamp: new Date() });
+            alert("Rascunho atualizado com sucesso!");
+            editingRascunhoId = null;
+            salvarBtn.textContent = "Salvar Agendamento";
         } else {
             // Salva cada carga como um documento separado com senha sequencial
             const contadorRef = doc(db, "metadados", "contador");
@@ -587,13 +676,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
         form.reset();
         numCargasInput.value = 1;
         numCargasInput.dispatchEvent(new Event('input'));
-        document.getElementById("salvarBtn").textContent = "Salvar Agendamento";
+        salvarBtn.textContent = "Salvar Agendamento";
     });
 
     // Edita ou Exclui um agendamento
     $(document).on('click', '.edit', async function () {
         document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
         editingId = $(this).data('id');
+        editingRascunhoId = null; // Garante que não está editando um rascunho
         const docRef = doc(db, "agendamentos", editingId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
@@ -610,7 +700,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
                 cargaItems[0].querySelector('.produto').value = dados.produto;
             }
-            document.getElementById("salvarBtn").textContent = "Atualizar Agendamento";
+            salvarBtn.textContent = "Atualizar Agendamento";
         }
     });
 
