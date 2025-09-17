@@ -159,10 +159,10 @@
 
 <div id="userBar">
     <button onclick="history.back()" style="
-        background: transparent; 
-        border: none; 
-        color: #333; 
-        font-size: 24px; 
+        background: transparent; 
+        border: none; 
+        color: #333; 
+        font-size: 24px; 
         cursor: pointer;
         margin-right: 10px;
     ">←</button>
@@ -179,7 +179,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 <header>
     <h1>Gerenciamento de Agendamentos</h1>
 </header>
-  
+  
 <div class="table-container">
     <form id="agendamentoForm">
     <h2>Adicionar/Editar Agendamento</h2>
@@ -205,12 +205,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
     <button type="submit" id="salvarBtn">Salvar Agendamento</button>
     <button type="button" id="rascunhoBtn" class="rascunho">Salvar em Rascunho</button>
     </form>
-  
+  
     <div id="rascunhos-container">
         <h2>Agendamentos em Rascunho</h2>
         <div id="listaRascunhos"></div>
     </div>
-  
+  
     <h2>Lista de Agendamentos</h2>
     <div id="exportButtons">
         <button onclick="exportarExcel()">Exportar Excel</button>
@@ -261,7 +261,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const historicoModal = document.getElementById('historicoModal');
     const historicoContent = document.getElementById('historicoContent');
     const salvarBtn = document.getElementById("salvarBtn");
-    
+    
     let editingId = null;
     let editingRascunhoId = null;
     let dataTable = null;
@@ -303,7 +303,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             `;
         }
     });
-    
+    
     numCargasInput.dispatchEvent(new Event('input'));
 
     document.getElementById('rascunhoBtn').addEventListener('click', async () => {
@@ -368,12 +368,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 const rascunho = doc.data();
                 const rascunhoDiv = document.createElement('div');
                 rascunhoDiv.classList.add('rascunho-item');
-                
+                
                 let rascunhoContent = `<p><strong>ID do rascunho:</strong> ${doc.id}</p>`;
                 rascunho.cargas.forEach((carga, index) => {
                     rascunhoContent += `<p><strong>Carga ${index + 1}:</strong> Data: ${carga.data || "Não definida"}, Central: ${carga.central}, Produto: ${carga.produto}</p>`;
                 });
-                
+                
                 rascunhoDiv.innerHTML = rascunhoContent;
 
                 const editarRascunhoBtn = document.createElement('button');
@@ -399,7 +399,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     });
                 };
                 rascunhoDiv.appendChild(editarRascunhoBtn);
-                
+                
                 const copiarBtn = document.createElement('button');
                 copiarBtn.textContent = 'Copiar Dados';
                 copiarBtn.className = 'copiar';
@@ -417,7 +417,7 @@ Produto: ${carga.produto || "Não informado"}
 -----------------------------
 `;
                     }).join('');
-                   
+                  
                     navigator.clipboard.writeText(dadosParaCopiar)
                         .then(() => {
                             alert('Dados copiados para a área de transferência! Agora você pode colar no e-mail.');
@@ -448,7 +448,7 @@ Produto: ${carga.produto || "Não informado"}
                     }
                 };
                 rascunhoDiv.appendChild(deletarRascunhoBtn);
-                
+                
                 listaRascunhos.appendChild(rascunhoDiv);
             });
         });
@@ -474,7 +474,7 @@ Produto: ${carga.produto || "Não informado"}
                         transaction.set(newDocRef, novaCarga);
                         await adicionarHistorico("agendou uma nova carga (a partir de rascunho)", { id: newDocRef.id, ...novaCarga });
                     }
-                    
+                  
                     transaction.update(contadorRef, { ultima_senha: ultimaSenha });
                 });
 
@@ -499,7 +499,7 @@ Produto: ${carga.produto || "Não informado"}
         const q = query(collection(db, "agendamentos"), orderBy("data", "asc"), orderBy("senha", "asc"));
         onSnapshot(q, (snapshot) => {
             const agendamentos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
+            
             if (dataTable) {
                 dataTable.destroy();
             }
@@ -546,18 +546,18 @@ Produto: ${carga.produto || "Não informado"}
     const filterPopupContainer = document.getElementById('filter-popup-container');
     let activeColumnIndex = null;
     let activeFilterButton = null;
-    
+    
     $(document).on('click', '.filter-button-text', function (e) {
         e.stopPropagation();
         activeFilterButton = $(this);
         const columnIndex = dataTable.column($(this).closest('th')).index();
         const columnData = dataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
-        
+        
         let popupHtml = '<div><label><input type="radio" name="filter-radio" value="" checked> Todos</label></div>';
         columnData.each(value => {
             popupHtml += `<div><label><input type="radio" name="filter-radio" value="${value}"> ${value}</label></div>`;
         });
-        
+        
         filterPopupContainer.innerHTML = popupHtml;
         const buttonRect = this.getBoundingClientRect();
         filterPopupContainer.style.top = `${buttonRect.bottom + window.scrollY}px`;
@@ -586,16 +586,16 @@ Produto: ${carga.produto || "Não informado"}
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+        
         const cargaItems = document.querySelectorAll('.carga-item');
         let formIncomplete = false;
         const cargas = [];
-        
+        
         cargaItems.forEach(item => {
             const data = item.querySelector('.data').value;
             const central = item.querySelector('.central').value;
             const carga = item.querySelector('.cargas').value;
-            
+            
             if (!data || !central || !carga) {
                 formIncomplete = true;
             }
@@ -608,7 +608,7 @@ Produto: ${carga.produto || "Não informado"}
                 produto: item.querySelector('.produto').value
             });
         });
-        
+        
         if (formIncomplete) {
             alert("Por favor, preencha todos os campos obrigatórios (Data, Central e Cargas).");
             return;
@@ -634,7 +634,7 @@ Produto: ${carga.produto || "Não informado"}
                     if (contadorDoc.exists()) {
                         ultimaSenha = contadorDoc.data().ultima_senha;
                     }
-                    
+                  
                     const savedCargas = [];
                     for (const carga of cargas) {
                         ultimaSenha++;
@@ -643,7 +643,7 @@ Produto: ${carga.produto || "Não informado"}
                         transaction.set(newDocRef, novaCarga);
                         savedCargas.push({ id: newDocRef.id, ...novaCarga });
                     }
-                    
+                  
                     transaction.set(contadorRef, { ultima_senha: ultimaSenha });
                     return savedCargas;
                 });
@@ -674,7 +674,7 @@ Produto: ${carga.produto || "Não informado"}
             const dados = docSnap.data();
             numCargasInput.value = 1;
             numCargasInput.dispatchEvent(new Event('input'));
-            
+            
             const cargaItems = document.querySelectorAll('.carga-item');
             if (cargaItems[0]) {
                 cargaItems[0].querySelector('.data').value = dados.data;
@@ -717,6 +717,51 @@ Produto: ${carga.produto || "Não informado"}
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Agendamentos");
         XLSX.writeFile(wb, "agendamentos.xlsx");
+    };
+
+    async function adicionarHistorico(acao, detalhes) {
+        if (!currentUserUid) return;
+        await addDoc(collection(db, "historico-acoes"), {
+            userId: currentUserUid,
+            username: localStorage.getItem("username"),
+            acao: acao,
+            detalhes: detalhes,
+            timestamp: new Date()
+        });
+    }
+
+    window.abrirHistorico = async () => {
+        console.log("Tentando abrir histórico para o UID:", currentUserUid);
+        if (!currentUserUid) {
+            console.warn("currentUserUid é nulo. Não foi possível abrir o histórico.");
+            historicoContent.innerHTML = '<p>Você precisa estar logado para ver o histórico.</p>';
+            historicoModal.style.display = 'block';
+            return;
+        }
+        historicoContent.innerHTML = 'Carregando...';
+        const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
+        const snapshot = await getDocs(q);
+        historicoContent.innerHTML = '';
+        if (snapshot.empty) {
+            historicoContent.innerHTML = '<p>Nenhuma ação registrada.</p>';
+        } else {
+            snapshot.forEach(doc => {
+                const acao = doc.data();
+                const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
+                historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} (ID: ${acao.detalhes.id}).</p>`;
+            });
+        }
+        historicoModal.style.display = 'block';
+    };
+
+    document.querySelector('.close-modal').onclick = () => {
+        historicoModal.style.display = 'none';
+    };
+
+    window.onclick = (event) => {
+        if (event.target == historicoModal) {
+            historicoModal.style.display = 'none';
+        }
     };
 </script>
 
