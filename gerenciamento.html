@@ -469,7 +469,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 ],
                 paging: false,
                 info: false,
-                order: [[1, 'asc']]
+                order: [[1, 'asc']],
+                oLanguage: {
+                    sEmptyTable: "Nenhum rascunho salvo.",
+                    sSearch: "Buscar:"
+                }
             });
         });
     }
@@ -669,7 +673,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 ],
                 paging: false,
                 info: false,
-                order: [[2, 'asc']]
+                order: [[2, 'asc']],
+                oLanguage: {
+                    sSearch: "Buscar:"
+                }
             });
             $('.filter-button-text').each(function() {
                 const columnIndex = dataTable.column($(this).closest('th')).index();
@@ -870,6 +877,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
             return;
         }
         historicoContent.innerHTML = 'Carregando...';
+        // Atenção! Se você estiver vendo um erro no console sobre 'FAILED_PRECONDITION',
+        // isso significa que você precisa criar um índice composto no Firebase para esta consulta.
+        // Vá em Firestore -> Indexes e crie um novo índice com os campos:
+        // Collection ID: historico-acoes
+        // Field 1: userId (Ascending)
+        // Field 2: timestamp (Descending)
         const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
         try {
             const snapshot = await getDocs(q);
