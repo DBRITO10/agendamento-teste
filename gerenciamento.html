@@ -22,7 +22,7 @@
     button:hover { background: #b71c1c; }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-    thead th { background: #cc0000; color: white; }
+    thead th { background: #cc0000; color: white; position: relative; }
     button.edit, button.delete { margin-left: 5px; padding: 5px 10px; font-size: 12px; }
     .table-container { overflow-x: auto; }
     #userBar {
@@ -36,11 +36,44 @@
     }
     #exportButtons { margin-bottom: 15px; }
     #exportButtons button { display: inline-block; width: auto; margin-right: 10px; padding: 10px 20px; }
-    .filter-input { width: 100%; box-sizing: border-box; }
     #agendamentosTabela_filter { display: none; }
     /* Ajuste para evitar quebra de linha em colunas pequenas */
     #agendamentosTabela td:nth-child(2) { white-space: nowrap; }
-    #agendamentosTabela thead tr:nth-child(2) th { padding-top: 5px; padding-bottom: 5px; background: #e0e0e0; }
+
+    /* Estilos do filtro flutuante */
+    .filter-button {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      margin-left: 5px;
+      padding: 0;
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: auto;
+    }
+    .filter-popup {
+      position: absolute;
+      background: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      padding: 10px;
+      z-index: 1000;
+      min-width: 150px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .filter-popup label {
+      display: block;
+      cursor: pointer;
+    }
+    .filter-popup label:hover {
+      background: #f0f0f0;
+    }
   </style>
 </head>
 <body>
@@ -90,27 +123,18 @@ document.addEventListener("DOMContentLoaded", ()=>{
       <tr>
         <th>Senha</th>
         <th>Data</th>
-        <th>Central</th>
-        <th>Cargas</th>
-        <th>Fornecedor</th>
-        <th>Tipo de Produto</th>
-        <th>Produto</th>
+        <th>Central <button class="filter-button" data-col="central">▼</button></th>
+        <th>Cargas <button class="filter-button" data-col="cargas">▼</button></th>
+        <th>Fornecedor <button class="filter-button" data-col="fornecedor">▼</button></th>
+        <th>Tipo de Produto <button class="filter-button" data-col="tipoDeProduto">▼</button></th>
+        <th>Produto <button class="filter-button" data-col="produto">▼</button></th>
         <th>Ações</th>
-      </tr>
-      <tr class="filters">
-        <th><input type="text" placeholder="Filtrar Senha" class="filter-input"></th>
-        <th><input type="text" placeholder="Filtrar Data" class="filter-input"></th>
-        <th><input type="text" placeholder="Filtrar Central" class="filter-input"></th>
-        <th><input type="text" placeholder="Filtrar Cargas" class="filter-input"></th>
-        <th><input type="text" placeholder="Filtrar Fornecedor" class="filter-input"></th>
-        <th><input type="text" placeholder="Filtrar Tipo" class="filter-input"></th>
-        <th><input type="text" placeholder="Filtrar Produto" class="filter-input"></th>
-        <th></th>
       </tr>
     </thead>
     <tbody>
       </tbody>
   </table>
+  <div id="filter-popup-container"></div>
 </div>
 
 <script type="module">
@@ -169,16 +193,51 @@ document.addEventListener("DOMContentLoaded", ()=>{
         ],
         paging: false,
         info: false,
-        order: [] // Evita a ordenação padrão para que a linha de filtro fique sempre no topo
-      });
-
-      // Configura os filtros de coluna no cabeçalho
-      $('#agendamentosTabela thead .filters input').on('keyup change', function () {
-          const columnIndex = $(this).closest('th').index();
-          dataTable.column(columnIndex).search(this.value).draw();
+        order: []
       });
     });
   }
+
+  // Lógica de filtro avançada
+  const filterPopupContainer = document.getElementById('filter-popup-container');
+  let activeColumnIndex = null;
+  
+  $(document).on('click', '.filter-button', function (e) {
+    e.stopPropagation();
+    const columnIndex = dataTable.column($(this).closest('th')).index();
+    const columnData = dataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
+    
+    // Constrói o HTML do popup
+    let popupHtml = '<div><label><input type="radio" name="filter-radio" value="" checked> Todos</label></div>';
+    columnData.each(value => {
+        popupHtml += `<div><label><input type="radio" name="filter-radio" value="${value}"> ${value}</label></div>`;
+    });
+    
+    // Exibe o popup
+    filterPopupContainer.innerHTML = popupHtml;
+    const buttonRect = this.getBoundingClientRect();
+    filterPopupContainer.style.top = `${buttonRect.bottom + window.scrollY}px`;
+    filterPopupContainer.style.left = `${buttonRect.left}px`;
+    filterPopupContainer.classList.add('filter-popup');
+
+    activeColumnIndex = columnIndex;
+  });
+
+  // Aplica o filtro quando uma opção é clicada no popup
+  $(document).on('change', '.filter-popup input', function () {
+    const value = $(this).val();
+    dataTable.column(activeColumnIndex).search(value).draw();
+    filterPopupContainer.classList.remove('filter-popup');
+    filterPopupContainer.innerHTML = '';
+  });
+
+  // Esconde o popup ao clicar fora
+  $(document).on('click', function (e) {
+    if (!$(e.target).closest('.filter-popup').length && !$(e.target).hasClass('filter-button')) {
+      filterPopupContainer.classList.remove('filter-popup');
+      filterPopupContainer.innerHTML = '';
+    }
+  });
 
   // Adiciona/Atualiza um agendamento
   form.addEventListener('submit', async (e) => {
@@ -198,7 +257,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
       await updateDoc(docRef, agendamento);
       editingId = null;
     } else {
-      // --- Lógica para gerar a senha sequencial ---
       const contadorRef = doc(db, "metadados", "contador");
       
       try {
@@ -222,7 +280,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   // Edita ou Exclui um agendamento
   $(document).on('click', '.edit', async function () {
-      // Rola a página para o formulário
       document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
       
       editingId = $(this).data('id');
