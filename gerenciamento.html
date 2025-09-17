@@ -126,7 +126,7 @@
             padding: 20px;
             border: 1px solid #888;
             width: 80%;
-            max-width: 500px;
+            max-width: 700px;
             border-radius: 10px;
         }
         .close-modal {
@@ -185,6 +185,20 @@
             width: auto;
             margin-bottom: 0;
             display: inline-block;
+        }
+        #historicoContent table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        #historicoContent th, #historicoContent td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        #historicoContent thead th {
+            background-color: #f2f2f2;
         }
     </style>
 </head>
@@ -320,20 +334,22 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const historicoModal = document.getElementById('historicoModal');
     const historicoContent = document.getElementById('historicoContent');
     const salvarBtn = document.getElementById("salvarBtn");
-
+    
     const rascunhosButtonsContainer = document.getElementById('rascunhos-buttons');
     const salvarSelecionadosRascunhoBtn = document.getElementById('salvarSelecionadosRascunhoBtn');
     const copiarSelecionadosRascunhoBtn = document.getElementById('copiarSelecionadosRascunhoBtn');
     const excluirSelecionadosRascunhoBtn = document.getElementById('excluirSelecionadosRascunhoBtn');
     const editarRascunhoBtn = document.getElementById('editarRascunhoBtn');
-    
+
     let dataTable = null;
     let rascunhosDataTable = null;
     let currentUserUid = null;
+    let currentUserName = null;
 
     onAuthStateChanged(auth, user => {
         if (user) {
             currentUserUid = user.uid;
+            currentUserName = localStorage.getItem("username") || user.email;
             console.log("Usuário autenticado. UID:", currentUserUid);
             carregarAgendamentos();
             carregarRascunhos();
@@ -640,18 +656,27 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         if (confirm(`Tem certeza que deseja excluir ${checkedRows.length} rascunho(s) selecionado(s)?`)) {
             const batch = writeBatch(db);
-            const deletedIds = [];
+            const deletedDetails = [];
             
-            checkedRows.each(function() {
-                const id = $(this).data('id');
+            for (const el of checkedRows) {
+                const id = $(el).data('id');
                 const docRef = doc(db, "agendamentos-rascunho", id);
-                batch.delete(docRef);
-                deletedIds.push(id);
-            });
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    deletedDetails.push({
+                        senha: data.senha || "N/A",
+                        central: data.central || "N/A",
+                        cargas: data.cargas || "N/A",
+                        fornecedor: data.fornecedor || "N/A"
+                    });
+                    batch.delete(docRef);
+                }
+            }
 
             try {
                 await batch.commit();
-                await adicionarHistorico(`excluiu múltiplos rascunhos (${deletedIds.length})`, { ids: deletedIds });
+                await adicionarHistorico(`excluiu múltiplos rascunhos`, { agendamentos: deletedDetails });
                 alert(`${checkedRows.length} rascunho(s) excluído(s) com sucesso.`);
             } catch (e) {
                 console.error("Erro ao excluir rascunhos em lote:", e);
@@ -802,7 +827,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     timestamp: new Date() 
                 });
                 alert("Rascunho atualizado com sucesso!");
-                adicionarHistorico("atualizou um rascunho", { id: rascunhoId });
+                await adicionarHistorico("atualizou um rascunho", { id: rascunhoId, ...cargas[0] });
                 editRascunhoIdInput.value = "";
                 salvarBtn.textContent = "Salvar Agendamento";
             } catch (e) {
@@ -834,7 +859,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 });
 
                 for (const carga of result) {
-                    await adicionarHistorico("agendou uma nova carga", { id: carga.id, ...carga });
+                    await adicionarHistorico("agendou uma nova carga", { ...carga });
                 }
                 alert("Agendamentos salvos com sucesso!");
 
@@ -876,8 +901,23 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const id = $(this).data('id');
         const docRef = doc(db, "agendamentos", id);
         if (confirm("Tem certeza que deseja excluir este agendamento?")) {
-            await deleteDoc(docRef);
-            await adicionarHistorico("excluiu um agendamento", { id: id });
+            try {
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    await deleteDoc(docRef);
+                    await adicionarHistorico("excluiu um agendamento", {
+                        senha: data.senha || "N/A",
+                        central: data.central || "N/A",
+                        cargas: data.cargas || "N/A",
+                        fornecedor: data.fornecedor || "N/A"
+                    });
+                    alert("Agendamento excluído com sucesso.");
+                }
+            } catch (e) {
+                console.error("Erro ao excluir agendamento:", e);
+                alert("Ocorreu um erro ao excluir. Tente novamente.");
+            }
         }
     });
 
@@ -919,12 +959,50 @@ document.addEventListener("DOMContentLoaded", ()=>{
             if (snapshot.empty) {
                 historicoContent.innerHTML = '<p>Nenhuma ação registrada.</p>';
             } else {
+                let tableHTML = `
+                    <table class="historico-tabela">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Usuário</th>
+                                <th>Ação</th>
+                                <th>Detalhes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
                 snapshot.forEach(doc => {
                     const acao = doc.data();
-                    const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
-                    const acaoDetalhes = (acao.detalhes && (acao.detalhes.id || acao.detalhes.ids)) ? `(ID: ${acao.detalhes.id || acao.detalhes.ids})` : '';
-                    historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} ${acaoDetalhes}.</p>`;
+                    const dataFormatada = new Date(acao.timestamp.seconds * 1000).toLocaleString('pt-BR');
+                    let detalhesHTML = '';
+                    if (acao.acao.startsWith("excluiu um")) {
+                        detalhesHTML = `
+                            <p><strong>Senha:</strong> ${acao.detalhes.senha}</p>
+                            <p><strong>Central:</strong> ${acao.detalhes.central}</p>
+                            <p><strong>Cargas:</strong> ${acao.detalhes.cargas}</p>
+                            <p><strong>Fornecedor:</strong> ${acao.detalhes.fornecedor}</p>
+                        `;
+                    } else if (acao.acao.startsWith("excluiu múltiplos")) {
+                        detalhesHTML = "<ul>";
+                        acao.detalhes.agendamentos.forEach(item => {
+                             detalhesHTML += `<li>Senha: ${item.senha}, Central: ${item.central}, Fornecedor: ${item.fornecedor}</li>`;
+                        });
+                        detalhesHTML += "</ul>";
+                    } else {
+                        detalhesHTML = `<span>N/A</span>`;
+                    }
+
+                    tableHTML += `
+                        <tr>
+                            <td>${dataFormatada}</td>
+                            <td>${acao.username || "Desconhecido"}</td>
+                            <td>${acao.acao}</td>
+                            <td>${detalhesHTML}</td>
+                        </tr>
+                    `;
                 });
+                tableHTML += '</tbody></table>';
+                historicoContent.innerHTML = tableHTML;
             }
         } catch (e) {
             console.error("Erro ao carregar histórico: ", e);
@@ -951,6 +1029,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         try {
             await addDoc(collection(db, "historico-acoes"), {
                 userId: currentUserUid,
+                username: currentUserName,
                 acao: acao,
                 detalhes: detalhes,
                 timestamp: new Date()
@@ -1050,18 +1129,27 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         if (confirm(`Tem certeza que deseja excluir ${checkedRows.length} agendamento(s) selecionado(s)?`)) {
             const batch = writeBatch(db);
-            const deletedIds = [];
+            const deletedDetails = [];
 
-            checkedRows.each(function() {
-                const id = $(this).data('id');
+            for (const el of checkedRows) {
+                const id = $(el).data('id');
                 const docRef = doc(db, "agendamentos", id);
-                batch.delete(docRef);
-                deletedIds.push(id);
-            });
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    deletedDetails.push({
+                        senha: data.senha || "N/A",
+                        central: data.central || "N/A",
+                        cargas: data.cargas || "N/A",
+                        fornecedor: data.fornecedor || "N/A"
+                    });
+                    batch.delete(docRef);
+                }
+            }
 
             try {
                 await batch.commit();
-                await adicionarHistorico(`excluiu múltiplos agendamentos (${deletedIds.length})`, { ids: deletedIds });
+                await adicionarHistorico(`excluiu múltiplos agendamentos`, { agendamentos: deletedDetails });
                 alert(`${checkedRows.length} agendamento(s) excluído(s) com sucesso.`);
             } catch (e) {
                 console.error("Erro ao excluir agendamentos em lote:", e);
