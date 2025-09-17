@@ -88,7 +88,7 @@
         .filter-popup label:hover {
             background: #f0f0f0;
         }
-        #rascunhos-container {
+        #rascunhos-container, #historico-container {
             margin-top: 30px;
             padding: 20px;
             border: 1px solid #ff9999;
@@ -107,6 +107,67 @@
             display: inline-block;
             width: auto;
             margin-right: 10px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+        }
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close-modal:hover, .close-modal:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            border-top: 1px solid #ccc;
+            font-size: 14px;
+            color: #666;
+        }
+        #cargasHeader, .carga-item {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 5px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .carga-item input {
+            flex: 1;
+            min-width: 120px;
+            margin-bottom: 0;
+        }
+        #cargasHeader span {
+            flex: 1;
+            font-weight: bold;
+            text-align: center;
+            min-width: 120px;
         }
         .hidden {
             display: none;
@@ -130,14 +191,6 @@
 <body>
 
 <div id="userBar">
-    <button onclick="history.back()" style="
-        background: transparent; 
-        border: none; 
-        color: #333; 
-        font-size: 24px; 
-        cursor: pointer;
-        margin-right: 10px;
-    ">←</button>
     <span id="welcomeUser" style="font-weight:bold; color:#333; flex-grow: 1;"></span>
     <button onclick="logout()" style="background:#CC0000; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Sair</button>
 </div>
@@ -237,6 +290,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
     <p>Total de Registros: <span id="totalCargas">0</span></p>
 </footer>
 
+<div id="historicoModal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal">&times;</span>
+      <h2>Histórico de Ações</h2>
+      <div id="historicoContent"></div>
+    </div>
+</div>
+
 <script type="module">
     import { db, auth } from "./firebase-config.js";
     import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc, runTransaction, query, where, getDocs, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -248,23 +309,23 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const cargasContainer = document.getElementById('cargasContainer');
     const rascunhosTabela = document.getElementById('rascunhosTabela');
     const totalCargasSpan = document.getElementById('totalCargas');
+    const historicoModal = document.getElementById('historicoModal');
+    const historicoContent = document.getElementById('historicoContent');
     const salvarBtn = document.getElementById("salvarBtn");
-    
+
     const rascunhosButtonsContainer = document.getElementById('rascunhos-buttons');
     const salvarSelecionadosRascunhoBtn = document.getElementById('salvarSelecionadosRascunhoBtn');
     const copiarSelecionadosRascunhoBtn = document.getElementById('copiarSelecionadosRascunhoBtn');
     const excluirSelecionadosRascunhoBtn = document.getElementById('excluirSelecionadosRascunhoBtn');
     const editarRascunhoBtn = document.getElementById('editarRascunhoBtn');
-
+    
     let dataTable = null;
     let rascunhosDataTable = null;
     let currentUserUid = null;
-    let currentUserName = null;
 
     onAuthStateChanged(auth, user => {
         if (user) {
             currentUserUid = user.uid;
-            currentUserName = localStorage.getItem("username") || user.email;
             console.log("Usuário autenticado. UID:", currentUserUid);
             carregarAgendamentos();
             carregarRascunhos();
@@ -477,46 +538,25 @@ document.addEventListener("DOMContentLoaded", ()=>{
             return;
         }
 
-        const headers = ["Senha", "Cargas", "Data", "Central", "Fornecedor", "Tipo de Produto", "Produto"];
-        let plainTextContent = headers.join('\t') + '\n';
-        
-        let htmlContent = '<table style="width:100%; border-collapse: collapse; margin-top: 20px;">';
-        htmlContent += '<thead><tr style="background: #cc0000; color: white;">';
-        headers.forEach(header => {
-            htmlContent += `<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${header}</th>`;
-        });
-        htmlContent += '</tr></thead><tbody>';
+        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+        let content = headers.join('\t') + '\n';
 
         checkedRows.each(function() {
             const rowData = rascunhosDataTable.row(this).data();
             const values = [
                 rowData[1], // Senha
-                rowData[2], // Cargas
                 rowData[3], // Data
                 rowData[4], // Central
+                rowData[2], // Cargas
                 rowData[5], // Fornecedor
                 rowData[6], // Tipo de Produto
                 rowData[7], // Produto
             ];
-            plainTextContent += values.join('\t') + '\n';
-            
-            htmlContent += '<tr>';
-            values.forEach(value => {
-                htmlContent += `<td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${value}</td>`;
-            });
-            htmlContent += '</tr>';
+            content += values.join('\t') + '\n';
         });
 
-        htmlContent += '</tbody></table>';
-
         try {
-            const blobHtml = new Blob([htmlContent], { type: 'text/html' });
-            const blobPlain = new Blob([plainTextContent], { type: 'text/plain' });
-            const item = new ClipboardItem({
-                'text/html': blobHtml,
-                'text/plain': blobPlain
-            });
-            await navigator.clipboard.write([item]);
+            await navigator.clipboard.writeText(content);
             alert('Dados copiados para a área de transferência com sucesso!');
         } catch (err) {
             console.error('Erro ao copiar os dados:', err);
@@ -571,27 +611,18 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         if (confirm(`Tem certeza que deseja excluir ${checkedRows.length} rascunho(s) selecionado(s)?`)) {
             const batch = writeBatch(db);
-            const deletedDetails = [];
+            const deletedIds = [];
             
-            for (const el of checkedRows) {
-                const id = $(el).data('id');
+            checkedRows.each(function() {
+                const id = $(this).data('id');
                 const docRef = doc(db, "agendamentos-rascunho", id);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    deletedDetails.push({
-                        senha: data.senha || "N/A",
-                        central: data.central || "N/A",
-                        cargas: data.cargas || "N/A",
-                        fornecedor: data.fornecedor || "N/A"
-                    });
-                    batch.delete(docRef);
-                }
-            }
+                batch.delete(docRef);
+                deletedIds.push(id);
+            });
 
             try {
                 await batch.commit();
-                await adicionarHistorico(`excluiu múltiplos rascunhos`, { agendamentos: deletedDetails });
+                await adicionarHistorico(`excluiu múltiplos rascunhos (${deletedIds.length})`, { ids: deletedIds });
                 alert(`${checkedRows.length} rascunho(s) excluído(s) com sucesso.`);
             } catch (e) {
                 console.error("Erro ao excluir rascunhos em lote:", e);
@@ -742,7 +773,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     timestamp: new Date() 
                 });
                 alert("Rascunho atualizado com sucesso!");
-                await adicionarHistorico("atualizou um rascunho", { ...cargas[0] });
+                adicionarHistorico("atualizou um rascunho", { id: rascunhoId });
                 editRascunhoIdInput.value = "";
                 salvarBtn.textContent = "Salvar Agendamento";
             } catch (e) {
@@ -774,7 +805,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 });
 
                 for (const carga of result) {
-                    await adicionarHistorico("agendou uma nova carga", { ...carga });
+                    await adicionarHistorico("agendou uma nova carga", { id: carga.id, ...carga });
                 }
                 alert("Agendamentos salvos com sucesso!");
 
@@ -816,23 +847,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const id = $(this).data('id');
         const docRef = doc(db, "agendamentos", id);
         if (confirm("Tem certeza que deseja excluir este agendamento?")) {
-            try {
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    await deleteDoc(docRef);
-                    await adicionarHistorico("excluiu um agendamento", {
-                        senha: data.senha || "N/A",
-                        central: data.central || "N/A",
-                        cargas: data.cargas || "N/A",
-                        fornecedor: data.fornecedor || "N/A"
-                    });
-                    alert("Agendamento excluído com sucesso.");
-                }
-            } catch (e) {
-                console.error("Erro ao excluir agendamento:", e);
-                alert("Ocorreu um erro ao excluir. Tente novamente.");
-            }
+            await deleteDoc(docRef);
+            await adicionarHistorico("excluiu um agendamento", { id: id });
         }
     });
 
@@ -854,8 +870,48 @@ document.addEventListener("DOMContentLoaded", ()=>{
         XLSX.writeFile(workbook, "agendamentos.xlsx");
     };
 
-    window.abrirHistorico = () => {
-        window.open('historico.html', '_blank');
+    window.abrirHistorico = async () => {
+        if (!currentUserUid) {
+            historicoContent.innerHTML = '<p>Você precisa estar logado para ver o histórico.</p>';
+            historicoModal.style.display = 'block';
+            return;
+        }
+        historicoContent.innerHTML = 'Carregando...';
+        // Atenção! Se você estiver vendo um erro no console sobre 'FAILED_PRECONDITION',
+        // isso significa que você precisa criar um índice composto no Firebase para esta consulta.
+        // Vá em Firestore -> Indexes e crie um novo índice com os campos:
+        // Collection ID: historico-acoes
+        // Field 1: userId (Ascending)
+        // Field 2: timestamp (Descending)
+        const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
+        try {
+            const snapshot = await getDocs(q);
+            historicoContent.innerHTML = '';
+            if (snapshot.empty) {
+                historicoContent.innerHTML = '<p>Nenhuma ação registrada.</p>';
+            } else {
+                snapshot.forEach(doc => {
+                    const acao = doc.data();
+                    const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
+                    const acaoDetalhes = (acao.detalhes && (acao.detalhes.id || acao.detalhes.ids)) ? `(ID: ${acao.detalhes.id || acao.detalhes.ids})` : '';
+                    historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} ${acaoDetalhes}.</p>`;
+                });
+            }
+        } catch (e) {
+            console.error("Erro ao carregar histórico: ", e);
+            historicoContent.innerHTML = '<p>Ocorreu um erro ao carregar o histórico. Tente novamente mais tarde.</p>';
+        }
+        historicoModal.style.display = 'block';
+    };
+
+    document.querySelector('.close-modal').onclick = () => {
+        historicoModal.style.display = 'none';
+    };
+
+    window.onclick = (event) => {
+        if (event.target == historicoModal) {
+            historicoModal.style.display = 'none';
+        }
     };
 
     async function adicionarHistorico(acao, detalhes) {
@@ -866,7 +922,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         try {
             await addDoc(collection(db, "historico-acoes"), {
                 userId: currentUserUid,
-                username: currentUserName,
                 acao: acao,
                 detalhes: detalhes,
                 timestamp: new Date()
@@ -908,16 +963,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
             alert('Por favor, selecione pelo menos um agendamento para copiar.');
             return;
         }
-        
-        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
-        let plainTextContent = headers.join('\t') + '\n';
 
-        let htmlContent = '<table style="width:100%; border-collapse: collapse; margin-top: 20px;">';
-        htmlContent += '<thead><tr style="background: #cc0000; color: white;">';
-        headers.forEach(header => {
-            htmlContent += `<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${header}</th>`;
-        });
-        htmlContent += '</tr></thead><tbody>';
+        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+        let content = headers.join('\t') + '\n';
 
         checkedRows.each(function() {
             const rowData = dataTable.row(this).data();
@@ -930,25 +978,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 rowData[6], // Tipo de Produto
                 rowData[7], // Produto
             ];
-            plainTextContent += values.join('\t') + '\n';
-            
-            htmlContent += '<tr>';
-            values.forEach(value => {
-                htmlContent += `<td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${value}</td>`;
-            });
-            htmlContent += '</tr>';
+            content += values.join('\t') + '\n';
         });
 
-        htmlContent += '</tbody></table>';
-
         try {
-            const blobHtml = new Blob([htmlContent], { type: 'text/html' });
-            const blobPlain = new Blob([plainTextContent], { type: 'text/plain' });
-            const item = new ClipboardItem({
-                'text/html': blobHtml,
-                'text/plain': blobPlain
-            });
-            await navigator.clipboard.write([item]);
+            await navigator.clipboard.writeText(content);
             alert('Dados copiados para a área de transferência com sucesso!');
         } catch (err) {
             console.error('Erro ao copiar os dados:', err);
@@ -966,27 +1000,18 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         if (confirm(`Tem certeza que deseja excluir ${checkedRows.length} agendamento(s) selecionado(s)?`)) {
             const batch = writeBatch(db);
-            const deletedDetails = [];
+            const deletedIds = [];
 
-            for (const el of checkedRows) {
-                const id = $(el).data('id');
+            checkedRows.each(function() {
+                const id = $(this).data('id');
                 const docRef = doc(db, "agendamentos", id);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    deletedDetails.push({
-                        senha: data.senha || "N/A",
-                        central: data.central || "N/A",
-                        cargas: data.cargas || "N/A",
-                        fornecedor: data.fornecedor || "N/A"
-                    });
-                    batch.delete(docRef);
-                }
-            }
+                batch.delete(docRef);
+                deletedIds.push(id);
+            });
 
             try {
                 await batch.commit();
-                await adicionarHistorico(`excluiu múltiplos agendamentos`, { agendamentos: deletedDetails });
+                await adicionarHistorico(`excluiu múltiplos agendamentos (${deletedIds.length})`, { ids: deletedIds });
                 alert(`${checkedRows.length} agendamento(s) excluído(s) com sucesso.`);
             } catch (e) {
                 console.error("Erro ao excluir agendamentos em lote:", e);
