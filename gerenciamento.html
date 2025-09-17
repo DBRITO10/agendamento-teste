@@ -40,6 +40,7 @@
     #agendamentosTabela_filter { display: none; }
     /* Ajuste para evitar quebra de linha em colunas pequenas */
     #agendamentosTabela td:nth-child(2) { white-space: nowrap; }
+    #agendamentosTabela thead tr:nth-child(2) th { padding-top: 5px; padding-bottom: 5px; background: #e0e0e0; }
   </style>
 </head>
 <body>
@@ -96,9 +97,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         <th>Produto</th>
         <th>Ações</th>
       </tr>
-    </thead>
-    <tfoot>
-      <tr>
+      <tr class="filters">
         <th><input type="text" placeholder="Filtrar Senha" class="filter-input"></th>
         <th><input type="text" placeholder="Filtrar Data" class="filter-input"></th>
         <th><input type="text" placeholder="Filtrar Central" class="filter-input"></th>
@@ -108,7 +107,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         <th><input type="text" placeholder="Filtrar Produto" class="filter-input"></th>
         <th></th>
       </tr>
-    </tfoot>
+    </thead>
     <tbody>
       </tbody>
   </table>
@@ -120,7 +119,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
   import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   const form = document.getElementById('agendamentoForm');
-  const tabelaBody = document.querySelector('#agendamentosTabela tbody');
   let editingId = null;
   let dataTable = null;
 
@@ -170,17 +168,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
           { title: "Ações", orderable: false, searchable: false }
         ],
         paging: false,
-        info: false
+        info: false,
+        order: [] // Evita a ordenação padrão para que a linha de filtro fique sempre no topo
       });
 
-      // Remove a linha de filtro extra
-      $('#agendamentosTabela_wrapper #agendamentosTabela_filter').remove();
-      
-      // Configura os filtros de coluna no rodapé
-      dataTable.columns().eq(0).each(function (colIdx) {
-        $('input', dataTable.column(colIdx).footer()).on('keyup change', function () {
-            dataTable.column(colIdx).search(this.value).draw();
-        });
+      // Configura os filtros de coluna no cabeçalho
+      $('#agendamentosTabela thead .filters input').on('keyup change', function () {
+          const columnIndex = $(this).closest('th').index();
+          dataTable.column(columnIndex).search(this.value).draw();
       });
     });
   }
