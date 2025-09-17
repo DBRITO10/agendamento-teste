@@ -39,8 +39,6 @@
     #exportButtons { margin-bottom: 15px; }
     #exportButtons button { display: inline-block; width: auto; margin-right: 10px; padding: 10px 20px; }
     #agendamentosTabela_filter { display: none; }
-    /* Ajuste para evitar quebra de linha em colunas pequenas */
-    #agendamentosTabela td:nth-child(2) { white-space: nowrap; }
     /* Estilos do filtro flutuante */
     .filter-button-text {
       background: none;
@@ -135,6 +133,28 @@
         font-size: 14px;
         color: #666;
     }
+
+    #cargasHeader, .carga-item {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 10px;
+        margin-bottom: 10px;
+        padding: 5px;
+        background: #f5f5f5;
+        border-radius: 4px;
+        overflow-x: auto;
+    }
+    .carga-item input {
+        flex: 1;
+        min-width: 120px;
+        margin-bottom: 0;
+    }
+    #cargasHeader span {
+        flex: 1;
+        font-weight: bold;
+        text-align: center;
+        min-width: 120px;
+    }
   </style>
 </head>
 <body>
@@ -166,16 +186,24 @@ document.addEventListener("DOMContentLoaded", ()=>{
   <form id="agendamentoForm">
     <h2>Adicionar/Editar Agendamento</h2>
     <input type="number" id="numCargas" placeholder="Número de cargas" min="1" value="1" required>
+    <div id="cargasHeader">
+      <span>Data</span>
+      <span>Central</span>
+      <span>Cargas</span>
+      <span>Fornecedor</span>
+      <span>Tipo de Produto</span>
+      <span>Produto</span>
+    </div>
     <div id="cargasContainer">
         <div class="carga-item">
-            <input type="text" placeholder="Central" required>
-            <input type="text" placeholder="Cargas" required>
-            <input type="text" placeholder="Fornecedor" required>
-            <input type="text" placeholder="Tipo de Produto" required>
-            <input type="text" placeholder="Produto" required>
+            <input type="date" class="data" required>
+            <input type="text" class="central" placeholder="Central" required>
+            <input type="text" class="cargas" placeholder="Cargas" required>
+            <input type="text" class="fornecedor" placeholder="Fornecedor" required>
+            <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
+            <input type="text" class="produto" placeholder="Produto" required>
         </div>
     </div>
-    <input type="date" id="data" required>
     <button type="submit" id="salvarBtn">Salvar Agendamento</button>
     <button type="button" id="rascunhoBtn" class="rascunho">Salvar em Rascunho</button>
   </form>
@@ -224,7 +252,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
 <script type="module">
   import { db, auth } from "./firebase-config.js";
-  import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc, runTransaction, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc, runTransaction, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   const form = document.getElementById('agendamentoForm');
@@ -262,7 +290,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     for (let i = 0; i < numCargas; i++) {
       cargasContainer.innerHTML += `
         <div class="carga-item">
-            <h4>Carga ${i + 1}</h4>
+            <input type="date" class="data">
             <input type="text" class="central" placeholder="Central" required>
             <input type="text" class="cargas" placeholder="Cargas" required>
             <input type="text" class="fornecedor" placeholder="Fornecedor" required>
@@ -272,20 +300,38 @@ document.addEventListener("DOMContentLoaded", ()=>{
       `;
     }
   });
+  
+  numCargasInput.dispatchEvent(new Event('input'));
 
   // Salvar Agendamento em Rascunho
   document.getElementById('rascunhoBtn').addEventListener('click', async () => {
+    if (!currentUserUid) {
+        alert("Sua sessão expirou. Por favor, faça login novamente.");
+        return;
+    }
     const cargas = [];
     const cargaItems = document.querySelectorAll('.carga-item');
+    let formIncomplete = false;
     cargaItems.forEach(item => {
+      const central = item.querySelector('.central').value;
+      const carga = item.querySelector('.cargas').value;
+      if (!central || !carga) {
+        formIncomplete = true;
+      }
       cargas.push({
-        central: item.querySelector('.central').value,
-        cargas: item.querySelector('.cargas').value,
+        data: item.querySelector('.data').value || null, // Salva a data, mesmo se vazia
+        central: central,
+        cargas: carga,
         fornecedor: item.querySelector('.fornecedor').value,
         tipoDeProduto: item.querySelector('.tipoDeProduto').value,
         produto: item.querySelector('.produto').value
       });
     });
+
+    if (formIncomplete) {
+      alert("Por favor, preencha pelo menos os campos Central e Cargas.");
+      return;
+    }
 
     try {
       await addDoc(collection(db, "agendamentos-rascunho"), {
@@ -333,7 +379,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         copiarBtn.onclick = () => {
             let dados = "";
             rascunho.cargas.forEach(carga => {
-                dados += `Central: ${carga.central}\nCargas: ${carga.cargas}\nFornecedor: ${carga.fornecedor}\nTipo de Produto: ${carga.tipoDeProduto}\nProduto: ${carga.produto}\n\n`;
+                dados += `Data: ${carga.data || "Não definida"}\nCentral: ${carga.central}\nCargas: ${carga.cargas}\nFornecedor: ${carga.fornecedor}\nTipo de Produto: ${carga.tipoDeProduto}\nProduto: ${carga.produto}\n\n`;
             });
             navigator.clipboard.writeText(dados);
             alert('Dados copiados para a área de transferência!');
@@ -436,40 +482,50 @@ document.addEventListener("DOMContentLoaded", ()=>{
   // Adiciona/Atualiza um agendamento e registra no histórico
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-
-    const data = form['data'].value;
+    
     const cargas = [];
     const cargaItems = document.querySelectorAll('.carga-item');
+    
+    let formIncomplete = false;
     cargaItems.forEach(item => {
+      const data = item.querySelector('.data').value;
+      const central = item.querySelector('.central').value;
+      const carga = item.querySelector('.cargas').value;
+      
+      if (!data || !central || !carga) {
+        formIncomplete = true;
+      }
       cargas.push({
-        central: item.querySelector('.central').value,
-        cargas: item.querySelector('.cargas').value,
+        data: data,
+        central: central,
+        cargas: carga,
         fornecedor: item.querySelector('.fornecedor').value,
         tipoDeProduto: item.querySelector('.tipoDeProduto').value,
         produto: item.querySelector('.produto').value
       });
     });
+    
+    if (formIncomplete) {
+      alert("Por favor, preencha todos os campos obrigatórios (Data, Central e Cargas).");
+      return;
+    }
 
     if (editingId) {
       const docRef = doc(db, "agendamentos", editingId);
-      await updateDoc(docRef, { ...cargas[0], data: data });
+      await updateDoc(docRef, cargas[0]);
       await adicionarHistorico("editou um agendamento", { id: editingId, ...cargas[0] });
       editingId = null;
     } else {
       for (const carga of cargas) {
-        const agendamento = {
-          data: data,
-          ...carga
-        };
         const contadorRef = doc(db, "metadados", "contador");
         try {
           await runTransaction(db, async (transaction) => {
               const contadorDoc = await transaction.get(contadorRef);
               const novaSenha = contadorDoc.data().ultima_senha + 1;
-              agendamento.senha = novaSenha;
-              const newDocRef = await addDoc(collection(db, "agendamentos"), agendamento);
+              carga.senha = novaSenha;
+              const newDocRef = await addDoc(collection(db, "agendamentos"), carga);
               transaction.update(contadorRef, { ultima_senha: novaSenha });
-              await adicionarHistorico("agendou um novo carro", { id: newDocRef.id, ...agendamento });
+              await adicionarHistorico("agendou um novo carro", { id: newDocRef.id, ...carga });
           });
         } catch (e) {
             console.error("Erro ao gerar senha e salvar agendamento: ", e);
@@ -490,10 +546,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const dados = docSnap.data();
-        form['data'].value = dados.data;
         numCargasInput.value = 1;
         numCargasInput.dispatchEvent(new Event('input'));
         const cargaItem = document.querySelector('.carga-item');
+        cargaItem.querySelector('.data').value = dados.data;
         cargaItem.querySelector('.central').value = dados.central;
         cargaItem.querySelector('.cargas').value = dados.cargas;
         cargaItem.querySelector('.fornecedor').value = dados.fornecedor;
