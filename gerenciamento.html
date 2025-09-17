@@ -397,7 +397,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
             alert('Erro ao salvar rascunho. Tente novamente.');
         }
     });
-
+    
+    // FUNÇÃO CORRIGIDA
     function carregarRascunhos() {
         if (!currentUserUid) {
             return;
@@ -411,18 +412,19 @@ document.addEventListener("DOMContentLoaded", ()=>{
             const dadosParaTabela = [];
             snapshot.forEach(doc => {
                 const rascunho = doc.data();
-                rascunho.cargas.forEach(carga => {
-                     dadosParaTabela.push([
+                if (rascunho.cargas && rascunho.cargas.length > 0) {
+                    const primeiraCarga = rascunho.cargas[0];
+                    dadosParaTabela.push([
                         `<input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}" data-rascunho='${JSON.stringify(rascunho.cargas)}'>`,
                         doc.id,
                         rascunho.cargas.length,
-                        carga.data || "Não definida",
-                        carga.central,
-                        carga.fornecedor,
-                        carga.tipoDeProduto,
-                        carga.produto
+                        primeiraCarga.data || "Não definida",
+                        primeiraCarga.central,
+                        primeiraCarga.fornecedor,
+                        primeiraCarga.tipoDeProduto,
+                        primeiraCarga.produto
                     ]);
-                });
+                }
             });
 
             rascunhosDataTable = $('#rascunhosTabela').DataTable({
@@ -443,7 +445,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             });
         });
     }
-    
+
     $(document).on('change', '.rascunho-checkbox', function() {
         toggleRascunhoButtons();
     });
@@ -499,13 +501,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
             return;
         }
 
-        const headers = ["ID Rascunho", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+        const headers = ["ID Rascunho", "Cargas", "Data", "Central", "Fornecedor", "Tipo de Produto", "Produto"];
         let content = headers.join('\t') + '\n';
 
         checkedRows.each(function() {
             const rowData = rascunhosDataTable.row(this).data();
             const values = [
                 rowData[1], // ID Rascunho
+                rowData[2], // Cargas
                 rowData[3], // Data
                 rowData[4], // Central
                 rowData[5], // Fornecedor
