@@ -37,67 +37,42 @@
     #exportButtons { margin-bottom: 15px; }
     #exportButtons button { display: inline-block; width: auto; margin-right: 10px; padding: 10px 20px; }
     #agendamentosTabela_filter { display: none; }
+    /* Ajuste para evitar quebra de linha em colunas pequenas */
     #agendamentosTabela td:nth-child(2) { white-space: nowrap; }
 
-    /* Estilos do Modal de Filtro */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      background-color: rgba(0,0,0,0.4);
-    }
-    .modal-content {
-      background-color: #fefefe;
-      margin: 10% auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 80%;
-      max-width: 400px;
-      border-radius: 8px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      position: relative;
-    }
-    .close {
-      color: #aaa;
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-    }
-    .close:hover, .close:focus {
-      color: black;
-      text-decoration: none;
+    /* Estilos do filtro flutuante */
+    .filter-button {
+      background: none;
+      border: none;
+      color: white;
       cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      margin-left: 5px;
+      padding: 0;
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: auto;
     }
-    .modal-body {
-      max-height: 300px;
+    .filter-popup {
+      position: absolute;
+      background: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      padding: 10px;
+      z-index: 1000;
+      min-width: 150px;
+      max-height: 200px;
       overflow-y: auto;
     }
-    .modal-buttons {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 15px;
+    .filter-popup label {
+      display: block;
+      cursor: pointer;
     }
-    .modal-buttons button {
-      width: 48%;
-    }
-    .modal-buttons .apply-filter-btn {
-      background: #4CAF50;
-    }
-    .modal-buttons .clear-filter-btn {
-      background: #f44336;
-    }
-    .modal-header h2 {
-        margin: 0;
-        color: #d32f2f;
-    }
-    .filter-row .applied-filter {
-        color: #cc0000;
-        font-weight: bold;
+    .filter-popup label:hover {
+      background: #f0f0f0;
     }
   </style>
 </head>
@@ -148,58 +123,18 @@ document.addEventListener("DOMContentLoaded", ()=>{
       <tr>
         <th>Senha</th>
         <th>Data</th>
-        <th>Central</th>
-        <th>Cargas</th>
-        <th>Fornecedor</th>
-        <th>Tipo de Produto</th>
-        <th>Produto</th>
+        <th>Central <button class="filter-button" data-col="central">▼</button></th>
+        <th>Cargas <button class="filter-button" data-col="cargas">▼</button></th>
+        <th>Fornecedor <button class="filter-button" data-col="fornecedor">▼</button></th>
+        <th>Tipo de Produto <button class="filter-button" data-col="tipoDeProduto">▼</button></th>
+        <th>Produto <button class="filter-button" data-col="produto">▼</button></th>
         <th>Ações</th>
       </tr>
-      <tr class="filter-row">
-        <th></th>
-        <th><button class="filter-button" data-col="data">Filtrar/Limpar Filtro</button></th>
-        <th><button class="filter-button" data-col="central">Filtrar/Limpar Filtro</button></th>
-        <th><button class="filter-button" data-col="cargas">Filtrar/Limpar Filtro</button></th>
-        <th><button class="filter-button" data-col="fornecedor">Filtrar/Limpar Filtro</button></th>
-        <th><button class="filter-button" data-col="tipoDeProduto">Filtrar/Limpar Filtro</button></th>
-        <th><button class="filter-button" data-col="produto">Filtrar/Limpar Filtro</button></th>
-        <th></th>
-      </tr>
     </thead>
-    <tfoot>
-      <tr>
-        <th></th>
-        <th></th>
-        <th></th>
-        <th id="totalCargas" style="text-align: left;">Total: 0</th>
-        <th></th>
-        <th></th>
-        <th></th>
-        <th></th>
-      </tr>
-    </tfoot>
     <tbody>
       </tbody>
   </table>
-  
-  <div id="filterModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <span class="close">&times;</span>
-        <h2 id="modalTitle"></h2>
-      </div>
-      <div class="modal-body">
-        <div id="filterOptions"></div>
-      </div>
-      <div class="modal-buttons">
-        <button id="selectAllBtn" class="clear-button">Marcar Todos</button>
-        <button id="clearAllBtn" class="clear-button">Desmarcar Todos</button>
-      </div>
-      <div class="modal-buttons">
-        <button id="applyFilterBtn" class="apply-filter-btn">Aplicar Filtro</button>
-      </div>
-    </div>
-  </div>
+  <div id="filter-popup-container"></div>
 </div>
 
 <script type="module">
@@ -210,16 +145,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const form = document.getElementById('agendamentoForm');
   let editingId = null;
   let dataTable = null;
-  const colMap = {
-      "data": 1,
-      "central": 2,
-      "cargas": 3,
-      "fornecedor": 4,
-      "tipoDeProduto": 5,
-      "produto": 6
-  };
-  const defaultFilterText = "Filtrar/Limpar Filtro";
-  let currentFilterCol = null;
 
   onAuthStateChanged(auth, user => {
     if (!user) {
@@ -268,136 +193,60 @@ document.addEventListener("DOMContentLoaded", ()=>{
         ],
         paging: false,
         info: false,
-        order: [],
+        order: []
       });
-
-      const filters = loadFilters();
-      applyFilters(filters);
-
-      dataTable.on('draw.dt', function () {
-        atualizarTotalCargas();
-      });
-      atualizarTotalCargas();
     });
   }
 
-  // Funções para salvar/carregar filtros
-  function saveFilters(filters) {
-      localStorage.setItem('agendamento_filters', JSON.stringify(filters));
-  }
-
-  function loadFilters() {
-      const savedFilters = localStorage.getItem('agendamento_filters');
-      return savedFilters ? JSON.parse(savedFilters) : {};
-  }
-
-  function applyFilters(filters) {
-      // Limpa todos os filtros existentes na tabela
-      for (const colName in colMap) {
-          dataTable.column(colMap[colName]).search('').draw();
-          $(`.filter-button[data-col='${colName}']`).text(defaultFilterText).removeClass('applied-filter');
-      }
-
-      // Aplica os novos filtros
-      for (const colName in filters) {
-          const colIndex = colMap[colName];
-          if (colIndex !== undefined && filters[colName].length > 0) {
-              const searchValues = filters[colName].join('|');
-              dataTable.column(colIndex).search(searchValues, true, false).draw();
-              $(`.filter-button[data-col='${colName}']`).text('APLICADO').addClass('applied-filter');
-          }
-      }
-      atualizarTotalCargas();
-  }
-
-  // Lógica do Modal de Filtro
-  const filterModal = document.getElementById('filterModal');
-  const filterOptions = document.getElementById('filterOptions');
-  const modalTitle = document.getElementById('modalTitle');
-  const selectAllBtn = document.getElementById('selectAllBtn');
-  const clearAllBtn = document.getElementById('clearAllBtn');
-  const applyFilterBtn = document.getElementById('applyFilterBtn');
-
+  // Lógica de filtro avançada
+  const filterPopupContainer = document.getElementById('filter-popup-container');
+  let activeColumnIndex = null;
+  
   $(document).on('click', '.filter-button', function (e) {
     e.stopPropagation();
-    currentFilterCol = $(this).data('col');
-    const columnIndex = colMap[currentFilterCol];
-    const columnData = dataTable.column(columnIndex, { search: 'applied' }).data();
+    const columnIndex = dataTable.column($(this).closest('th')).index();
+    const columnData = dataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
     
-    let uniqueValues = columnData.unique().sort();
-    let popupHtml = '';
-    
-    uniqueValues.each(value => {
-        popupHtml += `<div><label><input type="checkbox" value="${value}"> ${value}</label></div>`;
+    // Constrói o HTML do popup
+    let popupHtml = '<div><label><input type="radio" name="filter-radio" value="" checked> Todos</label></div>';
+    columnData.each(value => {
+        popupHtml += `<div><label><input type="radio" name="filter-radio" value="${value}"> ${value}</label></div>`;
     });
     
-    modalTitle.textContent = `Filtro: ${currentFilterCol}`;
-    filterOptions.innerHTML = popupHtml;
+    // Exibe o popup
+    filterPopupContainer.innerHTML = popupHtml;
+    const buttonRect = this.getBoundingClientRect();
+    filterPopupContainer.style.top = `${buttonRect.bottom + window.scrollY}px`;
+    filterPopupContainer.style.left = `${buttonRect.left}px`;
+    filterPopupContainer.classList.add('filter-popup');
 
-    const currentFilters = loadFilters();
-    if (currentFilters[currentFilterCol]) {
-        currentFilters[currentFilterCol].forEach(val => {
-            $(`input[value='${val}']`).prop('checked', true);
-        });
+    activeColumnIndex = columnIndex;
+  });
+
+  // Aplica o filtro quando uma opção é clicada no popup
+  $(document).on('change', '.filter-popup input', function () {
+    const value = $(this).val();
+    dataTable.column(activeColumnIndex).search(value).draw();
+    filterPopupContainer.classList.remove('filter-popup');
+    filterPopupContainer.innerHTML = '';
+  });
+
+  // Esconde o popup ao clicar fora
+  $(document).on('click', function (e) {
+    if (!$(e.target).closest('.filter-popup').length && !$(e.target).hasClass('filter-button')) {
+      filterPopupContainer.classList.remove('filter-popup');
+      filterPopupContainer.innerHTML = '';
     }
-
-    filterModal.style.display = "block";
   });
-
-  $('.close').on('click', function() {
-    filterModal.style.display = "none";
-  });
-
-  $(window).on('click', function(e) {
-    if ($(e.target).is(filterModal)) {
-      filterModal.style.display = "none";
-    }
-  });
-
-  selectAllBtn.addEventListener('click', () => {
-      $('#filterOptions input[type="checkbox"]').prop('checked', true);
-  });
-
-  clearAllBtn.addEventListener('click', () => {
-      $('#filterOptions input[type="checkbox"]').prop('checked', false);
-  });
-
-  applyFilterBtn.addEventListener('click', () => {
-      const selectedValues = [];
-      $('#filterOptions input[type="checkbox"]:checked').each(function() {
-          selectedValues.push($(this).val());
-      });
-      
-      const currentFilters = loadFilters();
-      if (selectedValues.length > 0) {
-        currentFilters[currentFilterCol] = selectedValues;
-      } else {
-        delete currentFilters[currentFilterCol];
-      }
-      saveFilters(currentFilters);
-      applyFilters(currentFilters);
-
-      filterModal.style.display = "none";
-  });
-
-  // Função para atualizar o total de cargas
-  function atualizarTotalCargas() {
-    const total = dataTable.column(3, { page: 'current' }).data().reduce(function (a, b) {
-        const value = parseFloat(b.replace(',', '.')) || 0;
-        return a + value;
-    }, 0);
-    $('#totalCargas').text('Total: ' + total.toFixed(2));
-  }
 
   // Adiciona/Atualiza um agendamento
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const cargasValue = form['cargas'].value.replace('.', '').replace(',', '.');
 
     const agendamento = {
       data: form['data'].value,
       central: form['central'].value,
-      cargas: cargasValue,
+      cargas: form['cargas'].value,
       fornecedor: form['fornecedor'].value,
       tipoDeProduto: form['tipoDeProduto'].value,
       produto: form['produto'].value
