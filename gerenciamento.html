@@ -78,6 +78,16 @@
       color: #333;
       font-weight: bold;
     }
+    .filter-row th {
+        background-color: transparent !important;
+    }
+    .filter-row .filter-button {
+        position: relative;
+        right: auto;
+        top: auto;
+        transform: none;
+        color: #333;
+    }
   </style>
 </head>
 <body>
@@ -126,13 +136,23 @@ document.addEventListener("DOMContentLoaded", ()=>{
     <thead>
       <tr>
         <th>Senha</th>
-        <th>Data <button class="filter-button" data-col="data">▼</button></th>
-        <th>Central <button class="filter-button" data-col="central">▼</button></th>
-        <th>Cargas <button class="filter-button" data-col="cargas">▼</button></th>
-        <th>Fornecedor <button class="filter-button" data-col="fornecedor">▼</button></th>
-        <th>Tipo de Produto <button class="filter-button" data-col="tipoDeProduto">▼</button></th>
-        <th>Produto <button class="filter-button" data-col="produto">▼</button></th>
+        <th>Data</th>
+        <th>Central</th>
+        <th>Cargas</th>
+        <th>Fornecedor</th>
+        <th>Tipo de Produto</th>
+        <th>Produto</th>
         <th>Ações</th>
+      </tr>
+      <tr class="filter-row">
+        <th></th>
+        <th><button class="filter-button" data-col="data">▼</button></th>
+        <th><button class="filter-button" data-col="central">▼</button></th>
+        <th><button class="filter-button" data-col="cargas">▼</button></th>
+        <th><button class="filter-button" data-col="fornecedor">▼</button></th>
+        <th><button class="filter-button" data-col="tipoDeProduto">▼</button></th>
+        <th><button class="filter-button" data-col="produto">▼</button></th>
+        <th></th>
       </tr>
     </thead>
     <tfoot>
@@ -140,7 +160,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         <th></th>
         <th></th>
         <th></th>
-        <th id="totalCargas">Total: 0</th>
+        <th id="totalCargas" style="text-align: left;">Total: 0</th>
         <th></th>
         <th></th>
         <th></th>
@@ -212,7 +232,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         order: [],
       });
 
-      // Recalcula o total de cargas após cada filtro, ordenação ou redesenho
       dataTable.on('draw.dt', function () {
         atualizarTotalCargas();
       });
@@ -229,17 +248,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const columnIndex = dataTable.column($(this).closest('th')).index();
     const columnData = dataTable.column(columnIndex, { search: 'applied' }).data();
     
-    // Constrói o HTML do popup
     let popupHtml = '<div><label><input type="radio" name="filter-radio" value="" checked> Todos</label></div>';
     
     let uniqueValues;
     if (columnIndex === 1) { // Coluna da Data
-        uniqueValues = columnData.map(d => {
-            const date = new Date(d + "T00:00:00");
-            const month = date.getMonth();
-            const year = date.getFullYear();
-            return `${monthNames[month]}/${year}`;
-        }).unique().sort();
+        uniqueValues = columnData.map(d => d).unique().sort();
     } else {
         uniqueValues = columnData.unique().sort();
     }
@@ -254,24 +267,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
     filterPopupContainer.style.left = `${buttonRect.left}px`;
     filterPopupContainer.classList.add('filter-popup');
     
-    // Aplica o filtro quando uma opção é clicada no popup
-    $(filterPopupContainer).on('change', 'input', function () {
+    $(filterPopupContainer).off('change').on('change', 'input', function () {
         const selectedValue = $(this).val();
-        if (columnIndex === 1) { // Coluna da Data
-            if (selectedValue === "") {
-                dataTable.column(columnIndex).search("").draw();
-            } else {
-                const [selectedMonth, selectedYear] = selectedValue.split('/');
-                const monthIndex = monthNames.indexOf(selectedMonth);
-                const searchRegex = `^\\d{4}-${(monthIndex + 1).toString().padStart(2, '0')}-\\d{2}$`;
-                dataTable.column(columnIndex).search(searchRegex, true, false).draw();
-            }
-        } else {
-            dataTable.column(columnIndex).search(selectedValue).draw();
-        }
+        dataTable.column(columnIndex).search(selectedValue).draw();
         filterPopupContainer.classList.remove('filter-popup');
         filterPopupContainer.innerHTML = '';
-        $(filterPopupContainer).off('change'); // Remove o listener para evitar duplicação
     });
   });
 
