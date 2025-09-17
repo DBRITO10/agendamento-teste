@@ -417,12 +417,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         dadosParaTabela.push([
                             `<input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}" data-rascunho='${JSON.stringify(rascunho.cargas)}'>`,
                             doc.id,
-                            rascunho.cargas.length,
+                            carga.cargas || "Não definido",
                             carga.data || "Não definida",
-                            carga.central,
-                            carga.fornecedor,
-                            carga.tipoDeProduto,
-                            carga.produto
+                            carga.central || "Não definido",
+                            carga.fornecedor || "Não definido",
+                            carga.tipoDeProduto || "Não definido",
+                            carga.produto || "Não definido"
                         ]);
                     });
                 } else {
