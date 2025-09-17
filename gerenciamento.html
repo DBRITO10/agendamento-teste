@@ -1,240 +1,240 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Gerenciamento de Agendamentos</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>Gerenciamento de Agendamentos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background-color: #fafafa; }
-        header { text-align: center; margin-bottom: 20px; }
-        h1 { color: #cc0000; font-size: 28px; margin: 10px 0 20px 0; font-weight: bold; }
-        form { margin-bottom: 20px; padding: 20px; border: 1px solid #ff9999; border-radius: 6px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-        input, button { display: block; width: 100%; margin-bottom: 10px; padding: 8px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
-        button { background: #d32f2f; color: white; font-weight: bold; cursor: pointer; }
-        button.rascunho { background: #ff9933; }
-        button.rascunho:hover { background: #e68a00; }
-        button:hover { background: #b71c1c; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        thead th { background: #cc0000; color: white; position: relative; }
-        button.edit, button.delete, button.salvarRascunho, button.copiar, button.edit-rascunho { margin-left: 5px; padding: 5px 10px; font-size: 12px; }
-        .table-container { overflow-x: auto; }
-        #userBar {
-            background: #E6E6E6;
-            padding: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: 6px;
-            margin-bottom: 12px;
-        }
-        #exportButtons { margin-bottom: 15px; }
-        #exportButtons button { display: inline-block; width: auto; margin-right: 10px; padding: 10px 20px; }
-        #agendamentosTabela_filter { display: none; }
-        /* Estilos do filtro flutuante */
-        .filter-button-text {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            margin-left: 5px;
-            padding: 0;
-            position: absolute;
-            right: 5px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: auto;
-        }
-        .filter-popup {
-            position: absolute;
-            background: white;
-            border: 1px solid #ccc;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            padding: 10px;
-            z-index: 1000;
-            min-width: 150px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        .filter-popup label {
-            display: block;
-            cursor: pointer;
-        }
-        .filter-popup label:hover {
-            background: #f0f0f0;
-        }
-        #rascunhos-container, #historico-container {
-            margin-top: 30px;
-            padding: 20px;
-            border: 1px solid #ff9999;
-            border-radius: 6px;
-            background: #fff;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-        .rascunho-item {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        .rascunho-item:last-child {
-            border-bottom: none;
-        }
-        .rascunho-item button {
-            display: inline-block;
-            width: auto;
-            margin-right: 10px;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1001;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-            padding-top: 60px;
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 5% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 500px;
-            border-radius: 10px;
-        }
-        .close-modal {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-        }
-        .close-modal:hover, .close-modal:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-        footer {
-            text-align: center;
-            margin-top: 20px;
-            padding: 10px;
-            border-top: 1px solid #ccc;
-            font-size: 14px;
-            color: #666;
-        }
-        #cargasHeader, .carga-item {
-            display: flex;
-            flex-wrap: nowrap;
-            gap: 10px;
-            margin-bottom: 10px;
-            padding: 5px;
-            background: #f5f5f5;
-            border-radius: 4px;
-            overflow-x: auto;
-        }
-        .carga-item input {
-            flex: 1;
-            min-width: 120px;
-            margin-bottom: 0;
-        }
-        #cargasHeader span {
-            flex: 1;
-            font-weight: bold;
-            text-align: center;
-            min-width: 120px;
-        }
-    </style>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background-color: #fafafa; }
+    header { text-align: center; margin-bottom: 20px; }
+    h1 { color: #cc0000; font-size: 28px; margin: 10px 0 20px 0; font-weight: bold; }
+    form { margin-bottom: 20px; padding: 20px; border: 1px solid #ff9999; border-radius: 6px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    input, button { display: block; width: 100%; margin-bottom: 10px; padding: 8px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+    button { background: #d32f2f; color: white; font-weight: bold; cursor: pointer; }
+    button.rascunho { background: #ff9933; }
+    button.rascunho:hover { background: #e68a00; }
+    button:hover { background: #b71c1c; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    thead th { background: #cc0000; color: white; position: relative; }
+    button.edit, button.delete { margin-left: 5px; padding: 5px 10px; font-size: 12px; }
+    .table-container { overflow-x: auto; }
+    #userBar {
+        background: #E6E6E6;
+        padding: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 6px;
+        margin-bottom: 12px;
+    }
+    #exportButtons { margin-bottom: 15px; }
+    #exportButtons button { display: inline-block; width: auto; margin-right: 10px; padding: 10px 20px; }
+    #agendamentosTabela_filter { display: none; }
+    /* Estilos do filtro flutuante */
+    .filter-button-text {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+      margin-left: 5px;
+      padding: 0;
+      position: absolute;
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: auto;
+    }
+    .filter-popup {
+      position: absolute;
+      background: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      padding: 10px;
+      z-index: 1000;
+      min-width: 150px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .filter-popup label {
+      display: block;
+      cursor: pointer;
+    }
+    .filter-popup label:hover {
+      background: #f0f0f0;
+    }
+    #rascunhos-container, #historico-container {
+      margin-top: 30px;
+      padding: 20px;
+      border: 1px solid #ff9999;
+      border-radius: 6px;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .rascunho-item {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .rascunho-item:last-child {
+      border-bottom: none;
+    }
+    .rascunho-item button {
+      display: inline-block;
+      width: auto;
+      margin-right: 10px;
+    }
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1001;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.4);
+        padding-top: 60px;
+    }
+    .modal-content {
+        background-color: #fefefe;
+        margin: 5% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 500px;
+        border-radius: 10px;
+    }
+    .close-modal {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+    .close-modal:hover, .close-modal:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+    footer {
+        text-align: center;
+        margin-top: 20px;
+        padding: 10px;
+        border-top: 1px solid #ccc;
+        font-size: 14px;
+        color: #666;
+    }
+    #cargasHeader, .carga-item {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 10px;
+        margin-bottom: 10px;
+        padding: 5px;
+        background: #f5f5f5;
+        border-radius: 4px;
+        overflow-x: auto;
+    }
+    .carga-item input {
+        flex: 1;
+        min-width: 120px;
+        margin-bottom: 0;
+    }
+    #cargasHeader span {
+        flex: 1;
+        font-weight: bold;
+        text-align: center;
+        min-width: 120px;
+    }
+  </style>
 </head>
 <body>
 
 <div id="userBar">
-    <button onclick="history.back()" style="
-        background: transparent; 
-        border: none; 
-        color: #333; 
-        font-size: 24px; 
-        cursor: pointer;
-        margin-right: 10px;
-    ">←</button>
-    <span id="welcomeUser" style="font-weight:bold; color:#333; flex-grow: 1;"></span>
-    <button onclick="logout()" style="background:#CC0000; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Sair</button>
+  <button onclick="history.back()" style="
+    background: transparent; 
+    border: none; 
+    color: #333; 
+    font-size: 24px; 
+    cursor: pointer;
+    margin-right: 10px;
+  ">←</button>
+  <span id="welcomeUser" style="font-weight:bold; color:#333; flex-grow: 1;"></span>
+  <button onclick="logout()" style="background:#CC0000; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Sair</button>
 </div>
 <script>
 const username = localStorage.getItem("username") || "Usuário";
 document.addEventListener("DOMContentLoaded", ()=>{
-    document.getElementById("welcomeUser").textContent = "Bem-vindo, " + username;
+  document.getElementById("welcomeUser").textContent = "Bem-vindo, " + username;
 });
 </script>
 
 <header>
-    <h1>Gerenciamento de Agendamentos</h1>
+  <h1>Gerenciamento de Agendamentos</h1>
 </header>
   
 <div class="table-container">
-    <form id="agendamentoForm">
-        <h2>Adicionar/Editar Agendamento</h2>
-        <input type="number" id="numCargas" placeholder="Número de cargas" min="1" value="1" required>
-        <div id="cargasHeader">
-            <span>Data</span>
-            <span>Central</span>
-            <span>Cargas</span>
-            <span>Fornecedor</span>
-            <span>Tipo de Produto</span>
-            <span>Produto</span>
-        </div>
-        <div id="cargasContainer">
-            <div class="carga-item">
-                <input type="date" class="data" required>
-                <input type="text" class="central" placeholder="Central" required>
-                <input type="text" class="cargas" placeholder="Cargas" required>
-                <input type="text" class="fornecedor" placeholder="Fornecedor" required>
-                <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
-                <input type="text" class="produto" placeholder="Produto" required>
-            </div>
-        </div>
-        <button type="submit" id="salvarBtn">Salvar Agendamento</button>
-        <button type="button" id="rascunhoBtn" class="rascunho">Salvar em Rascunho</button>
-    </form>
-  
-    <div id="rascunhos-container">
-        <h2>Agendamentos em Rascunho</h2>
-        <div id="listaRascunhos"></div>
+  <form id="agendamentoForm">
+    <h2>Adicionar/Editar Agendamento</h2>
+    <input type="number" id="numCargas" placeholder="Número de cargas" min="1" value="1" required>
+    <div id="cargasHeader">
+      <span>Data</span>
+      <span>Central</span>
+      <span>Cargas</span>
+      <span>Fornecedor</span>
+      <span>Tipo de Produto</span>
+      <span>Produto</span>
     </div>
-  
-    <h2>Lista de Agendamentos</h2>
-    <div id="exportButtons">
-        <button onclick="exportarExcel()">Exportar Excel</button>
-        <button onclick="exportarPDF()">Exportar PDF</button>
-        <button onclick="abrirHistorico()">Ver Histórico</button>
+    <div id="cargasContainer">
+        <div class="carga-item">
+          <input type="date" class="data" required>
+          <input type="text" class="central" placeholder="Central" required>
+          <input type="text" class="cargas" placeholder="Cargas" required>
+          <input type="text" class="fornecedor" placeholder="Fornecedor" required>
+          <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
+          <input type="text" class="produto" placeholder="Produto" required>
+        </div>
     </div>
-    <table id="agendamentosTabela" class="display" style="width:100%">
-        <thead>
-            <tr>
-                <th>Senha <span class="filter-button-text">Filtrar</span></th>
-                <th>Data <span class="filter-button-text">Filtrar</span></th>
-                <th>Central <span class="filter-button-text">Filtrar</span></th>
-                <th>Cargas <span class="filter-button-text">Filtrar</span></th>
-                <th>Fornecedor <span class="filter-button-text">Filtrar</span></th>
-                <th>Tipo de Produto <span class="filter-button-text">Filtrar</span></th>
-                <th>Produto <span class="filter-button-text">Filtrar</span></th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-        </tbody>
-    </table>
-    <div id="filter-popup-container"></div>
+    <button type="submit" id="salvarBtn">Salvar Agendamento</button>
+    <button type="button" id="rascunhoBtn" class="rascunho">Salvar em Rascunho</button>
+  </form>
+  
+  <div id="rascunhos-container">
+    <h2>Agendamentos em Rascunho</h2>
+    <div id="listaRascunhos"></div>
+  </div>
+  
+  <h2>Lista de Agendamentos</h2>
+  <div id="exportButtons">
+    <button onclick="exportarExcel()">Exportar Excel</button>
+    <button onclick="exportarPDF()">Exportar PDF</button>
+    <button onclick="abrirHistorico()">Ver Histórico</button>
+  </div>
+  <table id="agendamentosTabela" class="display" style="width:100%">
+    <thead>
+      <tr>
+        <th>Senha <span class="filter-button-text">Filtrar</span></th>
+        <th>Data <span class="filter-button-text">Filtrar</span></th>
+        <th>Central <span class="filter-button-text">Filtrar</span></th>
+        <th>Cargas <span class="filter-button-text">Filtrar</span></th>
+        <th>Fornecedor <span class="filter-button-text">Filtrar</span></th>
+        <th>Tipo de Produto <span class="filter-button-text">Filtrar</span></th>
+        <th>Produto <span class="filter-button-text">Filtrar</span></th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      </tbody>
+  </table>
+  <div id="filter-popup-container"></div>
 </div>
 
 <footer>
@@ -250,537 +250,423 @@ document.addEventListener("DOMContentLoaded", ()=>{
 </div>
 
 <script type="module">
-    import { db, auth } from "./firebase-config.js";
-    import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc, runTransaction, query, where, getDocs, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { db, auth } from "./firebase-config.js";
+  import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc, runTransaction, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    const form = document.getElementById('agendamentoForm');
-    const numCargasInput = document.getElementById('numCargas');
-    const cargasContainer = document.getElementById('cargasContainer');
-    const listaRascunhos = document.getElementById('listaRascunhos');
-    const totalCargasSpan = document.getElementById('totalCargas');
-    const historicoModal = document.getElementById('historicoModal');
-    const historicoContent = document.getElementById('historicoContent');
-    const salvarBtn = document.getElementById("salvarBtn");
+  const form = document.getElementById('agendamentoForm');
+  const numCargasInput = document.getElementById('numCargas');
+  const cargasContainer = document.getElementById('cargasContainer');
+  const listaRascunhos = document.getElementById('listaRascunhos');
+  const totalCargasSpan = document.getElementById('totalCargas');
+  const historicoModal = document.getElementById('historicoModal');
+  const historicoContent = document.getElementById('historicoContent');
+  
+  let editingId = null;
+  let dataTable = null;
+  let currentUserUid = null;
+
+  onAuthStateChanged(auth, user => {
+    if (user) {
+        currentUserUid = user.uid;
+        carregarAgendamentos();
+        carregarRascunhos();
+    } else {
+        window.location.href = "index.html";
+    }
+  });
+
+  window.logout = () => {
+    signOut(auth).then(() => {
+        window.location.href = "index.html";
+    }).catch((error) => {
+        console.error("Erro ao fazer logout: ", error);
+    });
+  };
+
+  // Funções para o Formulário Dinâmico
+  numCargasInput.addEventListener('input', (e) => {
+    const numCargas = parseInt(e.target.value) || 1;
+    cargasContainer.innerHTML = '';
+    for (let i = 0; i < numCargas; i++) {
+      cargasContainer.innerHTML += `
+        <div class="carga-item">
+          <input type="date" class="data" required>
+          <input type="text" class="central" placeholder="Central" required>
+          <input type="text" class="cargas" placeholder="Cargas" required>
+          <input type="text" class="fornecedor" placeholder="Fornecedor" required>
+          <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
+          <input type="text" class="produto" placeholder="Produto" required>
+        </div>
+      `;
+    }
+  });
+  
+  numCargasInput.dispatchEvent(new Event('input'));
+
+  // Salvar Agendamento em Rascunho
+  document.getElementById('rascunhoBtn').addEventListener('click', async () => {
+    if (!currentUserUid) {
+      alert("Sua sessão expirou. Por favor, faça login novamente.");
+      return;
+    }
+    const cargas = [];
+    const cargaItems = document.querySelectorAll('.carga-item');
+    let formIncomplete = false;
+    cargaItems.forEach(item => {
+      const central = item.querySelector('.central').value;
+      const carga = item.querySelector('.cargas').value;
+      if (!central || !carga) {
+        formIncomplete = true;
+      }
+      cargas.push({
+        data: item.querySelector('.data').value || null,
+        central: central,
+        cargas: carga,
+        fornecedor: item.querySelector('.fornecedor').value,
+        tipoDeProduto: item.querySelector('.tipoDeProduto').value,
+        produto: item.querySelector('.produto').value
+      });
+    });
+
+    if (formIncomplete) {
+      alert("Por favor, preencha pelo menos os campos Central e Cargas.");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "agendamentos-rascunho"), {
+        userId: currentUserUid,
+        cargas: cargas,
+        timestamp: new Date()
+      });
+      alert('Agendamento salvo como rascunho!');
+      form.reset();
+      numCargasInput.value = 1;
+      numCargasInput.dispatchEvent(new Event('input'));
+    } catch (e) {
+      console.error("Erro ao salvar rascunho: ", e);
+      alert('Erro ao salvar rascunho. Tente novamente.');
+    }
+  });
+
+  // Carregar Rascunhos do Firestore
+  function carregarRascunhos() {
+    if (!currentUserUid) return;
+    const q = query(collection(db, "agendamentos-rascunho"), where("userId", "==", currentUserUid));
+    onSnapshot(q, (snapshot) => {
+      listaRascunhos.innerHTML = '';
+      snapshot.forEach(doc => {
+        const rascunho = doc.data();
+        const rascunhoDiv = document.createElement('div');
+        rascunhoDiv.classList.add('rascunho-item');
+        
+        let rascunhoContent = `<p><strong>ID do rascunho:</strong> ${doc.id}</p>`;
+        rascunho.cargas.forEach((carga, index) => {
+            rascunhoContent += `<p><strong>Carga ${index + 1}:</strong> Data: ${carga.data || "Não definida"}, Central: ${carga.central}, Produto: ${carga.produto}</p>`;
+        });
+        
+        rascunhoDiv.innerHTML = rascunhoContent;
+        
+        const copiarBtn = document.createElement('button');
+        copiarBtn.textContent = 'Copiar Dados para o Formulário';
+        copiarBtn.onclick = () => {
+          document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
+          numCargasInput.value = rascunho.cargas.length;
+          numCargasInput.dispatchEvent(new Event('input'));
+          const cargaItems = document.querySelectorAll('.carga-item');
+          rascunho.cargas.forEach((carga, index) => {
+              if (cargaItems[index]) {
+                  cargaItems[index].querySelector('.data').value = carga.data;
+                  cargaItems[index].querySelector('.central').value = carga.central;
+                  cargaItems[index].querySelector('.cargas').value = carga.cargas;
+                  cargaItems[index].querySelector('.fornecedor').value = carga.fornecedor;
+                  cargaItems[index].querySelector('.tipoDeProduto').value = carga.tipoDeProduto;
+                  cargaItems[index].querySelector('.produto').value = carga.produto;
+              }
+          });
+        };
+        rascunhoDiv.appendChild(copiarBtn);
+
+        const deletarRascunhoBtn = document.createElement('button');
+        deletarRascunhoBtn.textContent = 'Excluir Rascunho';
+        deletarRascunhoBtn.onclick = async () => {
+            if (confirm("Tem certeza que deseja excluir este rascunho?")) {
+                const docRef = doc(db, "agendamentos-rascunho", doc.id);
+                await deleteDoc(docRef);
+            }
+        };
+        rascunhoDiv.appendChild(deletarRascunhoBtn);
+        
+        listaRascunhos.appendChild(rascunhoDiv);
+      });
+    });
+  }
+
+  function carregarAgendamentos() {
+      // Ordenar por data e depois por senha
+      const q = query(collection(db, "agendamentos"), orderBy("data", "asc"), orderBy("senha", "asc"));
+      onSnapshot(q, (snapshot) => {
+          const agendamentos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          if (dataTable) {
+              dataTable.destroy();
+          }
+
+          const dadosParaTabela = [];
+          agendamentos.forEach(agendamento => {
+              dadosParaTabela.push([
+                  agendamento.senha,
+                  agendamento.data,
+                  agendamento.central,
+                  agendamento.cargas,
+                  agendamento.fornecedor,
+                  agendamento.tipoDeProduto,
+                  agendamento.produto,
+                  `<button class="edit" data-id="${agendamento.id}">Editar</button> <button class="delete" data-id="${agendamento.id}">Excluir</button>`
+              ]);
+          });
+
+          dataTable = $('#agendamentosTabela').DataTable({
+              data: dadosParaTabela,
+              columns: [
+                  { title: "Senha" },
+                  { title: "Data" },
+                  { title: "Central" },
+                  { title: "Cargas" },
+                  { title: "Fornecedor" },
+                  { title: "Tipo de Produto" },
+                  { title: "Produto" },
+                  { title: "Ações", orderable: false, searchable: false }
+              ],
+              paging: false,
+              info: false,
+              order: [[1, 'asc']] // Ordem inicial pela coluna 'Data'
+          });
+          // Atualiza os textos dos botões de filtro
+          $('.filter-button-text').each(function() {
+              const columnIndex = dataTable.column($(this).closest('th')).index();
+              const searchTerm = dataTable.column(columnIndex).search();
+              $(this).text(searchTerm ? 'APLICADO' : 'Filtrar');
+          });
+          // Atualiza o total de cargas no rodapé
+          totalCargasSpan.textContent = agendamentos.length;
+      });
+  }
+
+  // Lógica de filtro avançada
+  const filterPopupContainer = document.getElementById('filter-popup-container');
+  let activeColumnIndex = null;
+  let activeFilterButton = null;
+  
+  $(document).on('click', '.filter-button-text', function (e) {
+    e.stopPropagation();
+    activeFilterButton = $(this);
+    const columnIndex = dataTable.column($(this).closest('th')).index();
+    const columnData = dataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
     
-    let editingId = null; // Para editar um agendamento definitivo
-    let editingRascunhoId = null; // Para editar um rascunho
-    let dataTable = null;
-    let currentUserUid = null;
-
-    onAuthStateChanged(auth, user => {
-        if (user) {
-            currentUserUid = user.uid;
-            console.log("Usuário autenticado. UID:", currentUserUid);
-            carregarAgendamentos();
-            carregarRascunhos();
-        } else {
-            console.log("Nenhum usuário logado. Redirecionando...");
-            window.location.href = "index.html";
-        }
-    });
-
-    window.logout = () => {
-        signOut(auth).then(() => {
-            window.location.href = "index.html";
-        }).catch((error) => {
-            console.error("Erro ao fazer logout: ", error);
-        });
-    };
-
-    // Funções para o Formulário Dinâmico
-    numCargasInput.addEventListener('input', (e) => {
-        const numCargas = parseInt(e.target.value) || 1;
-        cargasContainer.innerHTML = '';
-        for (let i = 0; i < numCargas; i++) {
-            cargasContainer.innerHTML += `
-                <div class="carga-item">
-                    <input type="date" class="data" required>
-                    <input type="text" class="central" placeholder="Central" required>
-                    <input type="text" class="cargas" placeholder="Cargas" required>
-                    <input type="text" class="fornecedor" placeholder="Fornecedor" required>
-                    <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
-                    <input type="text" class="produto" placeholder="Produto" required>
-                </div>
-            `;
-        }
+    let popupHtml = '<div><label><input type="radio" name="filter-radio" value="" checked> Todos</label></div>';
+    columnData.each(value => {
+        popupHtml += `<div><label><input type="radio" name="filter-radio" value="${value}"> ${value}</label></div>`;
     });
     
-    numCargasInput.dispatchEvent(new Event('input'));
+    filterPopupContainer.innerHTML = popupHtml;
+    const buttonRect = this.getBoundingClientRect();
+    filterPopupContainer.style.top = `${buttonRect.bottom + window.scrollY}px`;
+    filterPopupContainer.style.left = `${buttonRect.left}px`;
+    filterPopupContainer.classList.add('filter-popup');
 
-    // Salvar Agendamento em Rascunho
-    document.getElementById('rascunhoBtn').addEventListener('click', async () => {
-        if (!currentUserUid) {
-            alert("Sua sessão expirou. Por favor, faça login novamente.");
-            return;
-        }
-        const cargas = [];
-        const cargaItems = document.querySelectorAll('.carga-item');
-        let formIncomplete = false;
-        cargaItems.forEach(item => {
-            const central = item.querySelector('.central').value;
-            const carga = item.querySelector('.cargas').value;
-            if (!central || !carga) {
-                formIncomplete = true;
-            }
-            cargas.push({
-                data: item.querySelector('.data').value || null,
-                central: central,
-                cargas: carga,
-                fornecedor: item.querySelector('.fornecedor').value,
-                tipoDeProduto: item.querySelector('.tipoDeProduto').value,
-                produto: item.querySelector('.produto').value
-            });
-        });
+    activeColumnIndex = columnIndex;
+  });
 
-        if (formIncomplete) {
-            alert("Por favor, preencha pelo menos os campos Central e Cargas.");
-            return;
-        }
-
-        try {
-            await addDoc(collection(db, "agendamentos-rascunho"), {
-                userId: currentUserUid,
-                cargas: cargas,
-                timestamp: new Date()
-            });
-            alert('Agendamento salvo como rascunho!');
-            form.reset();
-            numCargasInput.value = 1;
-            numCargasInput.dispatchEvent(new Event('input'));
-        } catch (e) {
-            console.error("Erro ao salvar rascunho: ", e);
-            alert('Erro ao salvar rascunho. Tente novamente.');
-        }
-    });
-
-    // Carregar Rascunhos do Firestore
-    function carregarRascunhos() {
-        console.log("Carregando rascunhos para o UID:", currentUserUid);
-        if (!currentUserUid) {
-            console.warn("currentUserUid é nulo. Não foi possível carregar rascunhos.");
-            return;
-        }
-        const q = query(collection(db, "agendamentos-rascunho"), where("userId", "==", currentUserUid));
-        onSnapshot(q, (snapshot) => {
-            listaRascunhos.innerHTML = '';
-            if (snapshot.empty) {
-                console.log("Nenhum rascunho encontrado para este usuário.");
-                listaRascunhos.innerHTML = '<p>Nenhum rascunho salvo.</p>';
-            }
-            snapshot.forEach(doc => {
-                const rascunho = doc.data();
-                const rascunhoDiv = document.createElement('div');
-                rascunhoDiv.classList.add('rascunho-item');
-                
-                let rascunhoContent = `<p><strong>ID do rascunho:</strong> ${doc.id}</p>`;
-                rascunho.cargas.forEach((carga, index) => {
-                    rascunhoContent += `<p><strong>Carga ${index + 1}:</strong> Data: ${carga.data || "Não definida"}, Central: ${carga.central}, Produto: ${carga.produto}</p>`;
-                });
-                
-                rascunhoDiv.innerHTML = rascunhoContent;
-
-                // Botão de Editar Rascunho (específico)
-                const editarRascunhoBtn = document.createElement('button');
-                editarRascunhoBtn.textContent = 'Editar Rascunho';
-                editarRascunhoBtn.className = 'edit-rascunho';
-                editarRascunhoBtn.onclick = () => {
-                    document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
-                    editingRascunhoId = doc.id; // Define o ID do rascunho para edição
-                    editingId = null; // Garante que não está editando um agendamento definitivo
-                    salvarBtn.textContent = "Atualizar Rascunho";
-                    numCargasInput.value = rascunho.cargas.length;
-                    numCargasInput.dispatchEvent(new Event('input'));
-                    const cargaItems = document.querySelectorAll('.carga-item');
-                    rascunho.cargas.forEach((carga, index) => {
-                        if (cargaItems[index]) {
-                            cargaItems[index].querySelector('.data').value = carga.data;
-                            cargaItems[index].querySelector('.central').value = carga.central;
-                            cargaItems[index].querySelector('.cargas').value = carga.cargas;
-                            cargaItems[index].querySelector('.fornecedor').value = carga.fornecedor;
-                            cargaItems[index].querySelector('.tipoDeProduto').value = carga.tipoDeProduto;
-                            cargaItems[index].querySelector('.produto').value = carga.produto;
-                        }
-                    });
-                };
-                rascunhoDiv.appendChild(editarRascunhoBtn);
-                
-                // Botão de Copiar Dados (específico)
-                const copiarBtn = document.createElement('button');
-                copiarBtn.textContent = 'Copiar Dados';
-                copiarBtn.className = 'copiar';
-                copiarBtn.onclick = () => {
-                    document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
-                    editingId = null; 
-                    editingRascunhoId = null; // Zera a edição de rascunho
-                    salvarBtn.textContent = "Salvar Agendamento"; // Volta ao modo de salvar novo
-                    numCargasInput.value = rascunho.cargas.length;
-                    numCargasInput.dispatchEvent(new Event('input'));
-                    const cargaItems = document.querySelectorAll('.carga-item');
-                    rascunho.cargas.forEach((carga, index) => {
-                        if (cargaItems[index]) {
-                            cargaItems[index].querySelector('.data').value = carga.data;
-                            cargaItems[index].querySelector('.central').value = carga.central;
-                            cargaItems[index].querySelector('.cargas').value = carga.cargas;
-                            cargaItems[index].querySelector('.fornecedor').value = carga.fornecedor;
-                            cargaItems[index].querySelector('.tipoDeProduto').value = carga.tipoDeProduto;
-                            cargaItems[index].querySelector('.produto').value = carga.produto;
-                        }
-                    });
-                };
-                rascunhoDiv.appendChild(copiarBtn);
-
-
-                // Botão de Salvar Definitivamente
-                const salvarRascunhoBtn = document.createElement('button');
-                salvarRascunhoBtn.textContent = 'Salvar Agendamento';
-                salvarRascunhoBtn.className = 'salvarRascunho';
-                salvarRascunhoBtn.onclick = async () => {
-                    await salvarRascunhoDefinitivamente(doc.id, rascunho.cargas);
-                };
-                rascunhoDiv.appendChild(salvarRascunhoBtn);
-
-                // Botão de Excluir
-                const deletarRascunhoBtn = document.createElement('button');
-                deletarRascunhoBtn.textContent = 'Excluir Rascunho';
-                deletarRascunhoBtn.className = 'delete';
-                deletarRascunhoBtn.onclick = async () => {
-                    if (confirm("Tem certeza que deseja excluir este rascunho?")) {
-                        const docRef = doc(db, "agendamentos-rascunho", doc.id);
-                        await deleteDoc(docRef);
-                        alert("Rascunho excluído com sucesso.");
-                    }
-                };
-                rascunhoDiv.appendChild(deletarRascunhoBtn);
-                
-                listaRascunhos.appendChild(rascunhoDiv);
-            });
-        });
+  $(document).on('change', '.filter-popup input', function () {
+    const value = $(this).val();
+    dataTable.column(activeColumnIndex).search(value).draw();
+    if (activeFilterButton) {
+        activeFilterButton.text(value ? 'APLICADO' : 'Filtrar');
     }
+    filterPopupContainer.classList.remove('filter-popup');
+    filterPopupContainer.innerHTML = '';
+  });
 
-    // Move o rascunho para a coleção de agendamentos
-    async function salvarRascunhoDefinitivamente(rascunhoId, cargas) {
-        if (confirm("Tem certeza que deseja salvar este rascunho como um agendamento definitivo?")) {
-            const batch = writeBatch(db);
-            const contadorRef = doc(db, "metadados", "contador");
-
-            try {
-                await runTransaction(db, async (transaction) => {
-                    const contadorDoc = await transaction.get(contadorRef);
-                    let ultimaSenha = 0;
-                    if (contadorDoc.exists()) {
-                        ultimaSenha = contadorDoc.data().ultima_senha;
-                    }
-
-                    for (const carga of cargas) {
-                        ultimaSenha++;
-                        const novaCarga = { ...carga, senha: ultimaSenha };
-                        const newDocRef = doc(collection(db, "agendamentos"));
-                        transaction.set(newDocRef, novaCarga);
-                        await adicionarHistorico("agendou uma nova carga (a partir de rascunho)", { id: newDocRef.id, ...novaCarga });
-                    }
-                    
-                    transaction.update(contadorRef, { ultima_senha: ultimaSenha });
-                });
-
-                // Exclui o rascunho da coleção de rascunhos
-                const rascunhoDocRef = doc(db, "agendamentos-rascunho", rascunhoId);
-                await deleteDoc(rascunhoDocRef);
-
-                alert("Rascunho salvo como agendamento com sucesso!");
-
-            } catch (e) {
-                console.error("Erro ao salvar rascunho definitivamente:", e);
-                alert("Ocorreu um erro ao salvar o agendamento. Tente novamente.");
-            }
-        }
+  $(document).on('click', function (e) {
+    if (!$(e.target).closest('.filter-popup').length && !$(e.target).hasClass('filter-button-text')) {
+      filterPopupContainer.classList.remove('filter-popup');
+      filterPopupContainer.innerHTML = '';
     }
+  });
 
-    // Carregar Agendamentos do Firestore
-    function carregarAgendamentos() {
-        console.log("Carregando agendamentos para o UID:", currentUserUid);
-        if (!currentUserUid) {
-            console.warn("currentUserUid é nulo. Não foi possível carregar agendamentos.");
-            return;
-        }
-        // Ordenar por data e depois por senha
-        const q = query(collection(db, "agendamentos"), orderBy("data", "asc"), orderBy("senha", "asc"));
-        onSnapshot(q, (snapshot) => {
-            const agendamentos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            if (dataTable) {
-                dataTable.destroy();
-            }
+  // Adiciona/Atualiza um agendamento e registra no histórico
+  form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const cargaItems = document.querySelectorAll('.carga-item');
+      let formIncomplete = false;
+      const cargas = [];
+      
+      cargaItems.forEach(item => {
+          const data = item.querySelector('.data').value;
+          const central = item.querySelector('.central').value;
+          const carga = item.querySelector('.cargas').value;
+          
+          if (!data || !central || !carga) {
+              formIncomplete = true;
+          }
+          cargas.push({
+              data: data,
+              central: central,
+              cargas: carga,
+              fornecedor: item.querySelector('.fornecedor').value,
+              tipoDeProduto: item.querySelector('.tipoDeProduto').value,
+              produto: item.querySelector('.produto').value
+          });
+      });
+      
+      if (formIncomplete) {
+          alert("Por favor, preencha todos os campos obrigatórios (Data, Central e Cargas).");
+          return;
+      }
 
-            const dadosParaTabela = [];
-            agendamentos.forEach(agendamento => {
-                dadosParaTabela.push([
-                    agendamento.senha,
-                    agendamento.data,
-                    agendamento.central,
-                    agendamento.cargas,
-                    agendamento.fornecedor,
-                    agendamento.tipoDeProduto,
-                    agendamento.produto,
-                    `<button class="edit" data-id="${agendamento.id}">Editar</button> <button class="delete" data-id="${agendamento.id}">Excluir</button>`
-                ]);
-            });
+      if (editingId) {
+          // Edita o agendamento individual
+          const docRef = doc(db, "agendamentos", editingId);
+          await updateDoc(docRef, cargas[0]); // Pega apenas a primeira carga
+          await adicionarHistorico("editou um agendamento", { id: editingId, ...cargas[0] });
+          editingId = null;
+      } else {
+          // Salva cada carga como um documento separado com senha sequencial
+          const contadorRef = doc(db, "metadados", "contador");
+          try {
+              const result = await runTransaction(db, async (transaction) => {
+                  const contadorDoc = await transaction.get(contadorRef);
+                  let ultimaSenha = 0;
+                  if (contadorDoc.exists()) {
+                      ultimaSenha = contadorDoc.data().ultima_senha;
+                  }
+                  
+                  const savedCargas = [];
+                  for (const carga of cargas) {
+                      ultimaSenha++;
+                      const novaCarga = { ...carga, senha: ultimaSenha };
+                      const newDocRef = doc(collection(db, "agendamentos"));
+                      transaction.set(newDocRef, novaCarga);
+                      savedCargas.push({ id: newDocRef.id, ...novaCarga });
+                  }
+                  
+                  transaction.set(contadorRef, { ultima_senha: ultimaSenha });
+                  return savedCargas;
+              });
 
-            dataTable = $('#agendamentosTabela').DataTable({
-                data: dadosParaTabela,
-                columns: [
-                    { title: "Senha" },
-                    { title: "Data" },
-                    { title: "Central" },
-                    { title: "Cargas" },
-                    { title: "Fornecedor" },
-                    { title: "Tipo de Produto" },
-                    { title: "Produto" },
-                    { title: "Ações", orderable: false, searchable: false }
-                ],
-                paging: false,
-                info: false,
-                order: [[1, 'asc']] // Ordem inicial pela coluna 'Data'
-            });
-            // Atualiza os textos dos botões de filtro
-            $('.filter-button-text').each(function() {
-                const columnIndex = dataTable.column($(this).closest('th')).index();
-                const searchTerm = dataTable.column(columnIndex).search();
-                $(this).text(searchTerm ? 'APLICADO' : 'Filtrar');
-            });
-            // Atualiza o total de cargas no rodapé
-            totalCargasSpan.textContent = agendamentos.length;
-        });
+              for (const carga of result) {
+                  await adicionarHistorico("agendou uma nova carga", { id: carga.id, ...carga });
+              }
+              alert("Agendamentos salvos com sucesso!");
+
+          } catch (e) {
+              console.error("Erro ao gerar senhas e salvar agendamentos: ", e);
+              alert("Ocorreu um erro ao salvar. Tente novamente.");
+          }
+      }
+      form.reset();
+      numCargasInput.value = 1;
+      numCargasInput.dispatchEvent(new Event('input'));
+      document.getElementById("salvarBtn").textContent = "Salvar Agendamento";
+  });
+
+  // Edita ou Exclui um agendamento
+  $(document).on('click', '.edit', async function () {
+    document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
+    editingId = $(this).data('id');
+    const docRef = doc(db, "agendamentos", editingId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const dados = docSnap.data();
+      numCargasInput.value = 1;
+      numCargasInput.dispatchEvent(new Event('input'));
+      
+      const cargaItems = document.querySelectorAll('.carga-item');
+      if (cargaItems[0]) {
+        cargaItems[0].querySelector('.data').value = dados.data;
+        cargaItems[0].querySelector('.central').value = dados.central;
+        cargaItems[0].querySelector('.cargas').value = dados.cargas;
+        cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
+        cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
+        cargaItems[0].querySelector('.produto').value = dados.produto;
+      }
+      document.getElementById("salvarBtn").textContent = "Atualizar Agendamento";
     }
+  });
 
-    // Lógica de filtro avançada
-    const filterPopupContainer = document.getElementById('filter-popup-container');
-    let activeColumnIndex = null;
-    let activeFilterButton = null;
-    
-    $(document).on('click', '.filter-button-text', function (e) {
-        e.stopPropagation();
-        activeFilterButton = $(this);
-        const columnIndex = dataTable.column($(this).closest('th')).index();
-        const columnData = dataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
-        
-        let popupHtml = '<div><label><input type="radio" name="filter-radio" value="" checked> Todos</label></div>';
-        columnData.each(value => {
-            popupHtml += `<div><label><input type="radio" name="filter-radio" value="${value}"> ${value}</label></div>`;
-        });
-        
-        filterPopupContainer.innerHTML = popupHtml;
-        const buttonRect = this.getBoundingClientRect();
-        filterPopupContainer.style.top = `${buttonRect.bottom + window.scrollY}px`;
-        filterPopupContainer.style.left = `${buttonRect.left}px`;
-        filterPopupContainer.classList.add('filter-popup');
-
-        activeColumnIndex = columnIndex;
-    });
-
-    $(document).on('change', '.filter-popup input', function () {
-        const value = $(this).val();
-        dataTable.column(activeColumnIndex).search(value).draw();
-        if (activeFilterButton) {
-            activeFilterButton.text(value ? 'APLICADO' : 'Filtrar');
-        }
-        filterPopupContainer.classList.remove('filter-popup');
-        filterPopupContainer.innerHTML = '';
-    });
-
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('.filter-popup').length && !$(e.target).hasClass('filter-button-text')) {
-            filterPopupContainer.classList.remove('filter-popup');
-            filterPopupContainer.innerHTML = '';
-        }
-    });
-
-    // Adiciona/Atualiza um agendamento ou um rascunho
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const cargaItems = document.querySelectorAll('.carga-item');
-        let formIncomplete = false;
-        const cargas = [];
-        
-        cargaItems.forEach(item => {
-            const data = item.querySelector('.data').value;
-            const central = item.querySelector('.central').value;
-            const carga = item.querySelector('.cargas').value;
-            
-            if (!data || !central || !carga) {
-                formIncomplete = true;
-            }
-            cargas.push({
-                data: data,
-                central: central,
-                cargas: carga,
-                fornecedor: item.querySelector('.fornecedor').value,
-                tipoDeProduto: item.querySelector('.tipoDeProduto').value,
-                produto: item.querySelector('.produto').value
-            });
-        });
-        
-        if (formIncomplete) {
-            alert("Por favor, preencha todos os campos obrigatórios (Data, Central e Cargas).");
-            return;
-        }
-
-        if (editingId) {
-            // Edita o agendamento individual
-            const docRef = doc(db, "agendamentos", editingId);
-            await updateDoc(docRef, cargas[0]); // Pega apenas a primeira carga
-            await adicionarHistorico("editou um agendamento", { id: editingId, ...cargas[0] });
-            editingId = null;
-        } else if (editingRascunhoId) {
-            // Edita o rascunho existente
-            const rascunhoDocRef = doc(db, "agendamentos-rascunho", editingRascunhoId);
-            await updateDoc(rascunhoDocRef, { cargas: cargas, timestamp: new Date() });
-            alert("Rascunho atualizado com sucesso!");
-            editingRascunhoId = null;
-            salvarBtn.textContent = "Salvar Agendamento";
-        } else {
-            // Salva cada carga como um documento separado com senha sequencial
-            const contadorRef = doc(db, "metadados", "contador");
-            try {
-                const result = await runTransaction(db, async (transaction) => {
-                    const contadorDoc = await transaction.get(contadorRef);
-                    let ultimaSenha = 0;
-                    if (contadorDoc.exists()) {
-                        ultimaSenha = contadorDoc.data().ultima_senha;
-                    }
-                    
-                    const savedCargas = [];
-                    for (const carga of cargas) {
-                        ultimaSenha++;
-                        const novaCarga = { ...carga, senha: ultimaSenha };
-                        const newDocRef = doc(collection(db, "agendamentos"));
-                        transaction.set(newDocRef, novaCarga);
-                        savedCargas.push({ id: newDocRef.id, ...novaCarga });
-                    }
-                    
-                    transaction.set(contadorRef, { ultima_senha: ultimaSenha });
-                    return savedCargas;
-                });
-
-                for (const carga of result) {
-                    await adicionarHistorico("agendou uma nova carga", { id: carga.id, ...carga });
-                }
-                alert("Agendamentos salvos com sucesso!");
-
-            } catch (e) {
-                console.error("Erro ao gerar senhas e salvar agendamentos: ", e);
-                alert("Ocorreu um erro ao salvar. Tente novamente.");
-            }
-        }
-        form.reset();
-        numCargasInput.value = 1;
-        numCargasInput.dispatchEvent(new Event('input'));
-        salvarBtn.textContent = "Salvar Agendamento";
-    });
-
-    // Edita ou Exclui um agendamento
-    $(document).on('click', '.edit', async function () {
-        document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
-        editingId = $(this).data('id');
-        editingRascunhoId = null; // Garante que não está editando um rascunho
-        const docRef = doc(db, "agendamentos", editingId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            const dados = docSnap.data();
-            numCargasInput.value = 1;
-            numCargasInput.dispatchEvent(new Event('input'));
-            
-            const cargaItems = document.querySelectorAll('.carga-item');
-            if (cargaItems[0]) {
-                cargaItems[0].querySelector('.data').value = dados.data;
-                cargaItems[0].querySelector('.central').value = dados.central;
-                cargaItems[0].querySelector('.cargas').value = dados.cargas;
-                cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
-                cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
-                cargaItems[0].querySelector('.produto').value = dados.produto;
-            }
-            salvarBtn.textContent = "Atualizar Agendamento";
-        }
-    });
-
-    $(document).on('click', '.delete', async function () {
-        const id = $(this).data('id');
-        const docRef = doc(db, "agendamentos", id);
-        if (confirm("Tem certeza que deseja excluir este agendamento?")) {
-            await deleteDoc(docRef);
-            await adicionarHistorico("excluiu um agendamento", { id: id });
-        }
-    });
-
-    // Funções de exportação
-    window.exportarPDF = () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
-        const dadosVisiveis = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(0, 7));
-        doc.autoTable({
-            head: [headers],
-            body: dadosVisiveis,
-        });
-        doc.save('agendamentos.pdf');
-    };
-
-    window.exportarExcel = () => {
-        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
-        const dadosVisiveis = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(0, 7));
-        const ws_data = [headers, ...dadosVisiveis];
-        const ws = XLSX.utils.aoa_to_sheet(ws_data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Agendamentos");
-        XLSX.writeFile(wb, "agendamentos.xlsx");
-    };
-
-    // Histórico de Ações
-    async function adicionarHistorico(acao, detalhes) {
-        if (!currentUserUid) return;
-        await addDoc(collection(db, "historico-acoes"), {
-            userId: currentUserUid,
-            username: localStorage.getItem("username"),
-            acao: acao,
-            detalhes: detalhes,
-            timestamp: new Date()
-        });
+  $(document).on('click', '.delete', async function () {
+    const id = $(this).data('id');
+    const docRef = doc(db, "agendamentos", id);
+    if (confirm("Tem certeza que deseja excluir este agendamento?")) {
+      await deleteDoc(docRef);
+      await adicionarHistorico("excluiu um agendamento", { id: id });
     }
+  });
 
-    window.abrirHistorico = async () => {
-        console.log("Tentando abrir histórico para o UID:", currentUserUid);
-        if (!currentUserUid) {
-            console.warn("currentUserUid é nulo. Não foi possível abrir o histórico.");
-            historicoContent.innerHTML = '<p>Você precisa estar logado para ver o histórico.</p>';
-            historicoModal.style.display = 'block';
-            return;
-        }
-        historicoContent.innerHTML = 'Carregando...';
-        const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
-        const snapshot = await getDocs(q);
-        historicoContent.innerHTML = '';
-        if (snapshot.empty) {
-            historicoContent.innerHTML = '<p>Nenhuma ação registrada.</p>';
-        } else {
-            snapshot.forEach(doc => {
-                const acao = doc.data();
-                const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
-                historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} (ID: ${acao.detalhes.id}).</p>`;
-            });
-        }
-        historicoModal.style.display = 'block';
-    };
+  // Funções de exportação
+  window.exportarPDF = () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+    const dadosVisiveis = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(0, 7));
+    doc.autoTable({
+      head: [headers],
+      body: dadosVisiveis,
+    });
+    doc.save('agendamentos.pdf');
+  };
 
-    document.querySelector('.close-modal').onclick = () => {
-        historicoModal.style.display = 'none';
-    };
+  window.exportarExcel = () => {
+    const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+    const dadosVisiveis = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(0, 7));
+    const ws_data = [headers, ...dadosVisiveis];
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Agendamentos");
+    XLSX.writeFile(wb, "agendamentos.xlsx");
+  };
 
-    window.onclick = (event) => {
-        if (event.target == historicoModal) {
-            historicoModal.style.display = 'none';
-        }
-    };
+  // Histórico de Ações
+  async function adicionarHistorico(acao, detalhes) {
+      if (!currentUserUid) return;
+      await addDoc(collection(db, "historico-acoes"), {
+          userId: currentUserUid,
+          username: localStorage.getItem("username"),
+          acao: acao,
+          detalhes: detalhes,
+          timestamp: new Date()
+      });
+  }
+
+  window.abrirHistorico = async () => {
+      historicoContent.innerHTML = 'Carregando...';
+      const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
+      const snapshot = await getDocs(q);
+      historicoContent.innerHTML = '';
+      if (snapshot.empty) {
+          historicoContent.innerHTML = '<p>Nenhuma ação registrada.</p>';
+      } else {
+          snapshot.forEach(doc => {
+              const acao = doc.data();
+              const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
+              historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} (ID: ${acao.detalhes.id}).</p>`;
+          });
+      }
+      historicoModal.style.display = 'block';
+  };
+
+  document.querySelector('.close-modal').onclick = () => {
+      historicoModal.style.display = 'none';
+  };
+
+  window.onclick = (event) => {
+      if (event.target == historicoModal) {
+          historicoModal.style.display = 'none';
+      }
+  };
 </script>
 
 </body>
