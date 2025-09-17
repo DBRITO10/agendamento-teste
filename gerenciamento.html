@@ -56,7 +56,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
 <div class="table-container">
   <form id="agendamentoForm">
     <h2>Adicionar/Editar Agendamento</h2>
-    <input type="text" id="senha" placeholder="Senha" required>
     <input type="date" id="data" required>
     <input type="text" id="central" placeholder="Central" required>
     <input type="text" id="cargas" placeholder="Cargas" required>
@@ -87,7 +86,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
 <script type="module">
   import { db, auth } from "./firebase-config.js";
-  import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   const form = document.getElementById('agendamentoForm');
@@ -132,10 +131,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
     });
   }
 
+  // Adiciona/Atualiza um agendamento
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+
     const agendamento = {
-      senha: form['senha'].value,
       data: form['data'].value,
       central: form['central'].value,
       cargas: form['cargas'].value,
@@ -149,7 +149,28 @@ document.addEventListener("DOMContentLoaded", ()=>{
       await updateDoc(docRef, agendamento);
       editingId = null;
     } else {
-      await addDoc(collection(db, "agendamentos"), agendamento);
+      // --- Lógica para gerar a senha sequencial ---
+      const contadorRef = doc(db, "metadados", "contador");
+      
+      try {
+        // Inicia uma transação para evitar que dois usuários peguem a mesma senha
+        await runTransaction(db, async (transaction) => {
+            const contadorDoc = await transaction.get(contadorRef);
+            const novaSenha = contadorDoc.data().ultima_senha + 1;
+            
+            // Adiciona a senha gerada ao objeto de agendamento
+            agendamento.senha = novaSenha;
+
+            // Adiciona o novo agendamento com a senha gerada
+            await addDoc(collection(db, "agendamentos"), agendamento);
+            
+            // Atualiza o contador para o próximo número
+            transaction.update(contadorRef, { ultima_senha: novaSenha });
+        });
+      } catch (e) {
+          console.error("Erro ao gerar senha e salvar agendamento: ", e);
+          alert("Ocorreu um erro ao salvar. Tente novamente.");
+      }
     }
     form.reset();
   });
@@ -161,7 +182,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const dados = docSnap.data();
-        form['senha'].value = dados.senha;
         form['data'].value = dados.data;
         form['central'].value = dados.central;
         form['cargas'].value = dados.cargas;
