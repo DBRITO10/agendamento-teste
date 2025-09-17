@@ -30,10 +30,6 @@
 </head>
 <body>
 
-<script>
-if (localStorage.getItem("isLoggedIn") !== "true") { window.location.href = "login.html"; }
-</script>
-
 <div id="userBar">
   <button onclick="history.back()" style="
     background: transparent; 
@@ -51,12 +47,6 @@ const username = localStorage.getItem("username") || "Usuário";
 document.addEventListener("DOMContentLoaded", ()=>{
   document.getElementById("welcomeUser").textContent = "Bem-vindo, " + username;
 });
-function logout(){
-  localStorage.removeItem("isLoggedIn");
-  localStorage.removeItem("username");
-  window.history.replaceState(null, null, "login.html");
-  window.location.href = "login.html";
-}
 </script>
 
 <header>
@@ -66,7 +56,6 @@ function logout(){
 <div class="table-container">
   <form id="agendamentoForm">
     <h2>Adicionar/Editar Agendamento</h2>
-    <input type="hidden" id="docId">
     <input type="text" id="senha" placeholder="Senha" required>
     <input type="date" id="data" required>
     <input type="text" id="central" placeholder="Central" required>
@@ -96,35 +85,29 @@ function logout(){
   </table>
 </div>
 
-<script type="module" src="./firebase-config.js"></script>
 <script type="module">
-  import { db } from "./firebase-config.js";
-  import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { db, auth } from "./firebase-config.js";
+  import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   const form = document.getElementById('agendamentoForm');
   const tabelaBody = document.querySelector('#agendamentosTabela tbody');
   let editingId = null;
 
-  // Lógica de logout
+  onAuthStateChanged(auth, user => {
+    if (!user) {
+        window.location.href = "index.html";
+    }
+  });
+
   window.logout = () => {
     signOut(auth).then(() => {
-        localStorage.removeItem("isLoggedIn");
-        localStorage.removeItem("username");
-        window.location.href = "login.html";
+        window.location.href = "index.html";
     }).catch((error) => {
         console.error("Erro ao fazer logout: ", error);
     });
   };
 
-  // Redireciona se não estiver logado
-  onAuthStateChanged(auth, user => {
-    if (!user) {
-        window.location.href = "login.html";
-    }
-  });
-
-  // Função para carregar e exibir agendamentos
   function carregarAgendamentos() {
     onSnapshot(collection(db, "agendamentos"), (snapshot) => {
       tabelaBody.innerHTML = '';
@@ -149,7 +132,6 @@ function logout(){
     });
   }
 
-  // Adiciona/Atualiza um agendamento
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const agendamento = {
@@ -172,12 +154,11 @@ function logout(){
     form.reset();
   });
 
-  // Edita ou Exclui um agendamento
   tabelaBody.addEventListener('click', async (e) => {
     if (e.target.classList.contains('edit')) {
       editingId = e.target.dataset.id;
       const docRef = doc(db, "agendamentos", editingId);
-      const docSnap = await getDoc(docRef); // Usa getDoc para buscar o item
+      const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const dados = docSnap.data();
         form['senha'].value = dados.senha;
@@ -197,7 +178,6 @@ function logout(){
     }
   });
 
-  // Carrega a lista quando a página é carregada
   carregarAgendamentos();
 </script>
 
