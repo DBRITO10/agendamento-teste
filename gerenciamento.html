@@ -411,18 +411,23 @@ document.addEventListener("DOMContentLoaded", ()=>{
             const dadosParaTabela = [];
             snapshot.forEach(doc => {
                 const rascunho = doc.data();
-                rascunho.cargas.forEach(carga => {
-                     dadosParaTabela.push([
-                        `<input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}" data-rascunho='${JSON.stringify(rascunho.cargas)}'>`,
-                        doc.id,
-                        rascunho.cargas.length,
-                        carga.data || "Não definida",
-                        carga.central,
-                        carga.fornecedor,
-                        carga.tipoDeProduto,
-                        carga.produto
-                    ]);
-                });
+                // A verificação abaixo garante que 'cargas' é um array antes de tentar iterar sobre ele
+                if (Array.isArray(rascunho.cargas)) {
+                    rascunho.cargas.forEach(carga => {
+                        dadosParaTabela.push([
+                            `<input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}" data-rascunho='${JSON.stringify(rascunho.cargas)}'>`,
+                            doc.id,
+                            rascunho.cargas.length,
+                            carga.data || "Não definida",
+                            carga.central,
+                            carga.fornecedor,
+                            carga.tipoDeProduto,
+                            carga.produto
+                        ]);
+                    });
+                } else {
+                    console.warn("Documento com estrutura inválida encontrado:", doc.id);
+                }
             });
 
             rascunhosDataTable = $('#rascunhosTabela').DataTable({
