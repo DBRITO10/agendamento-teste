@@ -251,7 +251,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
 <script type="module">
     import { db, auth } from "./firebase-config.js";
-    import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc, runTransaction, query, where, getDocs, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc, runTransaction, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const form = document.getElementById('agendamentoForm');
@@ -263,8 +263,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const historicoContent = document.getElementById('historicoContent');
     const salvarBtn = document.getElementById("salvarBtn");
     
-    let editingId = null; // Para editar um agendamento definitivo
-    let editingRascunhoId = null; // Para editar um rascunho
+    let editingId = null; 
+    let editingRascunhoId = null; 
     let dataTable = null;
     let currentUserUid = null;
 
@@ -288,7 +288,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         });
     };
 
-    // Funções para o Formulário Dinâmico
     numCargasInput.addEventListener('input', (e) => {
         const numCargas = parseInt(e.target.value) || 1;
         cargasContainer.innerHTML = '';
@@ -308,7 +307,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
     
     numCargasInput.dispatchEvent(new Event('input'));
 
-    // Salvar Agendamento em Rascunho
     document.getElementById('rascunhoBtn').addEventListener('click', async () => {
         if (!currentUserUid) {
             alert("Sua sessão expirou. Por favor, faça login novamente.");
@@ -354,7 +352,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     });
 
-    // Carregar Rascunhos do Firestore
     function carregarRascunhos() {
         console.log("Carregando rascunhos para o UID:", currentUserUid);
         if (!currentUserUid) {
@@ -372,22 +369,34 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 const rascunho = doc.data();
                 const rascunhoDiv = document.createElement('div');
                 rascunhoDiv.classList.add('rascunho-item');
+                rascunhoDiv.setAttribute('data-id', doc.id);
                 
                 let rascunhoContent = `<p><strong>ID do rascunho:</strong> ${doc.id}</p>`;
                 rascunho.cargas.forEach((carga, index) => {
-                    rascunhoContent += `<p><strong>Carga ${index + 1}:</strong> Data: ${carga.data || "Não definida"}, Central: ${carga.central}, Produto: ${carga.produto}</p>`;
+                    const cargaItem = document.createElement('div');
+                    cargaItem.innerHTML = `
+                        <input type="checkbox" class="carga-checkbox" data-index="${index}">
+                        <strong>Carga ${index + 1}:</strong> Data: ${carga.data || "Não definida"}, Central: ${carga.central}, Produto: ${carga.produto}
+                    `;
+                    rascunhoDiv.appendChild(cargaItem);
                 });
                 
-                rascunhoDiv.innerHTML = rascunhoContent;
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.style.marginTop = '10px';
 
-                // Botão de Editar Rascunho (específico)
+                const copiarSelecionadasBtn = document.createElement('button');
+                copiarSelecionadasBtn.textContent = 'Copiar Cargas Selecionadas';
+                copiarSelecionadasBtn.className = 'copiar-selecionadas';
+                copiarSelecionadasBtn.onclick = () => copiarCargasSelecionadas(doc.id, rascunho.cargas);
+                buttonsDiv.appendChild(copiarSelecionadasBtn);
+                
                 const editarRascunhoBtn = document.createElement('button');
                 editarRascunhoBtn.textContent = 'Editar Rascunho';
                 editarRascunhoBtn.className = 'edit-rascunho';
                 editarRascunhoBtn.onclick = () => {
                     document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
-                    editingRascunhoId = doc.id; // Define o ID do rascunho para edição
-                    editingId = null; // Garante que não está editando um agendamento definitivo
+                    editingRascunhoId = doc.id;
+                    editingId = null;
                     salvarBtn.textContent = "Atualizar Rascunho";
                     numCargasInput.value = rascunho.cargas.length;
                     numCargasInput.dispatchEvent(new Event('input'));
@@ -403,44 +412,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         }
                     });
                 };
-                rascunhoDiv.appendChild(editarRascunhoBtn);
+                buttonsDiv.appendChild(editarRascunhoBtn);
                 
-                // Botão de Copiar Dados (específico)
-                const copiarBtn = document.createElement('button');
-                copiarBtn.textContent = 'Copiar Dados';
-                copiarBtn.className = 'copiar';
-                copiarBtn.onclick = () => {
-                    document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
-                    editingId = null; 
-                    editingRascunhoId = null; // Zera a edição de rascunho
-                    salvarBtn.textContent = "Salvar Agendamento"; // Volta ao modo de salvar novo
-                    numCargasInput.value = rascunho.cargas.length;
-                    numCargasInput.dispatchEvent(new Event('input'));
-                    const cargaItems = document.querySelectorAll('.carga-item');
-                    rascunho.cargas.forEach((carga, index) => {
-                        if (cargaItems[index]) {
-                            cargaItems[index].querySelector('.data').value = carga.data;
-                            cargaItems[index].querySelector('.central').value = carga.central;
-                            cargaItems[index].querySelector('.cargas').value = carga.cargas;
-                            cargaItems[index].querySelector('.fornecedor').value = carga.fornecedor;
-                            cargaItems[index].querySelector('.tipoDeProduto').value = carga.tipoDeProduto;
-                            cargaItems[index].querySelector('.produto').value = carga.produto;
-                        }
-                    });
-                };
-                rascunhoDiv.appendChild(copiarBtn);
-
-
-                // Botão de Salvar Definitivamente
                 const salvarRascunhoBtn = document.createElement('button');
                 salvarRascunhoBtn.textContent = 'Salvar Agendamento';
                 salvarRascunhoBtn.className = 'salvarRascunho';
                 salvarRascunhoBtn.onclick = async () => {
                     await salvarRascunhoDefinitivamente(doc.id, rascunho.cargas);
                 };
-                rascunhoDiv.appendChild(salvarRascunhoBtn);
+                buttonsDiv.appendChild(salvarRascunhoBtn);
 
-                // Botão de Excluir
                 const deletarRascunhoBtn = document.createElement('button');
                 deletarRascunhoBtn.textContent = 'Excluir Rascunho';
                 deletarRascunhoBtn.className = 'delete';
@@ -451,17 +432,54 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         alert("Rascunho excluído com sucesso.");
                     }
                 };
-                rascunhoDiv.appendChild(deletarRascunhoBtn);
+                buttonsDiv.appendChild(deletarRascunhoBtn);
                 
+                rascunhoDiv.appendChild(buttonsDiv);
                 listaRascunhos.appendChild(rascunhoDiv);
             });
         });
     }
 
-    // Move o rascunho para a coleção de agendamentos
+    async function copiarCargasSelecionadas(rascunhoId, cargas) {
+        const rascunhoItemDiv = document.querySelector(`.rascunho-item[data-id="${rascunhoId}"]`);
+        const checkboxes = rascunhoItemDiv.querySelectorAll('.carga-checkbox:checked');
+        const cargasSelecionadas = [];
+
+        checkboxes.forEach(checkbox => {
+            const index = checkbox.getAttribute('data-index');
+            cargasSelecionadas.push(cargas[index]);
+        });
+
+        if (cargasSelecionadas.length === 0) {
+            alert("Por favor, selecione pelo menos uma carga para copiar.");
+            return;
+        }
+
+        const headers = ["Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+        let content = headers.join('\t') + '\n';
+        cargasSelecionadas.forEach(carga => {
+            const values = [
+                carga.data || '',
+                carga.central || '',
+                carga.cargas || '',
+                carga.fornecedor || '',
+                carga.tipoDeProduto || '',
+                carga.produto || ''
+            ];
+            content += values.join('\t') + '\n';
+        });
+
+        try {
+            await navigator.clipboard.writeText(content);
+            alert("Dados copiados para a área de transferência com sucesso!");
+        } catch (err) {
+            console.error('Erro ao copiar: ', err);
+            alert("Erro ao copiar os dados. Por favor, tente novamente.");
+        }
+    }
+
     async function salvarRascunhoDefinitivamente(rascunhoId, cargas) {
         if (confirm("Tem certeza que deseja salvar este rascunho como um agendamento definitivo?")) {
-            const batch = writeBatch(db);
             const contadorRef = doc(db, "metadados", "contador");
 
             try {
@@ -483,7 +501,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     transaction.update(contadorRef, { ultima_senha: ultimaSenha });
                 });
 
-                // Exclui o rascunho da coleção de rascunhos
                 const rascunhoDocRef = doc(db, "agendamentos-rascunho", rascunhoId);
                 await deleteDoc(rascunhoDocRef);
 
@@ -496,14 +513,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     }
 
-    // Carregar Agendamentos do Firestore
     function carregarAgendamentos() {
         console.log("Carregando agendamentos para o UID:", currentUserUid);
         if (!currentUserUid) {
             console.warn("currentUserUid é nulo. Não foi possível carregar agendamentos.");
             return;
         }
-        // Ordenar por data e depois por senha
         const q = query(collection(db, "agendamentos"), orderBy("data", "asc"), orderBy("senha", "asc"));
         onSnapshot(q, (snapshot) => {
             const agendamentos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -540,20 +555,17 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 ],
                 paging: false,
                 info: false,
-                order: [[1, 'asc']] // Ordem inicial pela coluna 'Data'
+                order: [[1, 'asc']]
             });
-            // Atualiza os textos dos botões de filtro
             $('.filter-button-text').each(function() {
                 const columnIndex = dataTable.column($(this).closest('th')).index();
                 const searchTerm = dataTable.column(columnIndex).search();
                 $(this).text(searchTerm ? 'APLICADO' : 'Filtrar');
             });
-            // Atualiza o total de cargas no rodapé
             totalCargasSpan.textContent = agendamentos.length;
         });
     }
 
-    // Lógica de filtro avançada
     const filterPopupContainer = document.getElementById('filter-popup-container');
     let activeColumnIndex = null;
     let activeFilterButton = null;
@@ -595,7 +607,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     });
 
-    // Adiciona/Atualiza um agendamento ou um rascunho
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
@@ -627,20 +638,17 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
 
         if (editingId) {
-            // Edita o agendamento individual
             const docRef = doc(db, "agendamentos", editingId);
-            await updateDoc(docRef, cargas[0]); // Pega apenas a primeira carga
+            await updateDoc(docRef, cargas[0]);
             await adicionarHistorico("editou um agendamento", { id: editingId, ...cargas[0] });
             editingId = null;
         } else if (editingRascunhoId) {
-            // Edita o rascunho existente
             const rascunhoDocRef = doc(db, "agendamentos-rascunho", editingRascunhoId);
             await updateDoc(rascunhoDocRef, { cargas: cargas, timestamp: new Date() });
             alert("Rascunho atualizado com sucesso!");
             editingRascunhoId = null;
             salvarBtn.textContent = "Salvar Agendamento";
         } else {
-            // Salva cada carga como um documento separado com senha sequencial
             const contadorRef = doc(db, "metadados", "contador");
             try {
                 const result = await runTransaction(db, async (transaction) => {
@@ -679,11 +687,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
         salvarBtn.textContent = "Salvar Agendamento";
     });
 
-    // Edita ou Exclui um agendamento
     $(document).on('click', '.edit', async function () {
         document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
         editingId = $(this).data('id');
-        editingRascunhoId = null; // Garante que não está editando um rascunho
+        editingRascunhoId = null; 
         const docRef = doc(db, "agendamentos", editingId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
@@ -713,7 +720,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     });
 
-    // Funções de exportação
     window.exportarPDF = () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
@@ -729,23 +735,25 @@ document.addEventListener("DOMContentLoaded", ()=>{
     window.exportarExcel = () => {
         const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
         const dadosVisiveis = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(0, 7));
-        const ws_data = [headers, ...dadosVisiveis];
-        const ws = XLSX.utils.aoa_to_sheet(ws_data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Agendamentos");
-        XLSX.writeFile(wb, "agendamentos.xlsx");
+        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...dadosVisiveis]);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Agendamentos");
+        XLSX.writeFile(workbook, "agendamentos.xlsx");
     };
 
-    // Histórico de Ações
     async function adicionarHistorico(acao, detalhes) {
         if (!currentUserUid) return;
-        await addDoc(collection(db, "historico-acoes"), {
-            userId: currentUserUid,
-            username: localStorage.getItem("username"),
-            acao: acao,
-            detalhes: detalhes,
-            timestamp: new Date()
-        });
+        try {
+            await addDoc(collection(db, "historico-acoes"), {
+                userId: currentUserUid,
+                timestamp: new Date(),
+                acao: acao,
+                detalhes: detalhes
+            });
+            console.log("Ação registrada no histórico.");
+        } catch (e) {
+            console.error("Erro ao adicionar histórico: ", e);
+        }
     }
 
     window.abrirHistorico = async () => {
