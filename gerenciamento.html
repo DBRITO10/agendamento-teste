@@ -231,6 +231,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   
     <h2>Lista de Agendamentos</h2>
     <div id="exportButtons">
+        <button id="salvarSelecionadosRascunhoBtn">Salvar Selecionados no Rascunho</button>
         <button id="copiarSelecionadosBtn">Copiar Selecionados</button>
         <button id="excluirSelecionadosBtn">Excluir Selecionados</button>
         <button onclick="exportarExcel()">Exportar Excel</button>
@@ -290,6 +291,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const editarRascunhoBtn = document.getElementById('editarRascunhoBtn');
     const copiarSelecionadosBtn = document.getElementById('copiarSelecionadosBtn');
     const excluirSelecionadosBtn = document.getElementById('excluirSelecionadosBtn');
+    const salvarSelecionadosRascunhoBtn = document.getElementById('salvarSelecionadosRascunhoBtn');
 
     let editingId = null;
     let editingRascunhoId = null;
@@ -422,8 +424,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     <input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}">
                     <strong>Senha:</strong> ${rascunho.senha || 'Não Definida'} |
                     <strong>Data:</strong> ${rascunho.data || 'Não definida'} |
-                    <strong>Central:</strong> ${rascunho.central} |
-                    <strong>Produto:</strong> ${rascunho.produto}
+                    <strong>Central:</strong> ${rascunho.central || 'Não definida'} |
+                    <strong>Cargas:</strong> ${rascunho.cargas || 'Não definida'} |
+                    <strong>Fornecedor:</strong> ${rascunho.fornecedor || 'Não definido'} |
+                    <strong>Tipo de Produto:</strong> ${rascunho.tipoDeProduto || 'Não definido'} |
+                    <strong>Produto:</strong> ${rascunho.produto || 'Não definido'}
                 `;
                 listaRascunhos.appendChild(rascunhoDiv);
             });
@@ -741,24 +746,19 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         transaction.set(newDocRef, novaCarga);
                         savedCargas.push({ id: newDocRef.id, ...novaCarga });
                     }
-                    
-                    transaction.set(contadorRef, { ultima_senha: ultimaSenha });
+                    transaction.update(contadorRef, { ultima_senha: ultimaSenha });
                     return savedCargas;
                 });
-
-                for (const carga of result) {
-                    await adicionarHistorico("agendou uma nova carga", { id: carga.id, ...carga });
-                }
-                alert("Agendamentos salvos com sucesso!");
-
+                
+                alert('Agendamento(s) salvo(s) com sucesso!');
+                form.reset();
+                numCargasInput.value = 1;
+                numCargasInput.dispatchEvent(new Event('input'));
             } catch (e) {
-                console.error("Erro ao gerar senhas e salvar agendamentos: ", e);
-                alert("Ocorreu um erro ao salvar. Tente novamente.");
+                console.error("Erro ao adicionar agendamento: ", e);
+                alert('Erro ao salvar agendamento. Tente novamente.');
             }
         }
-        form.reset();
-        numCargasInput.value = 1;
-        numCargasInput.dispatchEvent(new Event('input'));
         salvarBtn.textContent = "Salvar Agendamento";
     });
 
@@ -788,117 +788,28 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
     $(document).on('click', '.delete', async function () {
         const id = $(this).data('id');
-        if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-            const docRef = doc(db, "agendamentos", id);
-            await deleteDoc(docRef);
+        if (confirm("Tem certeza que deseja excluir este agendamento?")) {
+            await deleteDoc(doc(db, "agendamentos", id));
             await adicionarHistorico("excluiu um agendamento", { id: id });
-            alert('Agendamento excluído com sucesso!');
+            alert("Agendamento excluído com sucesso!");
         }
     });
 
-    async function adicionarHistorico(acao, detalhes = {}) {
-        try {
-            await addDoc(collection(db, "historico-acoes"), {
-                userId: currentUserUid,
-                timestamp: new Date(),
-                acao: acao,
-                detalhes: detalhes
-            });
-        } catch (e) {
-            console.error("Erro ao adicionar histórico: ", e);
-        }
-    }
-
-    window.exportarExcel = () => {
-        const table = document.getElementById('agendamentosTabela');
-        const ws = XLSX.utils.table_to_sheet(table);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Agendamentos");
-        XLSX.writeFile(wb, "agendamentos.xlsx");
-    };
-
-    window.exportarPDF = () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('l', 'pt');
-        doc.autoTable({ html: '#agendamentosTabela' });
-        doc.save('agendamentos.pdf');
-    };
-
-    window.abrirHistorico = async () => {
-        console.log("Tentando abrir histórico para o UID:", currentUserUid);
-        if (!currentUserUid) {
-            console.warn("currentUserUid é nulo. Não foi possível abrir o histórico.");
-            historicoContent.innerHTML = '<p>Você precisa estar logado para ver o histórico.</p>';
-            historicoModal.style.display = 'block';
-            return;
-        }
-        historicoContent.innerHTML = 'Carregando...';
-        const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
-        const snapshot = await getDocs(q);
-        historicoContent.innerHTML = '';
-        if (snapshot.empty) {
-            historicoContent.innerHTML = '<p>Nenhuma ação registrada.</p>';
-        } else {
-            snapshot.forEach(doc => {
-                const acao = doc.data();
-                const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
-                let detalhes = '';
-                if (acao.detalhes) {
-                    if (acao.detalhes.ids && Array.isArray(acao.detalhes.ids)) {
-                        detalhes = `(IDs: ${acao.detalhes.ids.join(', ')})`;
-                    } else if (acao.detalhes.id) {
-                        detalhes = `(ID: ${acao.detalhes.id})`;
-                    }
-                }
-                historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} ${detalhes}.</p>`;
-            });
-        }
-        historicoModal.style.display = 'block';
-    };
-
-    document.querySelector('.close-modal').onclick = () => {
-        historicoModal.style.display = 'none';
-    };
-
-    window.onclick = (event) => {
-        if (event.target == historicoModal) {
-            historicoModal.style.display = 'none';
-        }
-    };
-
-    selectAllCheckbox.addEventListener('change', (e) => {
-        $('.row-checkbox').prop('checked', e.target.checked).trigger('change');
-    });
-
-    $(document).on('change', '.row-checkbox', function () {
-        const checkedCount = $('.row-checkbox:checked').length;
-        if (checkedCount > 0) {
-            copiarSelecionadosBtn.style.display = 'inline-block';
-            excluirSelecionadosBtn.style.display = 'inline-block';
-        } else {
-            copiarSelecionadosBtn.style.display = 'none';
-            excluirSelecionadosBtn.style.display = 'none';
-        }
-    });
-
-    // Copiar selecionados da tabela principal
     copiarSelecionadosBtn.addEventListener('click', async () => {
         const checkedRows = $('.row-checkbox:checked');
         if (checkedRows.length === 0) {
-            alert('Por favor, selecione pelo menos um agendamento para copiar.');
+            alert("Por favor, selecione pelo menos um agendamento para copiar.");
             return;
         }
-        
+
         const selectedIds = checkedRows.map(function() {
             return $(this).data('id');
         }).get();
 
         const agendamentosRef = collection(db, "agendamentos");
-        const q = query(agendamentosRef, where("__name__", "in", selectedIds));
-        const snapshot = await getDocs(q);
-        
+        const snapshot = await getDocs(query(agendamentosRef, where("__name__", "in", selectedIds)));
         const agendamentosSelecionados = snapshot.docs.map(doc => doc.data());
-        
+
         const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
         let content = headers.join('\t') + '\n';
         agendamentosSelecionados.forEach(agendamento => {
@@ -923,7 +834,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     });
 
-    // Excluir selecionados da tabela principal
     excluirSelecionadosBtn.addEventListener('click', async () => {
         const checkedRows = $('.row-checkbox:checked');
         if (checkedRows.length === 0) {
@@ -952,7 +862,137 @@ document.addEventListener("DOMContentLoaded", ()=>{
             }
         }
     });
-    
+
+    salvarSelecionadosRascunhoBtn.addEventListener('click', async () => {
+        const checkedRows = $('.row-checkbox:checked');
+        if (checkedRows.length === 0) {
+            alert("Por favor, selecione pelo menos um agendamento para salvar em rascunho.");
+            return;
+        }
+
+        if (confirm(`Tem certeza que deseja mover ${checkedRows.length} agendamento(s) para o rascunho?`)) {
+            const batch = writeBatch(db);
+            const movedIds = [];
+
+            const agendamentoRefs = checkedRows.map(function() {
+                return doc(db, "agendamentos", $(this).data('id'));
+            });
+
+            const agendamentoDocs = await getDocs(query(collection(db, "agendamentos"), where("__name__", "in", agendamentoRefs.map(ref => ref.path))));
+            
+            agendamentoDocs.forEach(agendamentoDoc => {
+                const data = agendamentoDoc.data();
+                const newDocRef = doc(collection(db, "agendamentos-rascunho"));
+                batch.set(newDocRef, { ...data, timestamp: new Date() });
+                batch.delete(agendamentoDoc.ref);
+                movedIds.push(agendamentoDoc.id);
+            });
+
+            try {
+                await batch.commit();
+                await adicionarHistorico(`moveu ${checkedRows.length} agendamento(s) para o rascunho`, { ids: movedIds });
+                alert(`${checkedRows.length} agendamento(s) movido(s) para o rascunho com sucesso.`);
+            } catch (e) {
+                console.error("Erro ao mover agendamentos para o rascunho:", e);
+                alert("Ocorreu um erro ao mover os agendamentos. Tente novamente.");
+            }
+        }
+    });
+
+
+    // Event listener para a checkbox "marcar todos" da tabela principal
+    $(document).on('change', '#selectAllCheckbox', function() {
+        $('.row-checkbox').prop('checked', this.checked);
+    });
+
+    // Função para exportar dados para Excel
+    window.exportarExcel = () => {
+        const table = $('#agendamentosTabela').DataTable();
+        const data = table.rows({ search: 'applied' }).data().toArray().map(row => {
+            return {
+                'Senha': row[1],
+                'Data': row[2],
+                'Central': row[3],
+                'Cargas': row[4],
+                'Fornecedor': row[5],
+                'Tipo de Produto': row[6],
+                'Produto': row[7]
+            };
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Agendamentos");
+        XLSX.writeFile(workbook, "agendamentos.xlsx");
+    };
+
+    // Função para exportar dados para PDF
+    window.exportarPDF = () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text("Relatório de Agendamentos", 14, 15);
+        
+        const table = $('#agendamentosTabela').DataTable();
+        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+        const data = table.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, -1));
+
+        doc.autoTable({
+            head: [headers],
+            body: data,
+            startY: 20
+        });
+
+        doc.save("agendamentos.pdf");
+    };
+
+    async function adicionarHistorico(acao, detalhes = {}) {
+        if (!currentUserUid) return;
+        try {
+            await addDoc(collection(db, "historico-acoes"), {
+                userId: currentUserUid,
+                timestamp: new Date(),
+                acao: acao,
+                detalhes: detalhes
+            });
+        } catch (e) {
+            console.error("Erro ao adicionar histórico: ", e);
+        }
+    }
+
+    window.abrirHistorico = async () => {
+        console.log("Tentando abrir histórico para o UID:", currentUserUid);
+        if (!currentUserUid) {
+            console.warn("currentUserUid é nulo. Não foi possível abrir o histórico.");
+            historicoContent.innerHTML = '<p>Você precisa estar logado para ver o histórico.</p>';
+            historicoModal.style.display = 'block';
+            return;
+        }
+        historicoContent.innerHTML = 'Carregando...';
+        const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
+        const snapshot = await getDocs(q);
+        historicoContent.innerHTML = '';
+        if (snapshot.empty) {
+            historicoContent.innerHTML = '<p>Nenhuma ação registrada.</p>';
+        } else {
+            snapshot.forEach(doc => {
+                const acao = doc.data();
+                const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
+                historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} (ID: ${acao.detalhes.id}).</p>`;
+            });
+        }
+        historicoModal.style.display = 'block';
+    };
+
+    document.querySelector('.close-modal').onclick = () => {
+        historicoModal.style.display = 'none';
+    };
+
+    window.onclick = (event) => {
+        if (event.target == historicoModal) {
+            historicoModal.style.display = 'none';
+        }
+    };
+
 </script>
 
 </body>
