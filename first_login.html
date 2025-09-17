@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Primeiro Acesso</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; background: #fff5f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .box { background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); text-align: center; width: 300px; }
+        h2 { color: #b71c1c; margin-bottom: 20px; }
+        input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #d32f2f; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #b71c1c; }
+        #errorMsg { color: red; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>Primeiro Acesso</h2>
+    <p>Crie seu nome de usuário e sua nova senha.</p>
+    <form id="firstLoginForm">
+        <input type="text" id="username" placeholder="Seu nome de usuário" required>
+        <input type="password" id="newPassword" placeholder="Nova senha" required>
+        <input type="password" id="confirmPassword" placeholder="Confirme a nova senha" required>
+        <button type="submit">Salvar e Continuar</button>
+        <div id="errorMsg"></div>
+    </form>
+</div>
+
+<script type="module">
+  // Importa as funções do Firebase que vamos usar
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getAuth, updatePassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+  import { getFirestore, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+  // Sua configuração do Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyBvcY4cObePVA0knUcmeSCT2JPkpATQpIw",
+    authDomain: "recebimento-45b44.firebaseapp.com",
+    projectId: "recebimento-45b44",
+    storageBucket: "recebimento-45b44.firebasestorage.app",
+    messagingSenderId: "163866983916",
+    appId: "1:163866983916:web:e901b7cf58b28733a554c9"
+  };
+
+  // Inicializa o Firebase e os serviços
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const firstLoginForm = document.getElementById("firstLoginForm");
+
+  firstLoginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const username = document.getElementById("username").value;
+    const newPassword = document.getElementById("newPassword").value;
+    const confirmPassword = document.getElementById("confirmPassword").value;
+    const errorMsg = document.getElementById("errorMsg");
+    
+    errorMsg.textContent = "";
+
+    // Valida se as senhas coincidem
+    if (newPassword !== confirmPassword) {
+        errorMsg.textContent = "As senhas não coincidem.";
+        return;
+    }
+
+    // Valida se a senha tem pelo menos 6 caracteres (requisito do Firebase)
+    if (newPassword.length < 6) {
+        errorMsg.textContent = "A senha deve ter pelo menos 6 caracteres.";
+        return;
+    }
+
+    const user = auth.currentUser;
+    if (user) {
+        try {
+            // Atualiza a senha no Firebase Auth
+            await updatePassword(user, newPassword);
+
+            // Atualiza o documento do usuário no Firestore
+            const userDocRef = doc(db, "users", user.uid);
+            await updateDoc(userDocRef, {
+                username: username,
+                isFirstLogin: false
+            });
+            
+            // Armazena o nome de usuário no localStorage e redireciona
+            localStorage.setItem("isLoggedIn", "true");
+            localStorage.setItem("username", username);
+            window.location.href = "index.html";
+
+        } catch (error) {
+            console.error("Erro ao atualizar senha ou dados do usuário: ", error);
+            errorMsg.textContent = "Erro ao salvar. Tente novamente.";
+        }
+    } else {
+        // Se a sessão expirou, redireciona para o login
+        errorMsg.textContent = "Sessão expirada. Faça o login novamente.";
+        window.location.href = "login.html";
+    }
+  });
+
+  // Garante que o usuário está logado antes de exibir a página
+  onAuthStateChanged(auth, user => {
+    if (!user) {
+      window.location.href = "login.html";
+    }
+  });
+</script>
+
+</body>
+</html>
