@@ -221,13 +221,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
   <table id="agendamentosTabela" class="display" style="width:100%">
     <thead>
       <tr>
-        <th>Senha <span class="filter-button-text" data-col="senha">Filtrar</span></th>
-        <th>Data <span class="filter-button-text" data-col="data">Filtrar</span></th>
-        <th>Central <span class="filter-button-text" data-col="central">Filtrar</span></th>
-        <th>Cargas <span class="filter-button-text" data-col="cargas">Filtrar</span></th>
-        <th>Fornecedor <span class="filter-button-text" data-col="fornecedor">Filtrar</span></th>
-        <th>Tipo de Produto <span class="filter-button-text" data-col="tipoDeProduto">Filtrar</span></th>
-        <th>Produto <span class="filter-button-text" data-col="produto">Filtrar</span></th>
+        <th>Senha <span class="filter-button-text">Filtrar</span></th>
+        <th>Data <span class="filter-button-text">Filtrar</span></th>
+        <th>Central <span class="filter-button-text">Filtrar</span></th>
+        <th>Cargas <span class="filter-button-text">Filtrar</span></th>
+        <th>Fornecedor <span class="filter-button-text">Filtrar</span></th>
+        <th>Tipo de Produto <span class="filter-button-text">Filtrar</span></th>
+        <th>Produto <span class="filter-button-text">Filtrar</span></th>
         <th>Ações</th>
       </tr>
     </thead>
@@ -291,7 +291,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     for (let i = 0; i < numCargas; i++) {
       cargasContainer.innerHTML += `
         <div class="carga-item">
-            <input type="date" class="data">
+            <input type="date" class="data" required>
             <input type="text" class="central" placeholder="Central" required>
             <input type="text" class="cargas" placeholder="Cargas" required>
             <input type="text" class="fornecedor" placeholder="Fornecedor" required>
@@ -394,6 +394,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
       }
 
       const dadosParaTabela = [];
+      let totalCargasCount = 0;
       agendamentos.forEach(agendamento => {
           agendamento.cargas.forEach(carga => {
               dadosParaTabela.push([
@@ -407,6 +408,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                   `<button class="edit" data-id="${agendamento.id}">Editar</button> <button class="delete" data-id="${agendamento.id}">Excluir</button>`
               ]);
           });
+          totalCargasCount += agendamento.cargas.length;
       });
 
       dataTable = $('#agendamentosTabela').DataTable({
@@ -432,7 +434,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         $(this).text(searchTerm ? 'APLICADO' : 'Filtrar');
       });
       // Atualiza o total de cargas no rodapé
-      totalCargasSpan.textContent = agendamentos.length;
+      totalCargasSpan.textContent = totalCargasCount;
     });
   }
 
@@ -525,11 +527,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
       try {
           await runTransaction(db, async (transaction) => {
               const contadorDoc = await transaction.get(contadorRef);
-              const novaSenha = contadorDoc.data().ultima_senha + 1;
+              let novaSenha = 1; // Inicia com 1 se o contador não existir
+              if (contadorDoc.exists()) {
+                  novaSenha = contadorDoc.data().ultima_senha + 1;
+              }
               agendamento.senha = novaSenha;
               const newDocRef = doc(collection(db, "agendamentos")); // Gera um novo ID de documento
               transaction.set(newDocRef, agendamento);
-              transaction.update(contadorRef, { ultima_senha: novaSenha });
+              transaction.set(contadorRef, { ultima_senha: novaSenha });
               await adicionarHistorico("agendou um novo carro", { id: newDocRef.id, ...agendamento });
           });
       } catch (e) {
