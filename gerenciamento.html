@@ -221,13 +221,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
   <table id="agendamentosTabela" class="display" style="width:100%">
     <thead>
       <tr>
-        <th>Senha <span class="filter-button-text">Filtrar</span></th>
-        <th>Data <span class="filter-button-text">Filtrar</span></th>
-        <th>Central <span class="filter-button-text">Filtrar</span></th>
-        <th>Cargas <span class="filter-button-text">Filtrar</span></th>
-        <th>Fornecedor <span class="filter-button-text">Filtrar</span></th>
-        <th>Tipo de Produto <span class="filter-button-text">Filtrar</span></th>
-        <th>Produto <span class="filter-button-text">Filtrar</span></th>
+        <th>Senha</th>
+        <th>Data</th>
+        <th>Central <span class="filter-button-text" data-col="central">Filtrar</span></th>
+        <th>Cargas <span class="filter-button-text" data-col="cargas">Filtrar</span></th>
+        <th>Fornecedor <span class="filter-button-text" data-col="fornecedor">Filtrar</span></th>
+        <th>Tipo de Produto <span class="filter-button-text" data-col="tipoDeProduto">Filtrar</span></th>
+        <th>Produto <span class="filter-button-text" data-col="produto">Filtrar</span></th>
         <th>Ações</th>
       </tr>
     </thead>
@@ -259,8 +259,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const cargasContainer = document.getElementById('cargasContainer');
   const listaRascunhos = document.getElementById('listaRascunhos');
   const totalCargasSpan = document.getElementById('totalCargas');
-  const historicoModal = document.getElementById('historicoModal');
-  const historicoContent = document.getElementById('historicoContent');
   
   let editingId = null;
   let dataTable = null;
@@ -320,7 +318,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         formIncomplete = true;
       }
       cargas.push({
-        data: item.querySelector('.data').value || null,
+        data: item.querySelector('.data').value || null, // Salva a data, mesmo se vazia
         central: central,
         cargas: carga,
         fornecedor: item.querySelector('.fornecedor').value,
@@ -368,6 +366,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
         
         rascunhoDiv.innerHTML = rascunhoContent;
         
+        const salvarBtn = document.createElement('button');
+        salvarBtn.textContent = 'Definir Data';
+        salvarBtn.onclick = () => {
+            // Lógica para abrir modal e definir data
+        };
+        rascunhoDiv.appendChild(salvarBtn);
+        
         const copiarBtn = document.createElement('button');
         copiarBtn.textContent = 'Copiar Dados';
         copiarBtn.onclick = () => {
@@ -393,26 +398,243 @@ document.addEventListener("DOMContentLoaded", ()=>{
         dataTable.destroy();
       }
 
-      const dadosParaTabela = [];
-      let totalCargasCount = 0;
-      agendamentos.forEach(agendamento => {
-          agendamento.cargas.forEach(carga => {
-              dadosParaTabela.push([
-                  agendamento.senha,
-                  carga.data,
-                  carga.central,
-                  carga.cargas,
-                  carga.fornecedor,
-                  carga.tipoDeProduto,
-                  carga.produto,
-                  `<button class="edit" data-id="${agendamento.id}">Editar</button> <button class="delete" data-id="${agendamento.id}">Excluir</button>`
-              ]);
-          });
-          totalCargasCount += agendamento.cargas.length;
-      });
+      const dadosParaTabela = agendamentos.map(item => [
+        item.senha,
+        item.data,
+        item.central,
+        item.cargas,
+        item.fornecedor,
+        item.tipoDeProduto,
+        item.produto,
+        `<button class="edit" data-id="${item.id}">Editar</button> <button class="delete" data-id="${item.id}">Excluir</button>`
+      ]);
 
       dataTable = $('#agendamentosTabela').DataTable({
         data: dadosParaTabela,
         columns: [
           { title: "Senha" },
-          {
+          { title: "Data" },
+          { title: "Central" },
+          { title: "Cargas" },
+          { title: "Fornecedor" },
+          { title: "Tipo de Produto" },
+          { title: "Produto" },
+          { title: "Ações", orderable: false, searchable: false }
+        ],
+        paging: false,
+        info: false,
+        order: [[1, 'asc']]
+      });
+      // Atualiza os textos dos botões de filtro
+      $('.filter-button-text').each(function() {
+        const columnIndex = dataTable.column($(this).closest('th')).index();
+        const searchTerm = dataTable.column(columnIndex).search();
+        $(this).text(searchTerm ? 'APLICADO' : 'Filtrar');
+      });
+      // Atualiza o total de cargas no rodapé
+      totalCargasSpan.textContent = agendamentos.length;
+    });
+  }
+
+  // Lógica de filtro avançada
+  const filterPopupContainer = document.getElementById('filter-popup-container');
+  let activeColumnIndex = null;
+  let activeFilterButton = null;
+  
+  $(document).on('click', '.filter-button-text', function (e) {
+    e.stopPropagation();
+    activeFilterButton = $(this);
+    const columnIndex = dataTable.column($(this).closest('th')).index();
+    const columnData = dataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
+    
+    let popupHtml = '<div><label><input type="radio" name="filter-radio" value="" checked> Todos</label></div>';
+    columnData.each(value => {
+        popupHtml += `<div><label><input type="radio" name="filter-radio" value="${value}"> ${value}</label></div>`;
+    });
+    
+    filterPopupContainer.innerHTML = popupHtml;
+    const buttonRect = this.getBoundingClientRect();
+    filterPopupContainer.style.top = `${buttonRect.bottom + window.scrollY}px`;
+    filterPopupContainer.style.left = `${buttonRect.left}px`;
+    filterPopupContainer.classList.add('filter-popup');
+
+    activeColumnIndex = columnIndex;
+  });
+
+  $(document).on('change', '.filter-popup input', function () {
+    const value = $(this).val();
+    dataTable.column(activeColumnIndex).search(value).draw();
+    if (activeFilterButton) {
+        activeFilterButton.text(value ? 'APLICADO' : 'Filtrar');
+    }
+    filterPopupContainer.classList.remove('filter-popup');
+    filterPopupContainer.innerHTML = '';
+  });
+
+  $(document).on('click', function (e) {
+    if (!$(e.target).closest('.filter-popup').length && !$(e.target).hasClass('filter-button-text')) {
+      filterPopupContainer.classList.remove('filter-popup');
+      filterPopupContainer.innerHTML = '';
+    }
+  });
+
+  // Adiciona/Atualiza um agendamento e registra no histórico
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const agendamento = {
+        cargas: [],
+        timestamp: new Date()
+    };
+    
+    const cargaItems = document.querySelectorAll('.carga-item');
+    let formIncomplete = false;
+    
+    cargaItems.forEach(item => {
+      const data = item.querySelector('.data').value;
+      const central = item.querySelector('.central').value;
+      const cargas = item.querySelector('.cargas').value;
+      
+      if (!data || !central || !cargas) {
+        formIncomplete = true;
+      }
+      agendamento.cargas.push({
+        data: data,
+        central: central,
+        cargas: cargas,
+        fornecedor: item.querySelector('.fornecedor').value,
+        tipoDeProduto: item.querySelector('.tipoDeProduto').value,
+        produto: item.querySelector('.produto').value
+      });
+    });
+    
+    if (formIncomplete) {
+      alert("Por favor, preencha todos os campos obrigatórios (Data, Central e Cargas).");
+      return;
+    }
+
+    if (editingId) {
+      // Editar um agendamento existente
+      const docRef = doc(db, "agendamentos", editingId);
+      await updateDoc(docRef, { cargas: agendamento.cargas });
+      await adicionarHistorico("editou um agendamento", { id: editingId, cargas: agendamento.cargas });
+      editingId = null;
+    } else {
+      // Criar um novo agendamento com todas as cargas em um único documento
+      const contadorRef = doc(db, "metadados", "contador");
+      try {
+          await runTransaction(db, async (transaction) => {
+              const contadorDoc = await transaction.get(contadorRef);
+              const novaSenha = contadorDoc.data().ultima_senha + 1;
+              agendamento.senha = novaSenha;
+              const newDocRef = doc(collection(db, "agendamentos")); // Gera um novo ID de documento
+              transaction.set(newDocRef, agendamento);
+              transaction.update(contadorRef, { ultima_senha: novaSenha });
+              await adicionarHistorico("agendou um novo carro", { id: newDocRef.id, ...agendamento });
+          });
+      } catch (e) {
+          console.error("Erro ao gerar senha e salvar agendamento: ", e);
+          alert("Ocorreu um erro ao salvar. Tente novamente.");
+      }
+    }
+    form.reset();
+    numCargasInput.value = 1;
+    numCargasInput.dispatchEvent(new Event('input'));
+  });
+
+  // Edita ou Exclui um agendamento
+  $(document).on('click', '.edit', async function () {
+      document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
+      editingId = $(this).data('id');
+      const docRef = doc(db, "agendamentos", editingId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const dados = docSnap.data();
+        numCargasInput.value = dados.cargas.length;
+        numCargasInput.dispatchEvent(new Event('input'));
+        
+        const cargaItems = document.querySelectorAll('.carga-item');
+        dados.cargas.forEach((carga, index) => {
+            if (cargaItems[index]) {
+                cargaItems[index].querySelector('.data').value = carga.data;
+                cargaItems[index].querySelector('.central').value = carga.central;
+                cargaItems[index].querySelector('.cargas').value = carga.cargas;
+                cargaItems[index].querySelector('.fornecedor').value = carga.fornecedor;
+                cargaItems[index].querySelector('.tipoDeProduto').value = carga.tipoDeProduto;
+                cargaItems[index].querySelector('.produto').value = carga.produto;
+            }
+        });
+      }
+  });
+
+  $(document).on('click', '.delete', async function () {
+      const id = $(this).data('id');
+      const docRef = doc(db, "agendamentos", id);
+      if (confirm("Tem certeza que deseja excluir este agendamento?")) {
+        await deleteDoc(docRef);
+        await adicionarHistorico("excluiu um agendamento", { id: id });
+      }
+  });
+
+  // Funções de exportação
+  window.exportarPDF = () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+    const dadosVisiveis = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(0, 7));
+    doc.autoTable({
+      head: [headers],
+      body: dadosVisiveis,
+    });
+    doc.save('agendamentos.pdf');
+  };
+
+  window.exportarExcel = () => {
+    const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+    const dadosVisiveis = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(0, 7));
+    const ws_data = [headers, ...dadosVisiveis];
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Agendamentos");
+    XLSX.writeFile(wb, "agendamentos.xlsx");
+  };
+
+  // Histórico de Ações
+  async function adicionarHistorico(acao, detalhes) {
+      if (!currentUserUid) return;
+      await addDoc(collection(db, "historico-acoes"), {
+          userId: currentUserUid,
+          username: localStorage.getItem("username"),
+          acao: acao,
+          detalhes: detalhes,
+          timestamp: new Date()
+      });
+  }
+
+  window.abrirHistorico = async () => {
+      const historicoContent = document.getElementById('historicoContent');
+      historicoContent.innerHTML = 'Carregando...';
+      const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid));
+      const snapshot = await getDocs(q);
+      historicoContent.innerHTML = '';
+      snapshot.forEach(doc => {
+          const acao = doc.data();
+          const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
+          historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} (ID: ${acao.detalhes.id}).</p>`;
+      });
+      document.getElementById('historicoModal').style.display = 'block';
+  };
+
+  document.querySelector('.close-modal').onclick = () => {
+      document.getElementById('historicoModal').style.display = 'none';
+  };
+
+  window.onclick = (event) => {
+      if (event.target == document.getElementById('historicoModal')) {
+          document.getElementById('historicoModal').style.display = 'none';
+      }
+  };
+</script>
+
+</body>
+</html>
