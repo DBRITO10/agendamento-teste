@@ -35,6 +35,10 @@
             align-items: center;
             border-radius: 6px;
             margin-bottom: 12px;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         #exportButtons { margin-bottom: 15px; }
         #exportButtons button { display: inline-block; width: auto; margin-right: 10px; padding: 10px 20px; }
@@ -176,14 +180,6 @@
 <body>
 
 <div id="userBar">
-    <button onclick="history.back()" style="
-        background: transparent; 
-        border: none; 
-        color: #333; 
-        font-size: 24px; 
-        cursor: pointer;
-        margin-right: 10px;
-    ">←</button>
     <span id="welcomeUser" style="font-weight:bold; color:#333; flex-grow: 1;"></span>
     <button onclick="logout()" style="background:#CC0000; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Sair</button>
 </div>
@@ -773,13 +769,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     const savedCargas = [];
                     for (const carga of cargas) {
                         ultimaSenha++;
-                        const novaCarga = { ...carga, senha: ultimaSenha };
+                        const novaCarga = { ...carga, senha: ultimaSenha, userId: currentUserUid };
                         const newDocRef = doc(collection(db, "agendamentos"));
                         transaction.set(newDocRef, novaCarga);
                         savedCargas.push({ id: newDocRef.id, ...novaCarga });
                     }
                     
-                    transaction.set(contadorRef, { ultima_senha: ultimaSenha });
+                    transaction.update(contadorRef, { ultima_senha: ultimaSenha });
                     return savedCargas;
                 });
 
@@ -859,16 +855,22 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
         historicoContent.innerHTML = 'Carregando...';
         const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
-        const snapshot = await getDocs(q);
-        historicoContent.innerHTML = '';
-        if (snapshot.empty) {
-            historicoContent.innerHTML = '<p>Nenhuma ação registrada.</p>';
-        } else {
-            snapshot.forEach(doc => {
-                const acao = doc.data();
-                const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
-                historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} (ID: ${acao.detalhes.id}).</p>`;
-            });
+        try {
+            const snapshot = await getDocs(q);
+            historicoContent.innerHTML = '';
+            if (snapshot.empty) {
+                historicoContent.innerHTML = '<p>Nenhuma ação registrada.</p>';
+            } else {
+                snapshot.forEach(doc => {
+                    const acao = doc.data();
+                    const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
+                    const acaoDetalhes = acao.detalhes && acao.detalhes.id ? `(ID: ${acao.detalhes.id})` : '';
+                    historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} ${acaoDetalhes}.</p>`;
+                });
+            }
+        } catch (e) {
+            console.error("Erro ao carregar histórico: ", e);
+            historicoContent.innerHTML = '<p>Ocorreu um erro ao carregar o histórico. Tente novamente mais tarde.</p>';
         }
         historicoModal.style.display = 'block';
     };
