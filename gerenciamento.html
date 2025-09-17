@@ -133,7 +133,6 @@
         font-size: 14px;
         color: #666;
     }
-
     #cargasHeader, .carga-item {
         display: flex;
         flex-wrap: nowrap;
@@ -290,7 +289,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     for (let i = 0; i < numCargas; i++) {
       cargasContainer.innerHTML += `
         <div class="carga-item">
-            <input type="date" class="data">
+            <input type="date" class="data" required>
             <input type="text" class="central" placeholder="Central" required>
             <input type="text" class="cargas" placeholder="Cargas" required>
             <input type="text" class="fornecedor" placeholder="Fornecedor" required>
@@ -483,22 +482,26 @@ document.addEventListener("DOMContentLoaded", ()=>{
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const cargas = [];
-    const cargaItems = document.querySelectorAll('.carga-item');
+    const agendamento = {
+        cargas: [],
+        timestamp: new Date()
+    };
     
+    const cargaItems = document.querySelectorAll('.carga-item');
     let formIncomplete = false;
+    
     cargaItems.forEach(item => {
       const data = item.querySelector('.data').value;
       const central = item.querySelector('.central').value;
-      const carga = item.querySelector('.cargas').value;
+      const cargas = item.querySelector('.cargas').value;
       
-      if (!data || !central || !carga) {
+      if (!data || !central || !cargas) {
         formIncomplete = true;
       }
-      cargas.push({
+      agendamento.cargas.push({
         data: data,
         central: central,
-        cargas: carga,
+        cargas: cargas,
         fornecedor: item.querySelector('.fornecedor').value,
         tipoDeProduto: item.querySelector('.tipoDeProduto').value,
         produto: item.querySelector('.produto').value
@@ -511,26 +514,27 @@ document.addEventListener("DOMContentLoaded", ()=>{
     }
 
     if (editingId) {
+      // Editar um agendamento existente
       const docRef = doc(db, "agendamentos", editingId);
-      await updateDoc(docRef, cargas[0]);
-      await adicionarHistorico("editou um agendamento", { id: editingId, ...cargas[0] });
+      await updateDoc(docRef, { cargas: agendamento.cargas });
+      await adicionarHistorico("editou um agendamento", { id: editingId, cargas: agendamento.cargas });
       editingId = null;
     } else {
-      for (const carga of cargas) {
-        const contadorRef = doc(db, "metadados", "contador");
-        try {
+      // Criar um novo agendamento com todas as cargas em um único documento
+      const contadorRef = doc(db, "metadados", "contador");
+      try {
           await runTransaction(db, async (transaction) => {
               const contadorDoc = await transaction.get(contadorRef);
               const novaSenha = contadorDoc.data().ultima_senha + 1;
-              carga.senha = novaSenha;
-              const newDocRef = await addDoc(collection(db, "agendamentos"), carga);
+              agendamento.senha = novaSenha;
+              const newDocRef = doc(collection(db, "agendamentos")); // Gera um novo ID de documento
+              transaction.set(newDocRef, agendamento);
               transaction.update(contadorRef, { ultima_senha: novaSenha });
-              await adicionarHistorico("agendou um novo carro", { id: newDocRef.id, ...carga });
+              await adicionarHistorico("agendou um novo carro", { id: newDocRef.id, ...agendamento });
           });
-        } catch (e) {
-            console.error("Erro ao gerar senha e salvar agendamento: ", e);
-            alert("Ocorreu um erro ao salvar. Tente novamente.");
-        }
+      } catch (e) {
+          console.error("Erro ao gerar senha e salvar agendamento: ", e);
+          alert("Ocorreu um erro ao salvar. Tente novamente.");
       }
     }
     form.reset();
@@ -546,15 +550,20 @@ document.addEventListener("DOMContentLoaded", ()=>{
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const dados = docSnap.data();
-        numCargasInput.value = 1;
+        numCargasInput.value = dados.cargas.length;
         numCargasInput.dispatchEvent(new Event('input'));
-        const cargaItem = document.querySelector('.carga-item');
-        cargaItem.querySelector('.data').value = dados.data;
-        cargaItem.querySelector('.central').value = dados.central;
-        cargaItem.querySelector('.cargas').value = dados.cargas;
-        cargaItem.querySelector('.fornecedor').value = dados.fornecedor;
-        cargaItem.querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
-        cargaItem.querySelector('.produto').value = dados.produto;
+        
+        const cargaItems = document.querySelectorAll('.carga-item');
+        dados.cargas.forEach((carga, index) => {
+            if (cargaItems[index]) {
+                cargaItems[index].querySelector('.data').value = carga.data;
+                cargaItems[index].querySelector('.central').value = carga.central;
+                cargaItems[index].querySelector('.cargas').value = carga.cargas;
+                cargaItems[index].querySelector('.fornecedor').value = carga.fornecedor;
+                cargaItems[index].querySelector('.tipoDeProduto').value = carga.tipoDeProduto;
+                cargaItems[index].querySelector('.produto').value = carga.produto;
+            }
+        });
       }
   });
 
