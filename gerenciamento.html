@@ -162,6 +162,19 @@
             gap: 10px;
             margin-bottom: 10px;
         }
+        /* Estilos adicionados para melhorar a organização dos botões */
+        #rascunhos-container h2 {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .rascunho-options {
+            display: flex;
+            justify-content: flex-start; /* Alinha os botões à esquerda */
+            flex-wrap: wrap; /* Permite que os botões quebrem a linha se necessário */
+            gap: 10px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -466,7 +479,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
             const rascunhoRefs = checkedRascunhos.map(function() {
                 return doc(db, "agendamentos-rascunho", $(this).data('id'));
-            });
+            }).get(); // Use .get() to get the array of DOM elements
 
             const rascunhoDocs = await getDocs(query(collection(db, "agendamentos-rascunho"), where("__name__", "in", rascunhoRefs.map(ref => ref.path))));
             
@@ -498,13 +511,21 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         const rascunhoRefs = checkedRascunhos.map(function() {
             return doc(db, "agendamentos-rascunho", $(this).data('id'));
-        });
+        }).get();
         const snapshot = await getDocs(query(collection(db, "agendamentos-rascunho"), where("__name__", "in", rascunhoRefs.map(ref => ref.path))));
         const rascunhosSelecionados = snapshot.docs.map(doc => doc.data());
 
         const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
-        let content = headers.join('\t') + '\n';
-        rascunhosSelecionados.forEach(rascunho => {
+        let tableHtml = '<table style="border-collapse: collapse; width: 100%;">';
+        tableHtml += '<thead style="background: #cc0000; color: white;"><tr>';
+        headers.forEach(header => {
+            tableHtml += `<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${header}</th>`;
+        });
+        tableHtml += '</tr></thead><tbody>';
+
+        rascunhosSelecionados.forEach((rascunho, index) => {
+            const bgColor = index % 2 === 0 ? '#f9f9f9' : '#ffffff';
+            tableHtml += `<tr style="background-color: ${bgColor};">`;
             const values = [
                 rascunho.senha || '',
                 rascunho.data || '',
@@ -514,11 +535,17 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 rascunho.tipoDeProduto || '',
                 rascunho.produto || ''
             ];
-            content += values.join('\t') + '\n';
+            values.forEach(value => {
+                tableHtml += `<td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${value}</td>`;
+            });
+            tableHtml += '</tr>';
         });
+        tableHtml += '</tbody></table>';
 
         try {
-            await navigator.clipboard.writeText(content);
+            const blob = new Blob([tableHtml], { type: 'text/html' });
+            const item = new ClipboardItem({ 'text/html': blob });
+            await navigator.clipboard.write([item]);
             alert("Dados copiados para a área de transferência com sucesso!");
         } catch (err) {
             console.error('Erro ao copiar os dados:', err);
@@ -604,8 +631,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     agendamento.central,
                     agendamento.cargas,
                     agendamento.fornecedor,
-                    agendamento.fornecedor,
-                    agendamento.tipoDeProduto,
+                    agendamento.tipoDeProduto, // Fixed here
                     agendamento.produto,
                     `<button class="edit" data-id="${agendamento.id}">Editar</button> <button class="delete" data-id="${agendamento.id}">Excluir</button>`
                 ]);
@@ -626,8 +652,24 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 ],
                 paging: false,
                 info: false,
-                order: [[2, 'asc']]
+                order: [[2, 'asc']],
+                drawCallback: function() {
+                    $('#selectAllCheckbox').prop('checked', false);
+                }
             });
+
+            // Re-bind the select all checkbox event listener after the table is redrawn
+            $('#agendamentosTabela').on('change', '#selectAllCheckbox', function() {
+                $('.row-checkbox').prop('checked', this.checked);
+            });
+            
+            // Unbind and re-bind a single listener for row checkboxes
+            $('#agendamentosTabela').off('change', '.row-checkbox').on('change', '.row-checkbox', function() {
+                if (!this.checked) {
+                    $('#selectAllCheckbox').prop('checked', false);
+                }
+            });
+
             $('.filter-button-text').each(function() {
                 const columnIndex = dataTable.column($(this).closest('th')).index();
                 const searchTerm = dataTable.column(columnIndex).search();
@@ -736,34 +778,31 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     const savedCargas = [];
                     for (const carga of cargas) {
                         ultimaSenha++;
-                        const novaCarga = { ...carga, senha: ultimaSenha };
-                        const newDocRef = doc(collection(db, "agendamentos"));
-                        transaction.set(newDocRef, novaCarga);
-                        savedCargas.push({ id: newDocRef.id, ...novaCarga });
+                        const docRef = doc(collection(db, "agendamentos"));
+                        transaction.set(docRef, { ...carga, senha: ultimaSenha, userId: currentUserUid, timestamp: new Date() });
+                        savedCargas.push({ id: docRef.id, ...carga, senha: ultimaSenha });
                     }
-                    
-                    transaction.set(contadorRef, { ultima_senha: ultimaSenha });
+                    transaction.update(contadorRef, { ultima_senha: ultimaSenha });
                     return savedCargas;
                 });
-
-                for (const carga of result) {
-                    await adicionarHistorico("agendou uma nova carga", { id: carga.id, ...carga });
-                }
-                alert("Agendamentos salvos com sucesso!");
-
+                
+                alert('Agendamento(s) salvo(s) com sucesso!');
+                form.reset();
+                numCargasInput.value = 1;
+                numCargasInput.dispatchEvent(new Event('input'));
+                
+                await adicionarHistorico(`salvou ${result.length} agendamento(s)`, { detalhes: result });
             } catch (e) {
-                console.error("Erro ao gerar senhas e salvar agendamentos: ", e);
-                alert("Ocorreu um erro ao salvar. Tente novamente.");
+                console.error("Erro ao salvar agendamento: ", e);
+                alert("Ocorreu um erro ao salvar o agendamento. Tente novamente.");
             }
         }
-        form.reset();
+        salvarBtn.textContent = "Salvar Agendamento";
         numCargasInput.value = 1;
         numCargasInput.dispatchEvent(new Event('input'));
-        salvarBtn.textContent = "Salvar Agendamento";
     });
 
-    $(document).on('click', '.edit', async function () {
-        document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
+    $(document).on('click', '.edit', async function() {
         editingId = $(this).data('id');
         editingRascunhoId = null;
         const docRef = doc(db, "agendamentos", editingId);
@@ -783,49 +822,33 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 cargaItems[0].querySelector('.produto').value = dados.produto;
             }
             salvarBtn.textContent = "Atualizar Agendamento";
+            document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
         }
     });
 
-    $(document).on('click', '.delete', async function () {
+    $(document).on('click', '.delete', async function() {
         const id = $(this).data('id');
-        const docRef = doc(db, "agendamentos", id);
         if (confirm("Tem certeza que deseja excluir este agendamento?")) {
+            const docRef = doc(db, "agendamentos", id);
             await deleteDoc(docRef);
             await adicionarHistorico("excluiu um agendamento", { id: id });
+            alert("Agendamento excluído com sucesso!");
         }
     });
 
-    window.exportarPDF = () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
-        const dadosVisiveis = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8));
-        doc.autoTable({
-            head: [headers],
-            body: dadosVisiveis,
-        });
-        doc.save('agendamentos.pdf');
-    };
-
-    window.exportarExcel = () => {
-        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
-        const dadosVisiveis = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8));
-        const ws_data = [headers, ...dadosVisiveis];
-        const ws = XLSX.utils.aoa_to_sheet(ws_data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Agendamentos");
-        XLSX.writeFile(wb, "agendamentos.xlsx");
-    };
-
-    async function adicionarHistorico(acao, detalhes) {
+    async function adicionarHistorico(acao, detalhes = {}) {
         if (!currentUserUid) return;
-        await addDoc(collection(db, "historico-acoes"), {
-            userId: currentUserUid,
-            username: localStorage.getItem("username"),
-            acao: acao,
-            detalhes: detalhes,
-            timestamp: new Date()
-        });
+        try {
+            await addDoc(collection(db, "historico-acoes"), {
+                userId: currentUserUid,
+                acao: acao,
+                detalhes: detalhes,
+                timestamp: new Date()
+            });
+            console.log("Histórico adicionado com sucesso.");
+        } catch (e) {
+            console.error("Erro ao adicionar histórico: ", e);
+        }
     }
 
     window.abrirHistorico = async () => {
@@ -861,6 +884,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             historicoModal.style.display = 'none';
         }
     };
+    
 </script>
 
 </body>
