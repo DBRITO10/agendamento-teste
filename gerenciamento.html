@@ -195,12 +195,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
     </div>
     <div id="cargasContainer">
         <div class="carga-item">
-            <input type="date" class="data" required>
-            <input type="text" class="central" placeholder="Central" required>
-            <input type="text" class="cargas" placeholder="Cargas" required>
-            <input type="text" class="fornecedor" placeholder="Fornecedor" required>
-            <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
-            <input type="text" class="produto" placeholder="Produto" required>
+          <input type="date" class="data" required>
+          <input type="text" class="central" placeholder="Central" required>
+          <input type="text" class="cargas" placeholder="Cargas" required>
+          <input type="text" class="fornecedor" placeholder="Fornecedor" required>
+          <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
+          <input type="text" class="produto" placeholder="Produto" required>
         </div>
     </div>
     <button type="submit" id="salvarBtn">Salvar Agendamento</button>
@@ -208,8 +208,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
   </form>
   
   <div id="rascunhos-container">
-      <h2>Agendamentos em Rascunho</h2>
-      <div id="listaRascunhos"></div>
+    <h2>Agendamentos em Rascunho</h2>
+    <div id="listaRascunhos"></div>
   </div>
   
   <h2>Lista de Agendamentos</h2>
@@ -243,15 +243,15 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
 <div id="historicoModal" class="modal">
     <div class="modal-content">
-        <span class="close-modal">&times;</span>
-        <h2>Histórico de Ações</h2>
-        <div id="historicoContent"></div>
+      <span class="close-modal">&times;</span>
+      <h2>Histórico de Ações</h2>
+      <div id="historicoContent"></div>
     </div>
 </div>
 
 <script type="module">
   import { db, auth } from "./firebase-config.js";
-  import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc, runTransaction, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc, runTransaction, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   const form = document.getElementById('agendamentoForm');
@@ -291,12 +291,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
     for (let i = 0; i < numCargas; i++) {
       cargasContainer.innerHTML += `
         <div class="carga-item">
-            <input type="date" class="data" required>
-            <input type="text" class="central" placeholder="Central" required>
-            <input type="text" class="cargas" placeholder="Cargas" required>
-            <input type="text" class="fornecedor" placeholder="Fornecedor" required>
-            <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
-            <input type="text" class="produto" placeholder="Produto" required>
+          <input type="date" class="data" required>
+          <input type="text" class="central" placeholder="Central" required>
+          <input type="text" class="cargas" placeholder="Cargas" required>
+          <input type="text" class="fornecedor" placeholder="Fornecedor" required>
+          <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
+          <input type="text" class="produto" placeholder="Produto" required>
         </div>
       `;
     }
@@ -307,8 +307,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
   // Salvar Agendamento em Rascunho
   document.getElementById('rascunhoBtn').addEventListener('click', async () => {
     if (!currentUserUid) {
-        alert("Sua sessão expirou. Por favor, faça login novamente.");
-        return;
+      alert("Sua sessão expirou. Por favor, faça login novamente.");
+      return;
     }
     const cargas = [];
     const cargaItems = document.querySelectorAll('.carga-item');
@@ -404,56 +404,54 @@ document.addEventListener("DOMContentLoaded", ()=>{
   }
 
   function carregarAgendamentos() {
-    onSnapshot(collection(db, "agendamentos"), (snapshot) => {
-      const agendamentos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      if (dataTable) {
-        dataTable.destroy();
-      }
+      // Ordenar por data e depois por senha
+      const q = query(collection(db, "agendamentos"), orderBy("data", "asc"), orderBy("senha", "asc"));
+      onSnapshot(q, (snapshot) => {
+          const agendamentos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          if (dataTable) {
+              dataTable.destroy();
+          }
 
-      const dadosParaTabela = [];
-      let totalCargasCount = 0;
-      agendamentos.forEach(agendamento => {
-          agendamento.cargas.forEach(carga => {
+          const dadosParaTabela = [];
+          agendamentos.forEach(agendamento => {
               dadosParaTabela.push([
                   agendamento.senha,
-                  carga.data,
-                  carga.central,
-                  carga.cargas,
-                  carga.fornecedor,
-                  carga.tipoDeProduto,
-                  carga.produto,
+                  agendamento.data,
+                  agendamento.central,
+                  agendamento.cargas,
+                  agendamento.fornecedor,
+                  agendamento.tipoDeProduto,
+                  agendamento.produto,
                   `<button class="edit" data-id="${agendamento.id}">Editar</button> <button class="delete" data-id="${agendamento.id}">Excluir</button>`
               ]);
           });
-          totalCargasCount += agendamento.cargas.length;
-      });
 
-      dataTable = $('#agendamentosTabela').DataTable({
-        data: dadosParaTabela,
-        columns: [
-          { title: "Senha" },
-          { title: "Data" },
-          { title: "Central" },
-          { title: "Cargas" },
-          { title: "Fornecedor" },
-          { title: "Tipo de Produto" },
-          { title: "Produto" },
-          { title: "Ações", orderable: false, searchable: false }
-        ],
-        paging: false,
-        info: false,
-        order: [[1, 'asc']]
+          dataTable = $('#agendamentosTabela').DataTable({
+              data: dadosParaTabela,
+              columns: [
+                  { title: "Senha" },
+                  { title: "Data" },
+                  { title: "Central" },
+                  { title: "Cargas" },
+                  { title: "Fornecedor" },
+                  { title: "Tipo de Produto" },
+                  { title: "Produto" },
+                  { title: "Ações", orderable: false, searchable: false }
+              ],
+              paging: false,
+              info: false,
+              order: [[1, 'asc']] // Ordem inicial pela coluna 'Data'
+          });
+          // Atualiza os textos dos botões de filtro
+          $('.filter-button-text').each(function() {
+              const columnIndex = dataTable.column($(this).closest('th')).index();
+              const searchTerm = dataTable.column(columnIndex).search();
+              $(this).text(searchTerm ? 'APLICADO' : 'Filtrar');
+          });
+          // Atualiza o total de cargas no rodapé
+          totalCargasSpan.textContent = agendamentos.length;
       });
-      // Atualiza os textos dos botões de filtro
-      $('.filter-button-text').each(function() {
-        const columnIndex = dataTable.column($(this).closest('th')).index();
-        const searchTerm = dataTable.column(columnIndex).search();
-        $(this).text(searchTerm ? 'APLICADO' : 'Filtrar');
-      });
-      // Atualiza o total de cargas no rodapé
-      totalCargasSpan.textContent = totalCargasCount;
-    });
   }
 
   // Lógica de filtro avançada
@@ -500,103 +498,112 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   // Adiciona/Atualiza um agendamento e registra no histórico
   form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const agendamento = {
-        cargas: [],
-        timestamp: new Date()
-    };
-    
-    const cargaItems = document.querySelectorAll('.carga-item');
-    let formIncomplete = false;
-    
-    cargaItems.forEach(item => {
-      const data = item.querySelector('.data').value;
-      const central = item.querySelector('.central').value;
-      const cargas = item.querySelector('.cargas').value;
+      e.preventDefault();
       
-      if (!data || !central || !cargas) {
-        formIncomplete = true;
-      }
-      agendamento.cargas.push({
-        data: data,
-        central: central,
-        cargas: cargas,
-        fornecedor: item.querySelector('.fornecedor').value,
-        tipoDeProduto: item.querySelector('.tipoDeProduto').value,
-        produto: item.querySelector('.produto').value
-      });
-    });
-    
-    if (formIncomplete) {
-      alert("Por favor, preencha todos os campos obrigatórios (Data, Central e Cargas).");
-      return;
-    }
-
-    if (editingId) {
-      // Editar um agendamento existente
-      const docRef = doc(db, "agendamentos", editingId);
-      await updateDoc(docRef, { cargas: agendamento.cargas });
-      await adicionarHistorico("editou um agendamento", { id: editingId, cargas: agendamento.cargas });
-      editingId = null;
-    } else {
-      // Criar um novo agendamento com todas as cargas em um único documento
-      const contadorRef = doc(db, "metadados", "contador");
-      try {
-          await runTransaction(db, async (transaction) => {
-              const contadorDoc = await transaction.get(contadorRef);
-              let novaSenha = 1;
-              if (contadorDoc.exists()) {
-                  novaSenha = contadorDoc.data().ultima_senha + 1;
-              }
-              agendamento.senha = novaSenha;
-              const newDocRef = doc(collection(db, "agendamentos"));
-              transaction.set(newDocRef, agendamento);
-              transaction.set(contadorRef, { ultima_senha: novaSenha });
-              await adicionarHistorico("agendou um novo carro", { id: newDocRef.id, ...agendamento });
+      const cargaItems = document.querySelectorAll('.carga-item');
+      let formIncomplete = false;
+      const cargas = [];
+      
+      cargaItems.forEach(item => {
+          const data = item.querySelector('.data').value;
+          const central = item.querySelector('.central').value;
+          const carga = item.querySelector('.cargas').value;
+          
+          if (!data || !central || !carga) {
+              formIncomplete = true;
+          }
+          cargas.push({
+              data: data,
+              central: central,
+              cargas: carga,
+              fornecedor: item.querySelector('.fornecedor').value,
+              tipoDeProduto: item.querySelector('.tipoDeProduto').value,
+              produto: item.querySelector('.produto').value
           });
-      } catch (e) {
-          console.error("Erro ao gerar senha e salvar agendamento: ", e);
-          alert("Ocorreu um erro ao salvar. Tente novamente.");
+      });
+      
+      if (formIncomplete) {
+          alert("Por favor, preencha todos os campos obrigatórios (Data, Central e Cargas).");
+          return;
       }
-    }
-    form.reset();
-    numCargasInput.value = 1;
-    numCargasInput.dispatchEvent(new Event('input'));
+
+      if (editingId) {
+          // Edita o agendamento individual
+          const docRef = doc(db, "agendamentos", editingId);
+          await updateDoc(docRef, cargas[0]); // Pega apenas a primeira carga
+          await adicionarHistorico("editou um agendamento", { id: editingId, ...cargas[0] });
+          editingId = null;
+      } else {
+          // Salva cada carga como um documento separado com senha sequencial
+          const contadorRef = doc(db, "metadados", "contador");
+          try {
+              const result = await runTransaction(db, async (transaction) => {
+                  const contadorDoc = await transaction.get(contadorRef);
+                  let ultimaSenha = 0;
+                  if (contadorDoc.exists()) {
+                      ultimaSenha = contadorDoc.data().ultima_senha;
+                  }
+                  
+                  const savedCargas = [];
+                  for (const carga of cargas) {
+                      ultimaSenha++;
+                      const novaCarga = { ...carga, senha: ultimaSenha };
+                      const newDocRef = doc(collection(db, "agendamentos"));
+                      transaction.set(newDocRef, novaCarga);
+                      savedCargas.push({ id: newDocRef.id, ...novaCarga });
+                  }
+                  
+                  transaction.set(contadorRef, { ultima_senha: ultimaSenha });
+                  return savedCargas;
+              });
+
+              for (const carga of result) {
+                  await adicionarHistorico("agendou uma nova carga", { id: carga.id, ...carga });
+              }
+              alert("Agendamentos salvos com sucesso!");
+
+          } catch (e) {
+              console.error("Erro ao gerar senhas e salvar agendamentos: ", e);
+              alert("Ocorreu um erro ao salvar. Tente novamente.");
+          }
+      }
+      form.reset();
+      numCargasInput.value = 1;
+      numCargasInput.dispatchEvent(new Event('input'));
+      document.getElementById("salvarBtn").textContent = "Salvar Agendamento";
   });
 
   // Edita ou Exclui um agendamento
   $(document).on('click', '.edit', async function () {
-      document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
-      editingId = $(this).data('id');
-      const docRef = doc(db, "agendamentos", editingId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const dados = docSnap.data();
-        numCargasInput.value = dados.cargas.length;
-        numCargasInput.dispatchEvent(new Event('input'));
-        
-        const cargaItems = document.querySelectorAll('.carga-item');
-        dados.cargas.forEach((carga, index) => {
-            if (cargaItems[index]) {
-                cargaItems[index].querySelector('.data').value = carga.data;
-                cargaItems[index].querySelector('.central').value = carga.central;
-                cargaItems[index].querySelector('.cargas').value = carga.cargas;
-                cargaItems[index].querySelector('.fornecedor').value = carga.fornecedor;
-                cargaItems[index].querySelector('.tipoDeProduto').value = carga.tipoDeProduto;
-                cargaItems[index].querySelector('.produto').value = carga.produto;
-            }
-        });
+    document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
+    editingId = $(this).data('id');
+    const docRef = doc(db, "agendamentos", editingId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const dados = docSnap.data();
+      numCargasInput.value = 1;
+      numCargasInput.dispatchEvent(new Event('input'));
+      
+      const cargaItems = document.querySelectorAll('.carga-item');
+      if (cargaItems[0]) {
+        cargaItems[0].querySelector('.data').value = dados.data;
+        cargaItems[0].querySelector('.central').value = dados.central;
+        cargaItems[0].querySelector('.cargas').value = dados.cargas;
+        cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
+        cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
+        cargaItems[0].querySelector('.produto').value = dados.produto;
       }
+      document.getElementById("salvarBtn").textContent = "Atualizar Agendamento";
+    }
   });
 
   $(document).on('click', '.delete', async function () {
-      const id = $(this).data('id');
-      const docRef = doc(db, "agendamentos", id);
-      if (confirm("Tem certeza que deseja excluir este agendamento?")) {
-        await deleteDoc(docRef);
-        await adicionarHistorico("excluiu um agendamento", { id: id });
-      }
+    const id = $(this).data('id');
+    const docRef = doc(db, "agendamentos", id);
+    if (confirm("Tem certeza que deseja excluir este agendamento?")) {
+      await deleteDoc(docRef);
+      await adicionarHistorico("excluiu um agendamento", { id: id });
+    }
   });
 
   // Funções de exportação
@@ -636,7 +643,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   window.abrirHistorico = async () => {
       historicoContent.innerHTML = 'Carregando...';
-      const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid));
+      const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
       const snapshot = await getDocs(q);
       historicoContent.innerHTML = '';
       if (snapshot.empty) {
