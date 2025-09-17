@@ -41,7 +41,7 @@
     #agendamentosTabela td:nth-child(2) { white-space: nowrap; }
 
     /* Estilos do filtro flutuante */
-    .filter-button {
+    .filter-button-text {
       background: none;
       border: none;
       color: white;
@@ -123,11 +123,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
       <tr>
         <th>Senha</th>
         <th>Data</th>
-        <th>Central <button class="filter-button" data-col="central">▼</button></th>
-        <th>Cargas <button class="filter-button" data-col="cargas">▼</button></th>
-        <th>Fornecedor <button class="filter-button" data-col="fornecedor">▼</button></th>
-        <th>Tipo de Produto <button class="filter-button" data-col="tipoDeProduto">▼</button></th>
-        <th>Produto <button class="filter-button" data-col="produto">▼</button></th>
+        <th>Central <span class="filter-button-text" data-col="central">Filtrar</span></th>
+        <th>Cargas <span class="filter-button-text" data-col="cargas">Filtrar</span></th>
+        <th>Fornecedor <span class="filter-button-text" data-col="fornecedor">Filtrar</span></th>
+        <th>Tipo de Produto <span class="filter-button-text" data-col="tipoDeProduto">Filtrar</span></th>
+        <th>Produto <span class="filter-button-text" data-col="produto">Filtrar</span></th>
         <th>Ações</th>
       </tr>
     </thead>
@@ -193,7 +193,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
         ],
         paging: false,
         info: false,
-        order: []
+        order: [[1, 'asc']] // Ordena pela coluna de Data (índice 1) em ordem crescente
+      });
+      // Atualiza os textos dos botões de filtro
+      $('.filter-button-text').each(function() {
+        const columnIndex = dataTable.column($(this).closest('th')).index();
+        const searchTerm = dataTable.column(columnIndex).search();
+        $(this).text(searchTerm ? 'APLICADO' : 'Filtrar');
       });
     });
   }
@@ -201,9 +207,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
   // Lógica de filtro avançada
   const filterPopupContainer = document.getElementById('filter-popup-container');
   let activeColumnIndex = null;
+  let activeFilterButton = null;
   
-  $(document).on('click', '.filter-button', function (e) {
+  $(document).on('click', '.filter-button-text', function (e) {
     e.stopPropagation();
+    activeFilterButton = $(this);
     const columnIndex = dataTable.column($(this).closest('th')).index();
     const columnData = dataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
     
@@ -227,13 +235,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
   $(document).on('change', '.filter-popup input', function () {
     const value = $(this).val();
     dataTable.column(activeColumnIndex).search(value).draw();
+    if (activeFilterButton) {
+        activeFilterButton.text(value ? 'APLICADO' : 'Filtrar');
+    }
     filterPopupContainer.classList.remove('filter-popup');
     filterPopupContainer.innerHTML = '';
   });
 
   // Esconde o popup ao clicar fora
   $(document).on('click', function (e) {
-    if (!$(e.target).closest('.filter-popup').length && !$(e.target).hasClass('filter-button')) {
+    if (!$(e.target).closest('.filter-popup').length && !$(e.target).hasClass('filter-button-text')) {
       filterPopupContainer.classList.remove('filter-popup');
       filterPopupContainer.innerHTML = '';
     }
