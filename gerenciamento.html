@@ -157,23 +157,19 @@
         .hidden {
             display: none;
         }
-        .rascunho-options {
-            display: flex;
-            gap: 10px;
+        #rascunhosTabela {
+            margin-top: 15px;
+        }
+        #rascunhos-buttons {
             margin-bottom: 10px;
-        }
-        /* Estilos adicionados para melhorar a organização dos botões */
-        #rascunhos-container h2 {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .rascunho-options {
-            display: flex;
-            justify-content: flex-start; /* Alinha os botões à esquerda */
-            flex-wrap: wrap; /* Permite que os botões quebrem a linha se necessário */
             gap: 10px;
-            margin-top: 10px;
+            align-items: center;
+        }
+        #rascunhos-buttons button {
+            width: auto;
+            margin-bottom: 0;
+            display: inline-block;
         }
     </style>
 </head>
@@ -229,17 +225,29 @@ document.addEventListener("DOMContentLoaded", ()=>{
     </form>
   
     <div id="rascunhos-container">
-        <h2>
-            Agendamentos em Rascunho
-            <input type="checkbox" id="selectAllRascunhos">
-        </h2>
-        <div class="rascunho-options">
-            <button id="salvarRascunhosBtn" class="hidden">Salvar Selecionados</button>
-            <button id="copiarRascunhosBtn" class="hidden">Copiar Selecionados</button>
-            <button id="excluirRascunhosBtn" class="hidden">Excluir Selecionados</button>
-            <button id="editarRascunhoBtn" class="hidden">Editar Rascunho</button>
+        <h2>Agendamentos em Rascunho</h2>
+        <div id="rascunhos-buttons" class="hidden">
+            <button id="salvarSelecionadosRascunhoBtn">Salvar Selecionados</button>
+            <button id="copiarSelecionadosRascunhoBtn">Copiar Selecionados</button>
+            <button id="excluirSelecionadosRascunhoBtn">Excluir Selecionados</button>
+            <button id="editarRascunhoBtn">Editar Rascunho</button>
         </div>
-        <div id="listaRascunhos"></div>
+        <table id="rascunhosTabela" class="display" style="width:100%">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAllRascunhoCheckbox"></th>
+                    <th>ID Rascunho</th>
+                    <th>Cargas</th>
+                    <th>Data</th>
+                    <th>Central</th>
+                    <th>Fornecedor</th>
+                    <th>Tipo de Produto</th>
+                    <th>Produto</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
     </div>
   
     <h2>Lista de Agendamentos</h2>
@@ -247,6 +255,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
         <button onclick="exportarExcel()">Exportar Excel</button>
         <button onclick="exportarPDF()">Exportar PDF</button>
         <button onclick="abrirHistorico()">Ver Histórico</button>
+        <button id="copiarSelecionadosBtn" class="hidden">Copiar Selecionados</button>
+        <button id="excluirSelecionadosBtn" class="hidden">Excluir Selecionados</button>
     </div>
     <table id="agendamentosTabela" class="display" style="width:100%">
         <thead>
@@ -288,23 +298,20 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const form = document.getElementById('agendamentoForm');
     const numCargasInput = document.getElementById('numCargas');
     const cargasContainer = document.getElementById('cargasContainer');
-    const listaRascunhos = document.getElementById('listaRascunhos');
+    const rascunhosTabela = document.getElementById('rascunhosTabela');
     const totalCargasSpan = document.getElementById('totalCargas');
     const historicoModal = document.getElementById('historicoModal');
     const historicoContent = document.getElementById('historicoContent');
     const salvarBtn = document.getElementById("salvarBtn");
-    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
-    const selectAllRascunhos = document.getElementById('selectAllRascunhos');
-    const salvarRascunhosBtn = document.getElementById('salvarRascunhosBtn');
-    const copiarRascunhosBtn = document.getElementById('copiarRascunhosBtn');
-    const excluirRascunhosBtn = document.getElementById('excluirRascunhosBtn');
-    const editarRascunhoBtn = document.getElementById('editarRascunhoBtn');
-    const copiarSelecionadosBtn = document.getElementById('copiarSelecionadosBtn');
-    const excluirSelecionadosBtn = document.getElementById('excluirSelecionadosBtn');
 
-    let editingId = null;
-    let editingRascunhoId = null;
+    const rascunhosButtonsContainer = document.getElementById('rascunhos-buttons');
+    const salvarSelecionadosRascunhoBtn = document.getElementById('salvarSelecionadosRascunhoBtn');
+    const copiarSelecionadosRascunhoBtn = document.getElementById('copiarSelecionadosRascunhoBtn');
+    const excluirSelecionadosRascunhoBtn = document.getElementById('excluirSelecionadosRascunhoBtn');
+    const editarRascunhoBtn = document.getElementById('editarRascunhoBtn');
+    
     let dataTable = null;
+    let rascunhosDataTable = null;
     let currentUserUid = null;
 
     onAuthStateChanged(auth, user => {
@@ -354,52 +361,34 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const cargas = [];
         const cargaItems = document.querySelectorAll('.carga-item');
         let formIncomplete = false;
+        cargaItems.forEach(item => {
+            const central = item.querySelector('.central').value;
+            const carga = item.querySelector('.cargas').value;
+            if (!central || !carga) {
+                formIncomplete = true;
+            }
+            cargas.push({
+                data: item.querySelector('.data').value || null,
+                central: central,
+                cargas: carga,
+                fornecedor: item.querySelector('.fornecedor').value,
+                tipoDeProduto: item.querySelector('.tipoDeProduto').value,
+                produto: item.querySelector('.produto').value
+            });
+        });
 
-        const contadorRef = doc(db, "metadados", "contador");
+        if (formIncomplete) {
+            alert("Por favor, preencha pelo menos os campos Central e Cargas.");
+            return;
+        }
 
         try {
-            const result = await runTransaction(db, async (transaction) => {
-                const contadorDoc = await transaction.get(contadorRef);
-                let ultimaSenha = 0;
-                if (contadorDoc.exists()) {
-                    ultimaSenha = contadorDoc.data().ultima_senha;
-                }
-                const newCargas = [];
-                for (const item of cargaItems) {
-                    const central = item.querySelector('.central').value;
-                    const carga = item.querySelector('.cargas').value;
-                    if (!central || !carga) {
-                        formIncomplete = true;
-                        return;
-                    }
-                    ultimaSenha++;
-                    newCargas.push({
-                        senha: ultimaSenha,
-                        data: item.querySelector('.data').value || null,
-                        central: central,
-                        cargas: carga,
-                        fornecedor: item.querySelector('.fornecedor').value,
-                        tipoDeProduto: item.querySelector('.tipoDeProduto').value,
-                        produto: item.querySelector('.produto').value
-                    });
-                }
-                transaction.update(contadorRef, { ultima_senha: ultimaSenha });
-                return newCargas;
+            await addDoc(collection(db, "agendamentos-rascunho"), {
+                userId: currentUserUid,
+                cargas: cargas,
+                timestamp: new Date()
             });
-
-            if (formIncomplete) {
-                alert("Por favor, preencha pelo menos os campos Central e Cargas.");
-                return;
-            }
-
-            const batch = writeBatch(db);
-            result.forEach(carga => {
-                const newDocRef = doc(collection(db, "agendamentos-rascunho"));
-                batch.set(newDocRef, { ...carga, userId: currentUserUid, timestamp: new Date() });
-            });
-            await batch.commit();
-
-            alert('Agendamento(s) salvo(s) como rascunho!');
+            alert('Agendamento salvo como rascunho!');
             form.reset();
             numCargasInput.value = 1;
             numCargasInput.dispatchEvent(new Event('input'));
@@ -410,168 +399,206 @@ document.addEventListener("DOMContentLoaded", ()=>{
     });
 
     function carregarRascunhos() {
-        console.log("Carregando rascunhos para o UID:", currentUserUid);
         if (!currentUserUid) {
-            console.warn("currentUserUid é nulo. Não foi possível carregar rascunhos.");
             return;
         }
-        const q = query(collection(db, "agendamentos-rascunho"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
+        const q = query(collection(db, "agendamentos-rascunho"), where("userId", "==", currentUserUid));
         onSnapshot(q, (snapshot) => {
-            listaRascunhos.innerHTML = '';
-            if (snapshot.empty) {
-                console.log("Nenhum rascunho encontrado para este usuário.");
-                listaRascunhos.innerHTML = '<p>Nenhum rascunho salvo.</p>';
+            if (rascunhosDataTable) {
+                rascunhosDataTable.destroy();
             }
+
+            const dadosParaTabela = [];
             snapshot.forEach(doc => {
                 const rascunho = doc.data();
-                const rascunhoDiv = document.createElement('div');
-                rascunhoDiv.classList.add('rascunho-item');
-                rascunhoDiv.setAttribute('data-id', doc.id);
-                
-                rascunhoDiv.innerHTML = `
-                    <input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}">
-                    <strong>Senha:</strong> ${rascunho.senha || 'Não Definida'} |
-                    <strong>Data:</strong> ${rascunho.data || 'Não definida'} |
-                    <strong>Central:</strong> ${rascunho.central || 'Não definida'} |
-                    <strong>Cargas:</strong> ${rascunho.cargas || 'Não definida'} |
-                    <strong>Fornecedor:</strong> ${rascunho.fornecedor || 'Não definido'} |
-                    <strong>Tipo de Produto:</strong> ${rascunho.tipoDeProduto || 'Não definido'} |
-                    <strong>Produto:</strong> ${rascunho.produto || 'Não definido'}
-                `;
-                listaRascunhos.appendChild(rascunhoDiv);
+                rascunho.cargas.forEach(carga => {
+                     dadosParaTabela.push([
+                        `<input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}" data-rascunho='${JSON.stringify(rascunho.cargas)}'>`,
+                        doc.id,
+                        rascunho.cargas.length,
+                        carga.data || "Não definida",
+                        carga.central,
+                        carga.fornecedor,
+                        carga.tipoDeProduto,
+                        carga.produto
+                    ]);
+                });
             });
-            checkRascunhoSelection();
+
+            rascunhosDataTable = $('#rascunhosTabela').DataTable({
+                data: dadosParaTabela,
+                columns: [
+                    { title: "<input type='checkbox' id='selectAllRascunhoCheckbox'>" },
+                    { title: "ID Rascunho" },
+                    { title: "Cargas" },
+                    { title: "Data" },
+                    { title: "Central" },
+                    { title: "Fornecedor" },
+                    { title: "Tipo de Produto" },
+                    { title: "Produto" }
+                ],
+                paging: false,
+                info: false,
+                order: [[1, 'asc']]
+            });
         });
     }
+    
+    $(document).on('change', '.rascunho-checkbox', function() {
+        toggleRascunhoButtons();
+    });
 
-    function checkRascunhoSelection() {
+    $(document).on('click', '#selectAllRascunhoCheckbox', function() {
+        const isChecked = $(this).prop('checked');
+        $('.rascunho-checkbox').prop('checked', isChecked);
+        toggleRascunhoButtons();
+    });
+
+    function toggleRascunhoButtons() {
         const checkedCount = $('.rascunho-checkbox:checked').length;
         if (checkedCount > 0) {
-            copiarRascunhosBtn.classList.remove('hidden');
-            excluirRascunhosBtn.classList.remove('hidden');
-            salvarRascunhosBtn.classList.remove('hidden');
+            rascunhosButtonsContainer.classList.remove('hidden');
         } else {
-            copiarRascunhosBtn.classList.add('hidden');
-            excluirRascunhosBtn.classList.add('hidden');
-            salvarRascunhosBtn.classList.add('hidden');
-        }
-        if (checkedCount === 1) {
-            editarRascunhoBtn.classList.remove('hidden');
-        } else {
-            editarRascunhoBtn.classList.add('hidden');
+            rascunhosButtonsContainer.classList.add('hidden');
         }
     }
-
-    $(document).on('change', '.rascunho-checkbox', checkRascunhoSelection);
-
-    selectAllRascunhos.addEventListener('change', (e) => {
-        $('.rascunho-checkbox').prop('checked', e.target.checked);
-        checkRascunhoSelection();
-    });
-
-    salvarRascunhosBtn.addEventListener('click', async () => {
-        const checkedRascunhos = $('.rascunho-checkbox:checked');
-        if (checkedRascunhos.length === 0) return;
-
-        if (confirm(`Tem certeza que deseja salvar ${checkedRascunhos.length} rascunho(s) como agendamento(s) definitivo(s)?`)) {
-            const batch = writeBatch(db);
-            const deletedIds = [];
-
-            const rascunhoRefs = checkedRascunhos.map(function() {
-                return doc(db, "agendamentos-rascunho", $(this).data('id'));
-            }).get(); // Use .get() to get the array of DOM elements
-
-            const rascunhoDocs = await getDocs(query(collection(db, "agendamentos-rascunho"), where("__name__", "in", rascunhoRefs.map(ref => ref.path))));
-            
-            rascunhoDocs.forEach(rascunhoDoc => {
-                const data = rascunhoDoc.data();
-                const newDocRef = doc(collection(db, "agendamentos"));
-                batch.set(newDocRef, { ...data, userId: currentUserUid, timestamp: new Date() });
-                batch.delete(rascunhoDoc.ref);
-                deletedIds.push(rascunhoDoc.id);
-            });
-
-            try {
-                await batch.commit();
-                await adicionarHistorico(`salvou ${checkedRascunhos.length} rascunho(s) como agendamento(s)`, { ids: deletedIds });
-                alert(`${checkedRascunhos.length} rascunho(s) salvo(s) com sucesso.`);
-            } catch (e) {
-                console.error("Erro ao salvar rascunhos em lote:", e);
-                alert("Ocorreu um erro ao salvar os rascunhos. Tente novamente.");
-            }
-        }
-    });
-
-    copiarRascunhosBtn.addEventListener('click', async () => {
-        const checkedRascunhos = $('.rascunho-checkbox:checked');
-        if (checkedRascunhos.length === 0) {
-            alert("Por favor, selecione pelo menos um rascunho para copiar.");
+    
+    editarRascunhoBtn.addEventListener('click', () => {
+        const selectedCheckboxes = $('.rascunho-checkbox:checked');
+        if (selectedCheckboxes.length !== 1) {
+            alert("Por favor, selecione exatamente um rascunho para editar.");
             return;
         }
 
-        const rascunhoRefs = checkedRascunhos.map(function() {
-            return doc(db, "agendamentos-rascunho", $(this).data('id'));
-        }).get();
-        const snapshot = await getDocs(query(collection(db, "agendamentos-rascunho"), where("__name__", "in", rascunhoRefs.map(ref => ref.path))));
-        const rascunhosSelecionados = snapshot.docs.map(doc => doc.data());
+        const checkbox = selectedCheckboxes[0];
+        const rascunhoId = $(checkbox).data('id');
+        const rascunhoCargas = $(checkbox).data('rascunho');
 
-        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
-        let tableHtml = '<table style="border-collapse: collapse; width: 100%;">';
-        tableHtml += '<thead style="background: #cc0000; color: white;"><tr>';
-        headers.forEach(header => {
-            tableHtml += `<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${header}</th>`;
+        document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
+        
+        salvarBtn.textContent = "Atualizar Rascunho";
+        numCargasInput.value = rascunhoCargas.length;
+        numCargasInput.dispatchEvent(new Event('input'));
+        const cargaItems = document.querySelectorAll('.carga-item');
+        rascunhoCargas.forEach((carga, index) => {
+            if (cargaItems[index]) {
+                cargaItems[index].querySelector('.data').value = carga.data;
+                cargaItems[index].querySelector('.central').value = carga.central;
+                cargaItems[index].querySelector('.cargas').value = carga.cargas;
+                cargaItems[index].querySelector('.fornecedor').value = carga.fornecedor;
+                cargaItems[index].querySelector('.tipoDeProduto').value = carga.tipoDeProduto;
+                cargaItems[index].querySelector('.produto').value = carga.produto;
+            }
         });
-        tableHtml += '</tr></thead><tbody>';
+    });
 
-        rascunhosSelecionados.forEach((rascunho, index) => {
-            const bgColor = index % 2 === 0 ? '#f9f9f9' : '#ffffff';
-            tableHtml += `<tr style="background-color: ${bgColor};">`;
+    copiarSelecionadosRascunhoBtn.addEventListener('click', async () => {
+        const checkedRows = $('.rascunho-checkbox:checked').closest('tr');
+        if (checkedRows.length === 0) {
+            alert('Por favor, selecione pelo menos um rascunho para copiar.');
+            return;
+        }
+
+        const headers = ["ID Rascunho", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+        let content = headers.join('\t') + '\n';
+
+        checkedRows.each(function() {
+            const rowData = rascunhosDataTable.row(this).data();
             const values = [
-                rascunho.senha || '',
-                rascunho.data || '',
-                rascunho.central || '',
-                rascunho.cargas || '',
-                rascunho.fornecedor || '',
-                rascunho.tipoDeProduto || '',
-                rascunho.produto || ''
+                rowData[1], // ID Rascunho
+                rowData[3], // Data
+                rowData[4], // Central
+                rowData[5], // Fornecedor
+                rowData[6], // Tipo de Produto
+                rowData[7], // Produto
             ];
-            values.forEach(value => {
-                tableHtml += `<td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${value}</td>`;
-            });
-            tableHtml += '</tr>';
+            content += values.join('\t') + '\n';
         });
-        tableHtml += '</tbody></table>';
 
         try {
-            const blob = new Blob([tableHtml], { type: 'text/html' });
-            const item = new ClipboardItem({ 'text/html': blob });
-            await navigator.clipboard.write([item]);
-            alert("Dados copiados para a área de transferência com sucesso!");
+            await navigator.clipboard.writeText(content);
+            alert('Dados copiados para a área de transferência com sucesso!');
         } catch (err) {
             console.error('Erro ao copiar os dados:', err);
             alert('Erro ao copiar os dados. Por favor, tente novamente.');
         }
     });
 
-    excluirRascunhosBtn.addEventListener('click', async () => {
-        const checkedRascunhos = $('.rascunho-checkbox:checked');
-        if (checkedRascunhos.length === 0) return;
+    salvarSelecionadosRascunhoBtn.addEventListener('click', async () => {
+        const checkedRows = $('.rascunho-checkbox:checked');
+        if (checkedRows.length === 0) {
+            alert('Por favor, selecione pelo menos um rascunho para salvar.');
+            return;
+        }
 
-        if (confirm(`Tem certeza que deseja excluir ${checkedRascunhos.length} rascunho(s) selecionado(s)?`)) {
+        if (confirm(`Tem certeza que deseja salvar ${checkedRows.length} rascunho(s) selecionado(s) como agendamentos definitivos?`)) {
+            const rascunhosParaSalvar = {};
+            checkedRows.each(function() {
+                const id = $(this).data('id');
+                const cargas = $(this).data('rascunho');
+                if (!rascunhosParaSalvar[id]) {
+                    rascunhosParaSalvar[id] = cargas;
+                }
+            });
+
+            try {
+                const batch = writeBatch(db);
+                const contadorRef = doc(db, "metadados", "contador");
+                let ultimaSenha = 0;
+
+                await runTransaction(db, async (transaction) => {
+                    const contadorDoc = await transaction.get(contadorRef);
+                    if (contadorDoc.exists()) {
+                        ultimaSenha = contadorDoc.data().ultima_senha;
+                    }
+
+                    for (const id in rascunhosParaSalvar) {
+                        for (const carga of rascunhosParaSalvar[id]) {
+                            ultimaSenha++;
+                            const novaCarga = { ...carga, senha: ultimaSenha };
+                            const newDocRef = doc(collection(db, "agendamentos"));
+                            batch.set(newDocRef, novaCarga);
+                            await adicionarHistorico("agendou uma nova carga (a partir de rascunho)", { id: newDocRef.id, ...novaCarga });
+                        }
+                        const rascunhoDocRef = doc(db, "agendamentos-rascunho", id);
+                        batch.delete(rascunhoDocRef);
+                    }
+                    batch.update(contadorRef, { ultima_senha: ultimaSenha });
+                });
+
+                alert(`${checkedRows.length} rascunho(s) salvo(s) com sucesso como agendamento(s).`);
+            } catch (e) {
+                console.error("Erro ao salvar rascunhos selecionados:", e);
+                alert("Ocorreu um erro ao salvar os rascunhos. Tente novamente.");
+            }
+        }
+    });
+
+    excluirSelecionadosRascunhoBtn.addEventListener('click', async () => {
+        const checkedRows = $('.rascunho-checkbox:checked');
+        if (checkedRows.length === 0) {
+            alert('Por favor, selecione pelo menos um rascunho para excluir.');
+            return;
+        }
+
+        if (confirm(`Tem certeza que deseja excluir ${checkedRows.length} rascunho(s) selecionado(s)?`)) {
             const batch = writeBatch(db);
             const deletedIds = [];
-
-            checkedRascunhos.each(function() {
+            const rascunhosUnicos = new Set();
+            checkedRows.each(function() {
                 const id = $(this).data('id');
-                const docRef = doc(db, "agendamentos-rascunho", id);
-                batch.delete(docRef);
-                deletedIds.push(id);
+                if (!rascunhosUnicos.has(id)) {
+                    rascunhosUnicos.add(id);
+                    const docRef = doc(db, "agendamentos-rascunho", id);
+                    batch.delete(docRef);
+                    deletedIds.push(id);
+                }
             });
 
             try {
                 await batch.commit();
                 await adicionarHistorico(`excluiu múltiplos rascunhos (${deletedIds.length})`, { ids: deletedIds });
-                alert(`${checkedRascunhos.length} rascunho(s) excluído(s) com sucesso.`);
+                alert(`${checkedRows.length} rascunho(s) excluído(s) com sucesso.`);
             } catch (e) {
                 console.error("Erro ao excluir rascunhos em lote:", e);
                 alert("Ocorreu um erro ao excluir os rascunhos. Tente novamente.");
@@ -579,39 +606,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     });
 
-    editarRascunhoBtn.addEventListener('click', async () => {
-        const checkedRascunho = $('.rascunho-checkbox:checked');
-        if (checkedRascunho.length !== 1) {
-            alert("Por favor, selecione exatamente um rascunho para editar.");
-            return;
-        }
-        document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
-        editingRascunhoId = checkedRascunho.data('id');
-        editingId = null;
-        const docRef = doc(db, "agendamentos-rascunho", editingRascunhoId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            const dados = docSnap.data();
-            numCargasInput.value = 1;
-            numCargasInput.dispatchEvent(new Event('input'));
-            
-            const cargaItems = document.querySelectorAll('.carga-item');
-            if (cargaItems[0]) {
-                cargaItems[0].querySelector('.data').value = dados.data;
-                cargaItems[0].querySelector('.central').value = dados.central;
-                cargaItems[0].querySelector('.cargas').value = dados.cargas;
-                cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
-                cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
-                cargaItems[0].querySelector('.produto').value = dados.produto;
-            }
-            salvarBtn.textContent = "Atualizar Rascunho";
-        }
-    });
-
     function carregarAgendamentos() {
-        console.log("Carregando agendamentos para o UID:", currentUserUid);
         if (!currentUserUid) {
-            console.warn("currentUserUid é nulo. Não foi possível carregar agendamentos.");
             return;
         }
         const q = query(collection(db, "agendamentos"), orderBy("data", "asc"), orderBy("senha", "asc"));
@@ -631,7 +627,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     agendamento.central,
                     agendamento.cargas,
                     agendamento.fornecedor,
-                    agendamento.tipoDeProduto, // Fixed here
+                    agendamento.tipoDeProduto,
                     agendamento.produto,
                     `<button class="edit" data-id="${agendamento.id}">Editar</button> <button class="delete" data-id="${agendamento.id}">Excluir</button>`
                 ]);
@@ -652,24 +648,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 ],
                 paging: false,
                 info: false,
-                order: [[2, 'asc']],
-                drawCallback: function() {
-                    $('#selectAllCheckbox').prop('checked', false);
-                }
+                order: [[2, 'asc']]
             });
-
-            // Re-bind the select all checkbox event listener after the table is redrawn
-            $('#agendamentosTabela').on('change', '#selectAllCheckbox', function() {
-                $('.row-checkbox').prop('checked', this.checked);
-            });
-            
-            // Unbind and re-bind a single listener for row checkboxes
-            $('#agendamentosTabela').off('change', '.row-checkbox').on('change', '.row-checkbox', function() {
-                if (!this.checked) {
-                    $('#selectAllCheckbox').prop('checked', false);
-                }
-            });
-
             $('.filter-button-text').each(function() {
                 const columnIndex = dataTable.column($(this).closest('th')).index();
                 const searchTerm = dataTable.column(columnIndex).search();
@@ -749,63 +729,48 @@ document.addEventListener("DOMContentLoaded", ()=>{
             alert("Por favor, preencha todos os campos obrigatórios (Data, Central e Cargas).");
             return;
         }
+        
+        const contadorRef = doc(db, "metadados", "contador");
+        try {
+            const result = await runTransaction(db, async (transaction) => {
+                const contadorDoc = await transaction.get(contadorRef);
+                let ultimaSenha = 0;
+                if (contadorDoc.exists()) {
+                    ultimaSenha = contadorDoc.data().ultima_senha;
+                }
+                
+                const savedCargas = [];
+                for (const carga of cargas) {
+                    ultimaSenha++;
+                    const novaCarga = { ...carga, senha: ultimaSenha };
+                    const newDocRef = doc(collection(db, "agendamentos"));
+                    transaction.set(newDocRef, novaCarga);
+                    savedCargas.push({ id: newDocRef.id, ...novaCarga });
+                }
+                
+                transaction.set(contadorRef, { ultima_senha: ultimaSenha });
+                return savedCargas;
+            });
 
-        if (editingId) {
-            const docRef = doc(db, "agendamentos", editingId);
-            await updateDoc(docRef, cargas[0]);
-            await adicionarHistorico("editou um agendamento", { id: editingId, ...cargas[0] });
-            editingId = null;
-        } else if (editingRascunhoId) {
-            const rascunhoDocRef = doc(db, "agendamentos-rascunho", editingRascunhoId);
-            const rascunhoDoc = await getDoc(rascunhoDocRef);
-            if (rascunhoDoc.exists()) {
-                const currentSenha = rascunhoDoc.data().senha;
-                await updateDoc(rascunhoDocRef, { ...cargas[0], timestamp: new Date(), senha: currentSenha });
+            for (const carga of result) {
+                await adicionarHistorico("agendou uma nova carga", { id: carga.id, ...carga });
             }
-            alert("Rascunho atualizado com sucesso!");
-            editingRascunhoId = null;
-            salvarBtn.textContent = "Salvar Agendamento";
-        } else {
-            const contadorRef = doc(db, "metadados", "contador");
-            try {
-                const result = await runTransaction(db, async (transaction) => {
-                    const contadorDoc = await transaction.get(contadorRef);
-                    let ultimaSenha = 0;
-                    if (contadorDoc.exists()) {
-                        ultimaSenha = contadorDoc.data().ultima_senha;
-                    }
-                    
-                    const savedCargas = [];
-                    for (const carga of cargas) {
-                        ultimaSenha++;
-                        const docRef = doc(collection(db, "agendamentos"));
-                        transaction.set(docRef, { ...carga, senha: ultimaSenha, userId: currentUserUid, timestamp: new Date() });
-                        savedCargas.push({ id: docRef.id, ...carga, senha: ultimaSenha });
-                    }
-                    transaction.update(contadorRef, { ultima_senha: ultimaSenha });
-                    return savedCargas;
-                });
-                
-                alert('Agendamento(s) salvo(s) com sucesso!');
-                form.reset();
-                numCargasInput.value = 1;
-                numCargasInput.dispatchEvent(new Event('input'));
-                
-                await adicionarHistorico(`salvou ${result.length} agendamento(s)`, { detalhes: result });
-            } catch (e) {
-                console.error("Erro ao salvar agendamento: ", e);
-                alert("Ocorreu um erro ao salvar o agendamento. Tente novamente.");
-            }
+            alert("Agendamentos salvos com sucesso!");
+
+        } catch (e) {
+            console.error("Erro ao gerar senhas e salvar agendamentos: ", e);
+            alert("Ocorreu um erro ao salvar. Tente novamente.");
         }
-        salvarBtn.textContent = "Salvar Agendamento";
+        form.reset();
         numCargasInput.value = 1;
         numCargasInput.dispatchEvent(new Event('input'));
+        salvarBtn.textContent = "Salvar Agendamento";
     });
 
-    $(document).on('click', '.edit', async function() {
-        editingId = $(this).data('id');
-        editingRascunhoId = null;
-        const docRef = doc(db, "agendamentos", editingId);
+    $(document).on('click', '.edit', async function () {
+        document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
+        const id = $(this).data('id');
+        const docRef = doc(db, "agendamentos", id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
             const dados = docSnap.data();
@@ -822,34 +787,35 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 cargaItems[0].querySelector('.produto').value = dados.produto;
             }
             salvarBtn.textContent = "Atualizar Agendamento";
-            document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
         }
     });
 
-    $(document).on('click', '.delete', async function() {
+    $(document).on('click', '.delete', async function () {
         const id = $(this).data('id');
+        const docRef = doc(db, "agendamentos", id);
         if (confirm("Tem certeza que deseja excluir este agendamento?")) {
-            const docRef = doc(db, "agendamentos", id);
             await deleteDoc(docRef);
             await adicionarHistorico("excluiu um agendamento", { id: id });
-            alert("Agendamento excluído com sucesso!");
         }
     });
 
-    async function adicionarHistorico(acao, detalhes = {}) {
-        if (!currentUserUid) return;
-        try {
-            await addDoc(collection(db, "historico-acoes"), {
-                userId: currentUserUid,
-                acao: acao,
-                detalhes: detalhes,
-                timestamp: new Date()
-            });
-            console.log("Histórico adicionado com sucesso.");
-        } catch (e) {
-            console.error("Erro ao adicionar histórico: ", e);
-        }
-    }
+    window.exportarPDF = () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8)); // Exclude checkbox and actions columns
+        doc.autoTable({ head: [headers], body: data });
+        doc.save('agendamentos.pdf');
+    };
+
+    window.exportarExcel = () => {
+        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8)); // Exclude checkbox and actions columns
+        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Agendamentos");
+        XLSX.writeFile(workbook, "agendamentos.xlsx");
+    };
 
     window.abrirHistorico = async () => {
         console.log("Tentando abrir histórico para o UID:", currentUserUid);
@@ -884,7 +850,112 @@ document.addEventListener("DOMContentLoaded", ()=>{
             historicoModal.style.display = 'none';
         }
     };
+
+    async function adicionarHistorico(acao, detalhes) {
+        if (!currentUserUid) {
+            console.error("Não foi possível adicionar ao histórico. Usuário não logado.");
+            return;
+        }
+        try {
+            await addDoc(collection(db, "historico-acoes"), {
+                userId: currentUserUid,
+                acao: acao,
+                detalhes: detalhes,
+                timestamp: new Date()
+            });
+        } catch (e) {
+            console.error("Erro ao adicionar histórico: ", e);
+        }
+    }
+
+    // New multi-select functionality
     
+    // Toggle "select all" checkbox
+    $(document).on('click', '#selectAllCheckbox', function() {
+        const isChecked = $(this).prop('checked');
+        $('.row-checkbox').prop('checked', isChecked);
+        toggleActionButtons();
+    });
+
+    // Toggle action buttons based on checkbox selection
+    $(document).on('change', '.row-checkbox', function() {
+        toggleActionButtons();
+    });
+
+    function toggleActionButtons() {
+        const checkedCount = $('.row-checkbox:checked').length;
+        if (checkedCount > 0) {
+            $('#copiarSelecionadosBtn').removeClass('hidden');
+            $('#excluirSelecionadosBtn').removeClass('hidden');
+        } else {
+            $('#copiarSelecionadosBtn').addClass('hidden');
+            $('#excluirSelecionadosBtn').addClass('hidden');
+        }
+    }
+
+    // "Copy Selected" button logic
+    $('#copiarSelecionadosBtn').click(async () => {
+        const checkedRows = $('.row-checkbox:checked').closest('tr');
+        if (checkedRows.length === 0) {
+            alert('Por favor, selecione pelo menos um agendamento para copiar.');
+            return;
+        }
+
+        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+        let content = headers.join('\t') + '\n';
+
+        checkedRows.each(function() {
+            const rowData = dataTable.row(this).data();
+            const values = [
+                rowData[1], // Senha
+                rowData[2], // Data
+                rowData[3], // Central
+                rowData[4], // Cargas
+                rowData[5], // Fornecedor
+                rowData[6], // Tipo de Produto
+                rowData[7], // Produto
+            ];
+            content += values.join('\t') + '\n';
+        });
+
+        try {
+            await navigator.clipboard.writeText(content);
+            alert('Dados copiados para a área de transferência com sucesso!');
+        } catch (err) {
+            console.error('Erro ao copiar os dados:', err);
+            alert('Erro ao copiar os dados. Por favor, tente novamente.');
+        }
+    });
+
+    // "Delete Selected" button logic
+    $('#excluirSelecionadosBtn').click(async () => {
+        const checkedRows = $('.row-checkbox:checked');
+        if (checkedRows.length === 0) {
+            alert('Por favor, selecione pelo menos um agendamento para excluir.');
+            return;
+        }
+
+        if (confirm(`Tem certeza que deseja excluir ${checkedRows.length} agendamento(s) selecionado(s)?`)) {
+            const batch = writeBatch(db);
+            const deletedIds = [];
+
+            checkedRows.each(function() {
+                const id = $(this).data('id');
+                const docRef = doc(db, "agendamentos", id);
+                batch.delete(docRef);
+                deletedIds.push(id);
+            });
+
+            try {
+                await batch.commit();
+                await adicionarHistorico(`excluiu múltiplos agendamentos (${deletedIds.length})`, { ids: deletedIds });
+                alert(`${checkedRows.length} agendamento(s) excluído(s) com sucesso.`);
+            } catch (e) {
+                console.error("Erro ao excluir agendamentos em lote:", e);
+                alert("Ocorreu um erro ao excluir os agendamentos. Tente novamente.");
+            }
+        }
+    });
 </script>
 
 </body>
