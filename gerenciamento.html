@@ -13,177 +13,39 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
     <style>
-        /* Paleta de Cores: Azul para primário, Vermelho para destaque/erro */
-        :root {
-            --primary-color: #007BFF;
-            --secondary-color: #6c757d;
-            --success-color: #28a745;
-            --danger-color: #dc3545;
-            --warning-color: #ffc107;
-            --background-light: #f8f9fa;
-            --background-gray: #e9ecef;
-            --border-color: #dee2e6;
-            --text-dark: #343a40;
-            --text-light: #fff;
-        }
-
-        body { 
-            font-family: 'Segoe UI', Arial, sans-serif; 
-            padding: 20px; 
-            background-color: var(--background-light); 
-            color: var(--text-dark);
-            line-height: 1.6;
-        }
-
-        header { 
-            text-align: center; 
-            margin-bottom: 20px; 
-        }
-        
-        h1 { 
-            color: var(--primary-color); 
-            font-size: 2.2rem; 
-            margin: 10px 0 20px 0; 
-            font-weight: bold; 
-            border-bottom: 2px solid var(--primary-color);
-            padding-bottom: 10px;
-        }
-
-        h2 {
-            color: var(--secondary-color);
-            font-size: 1.5rem;
-            margin-top: 30px;
-            margin-bottom: 15px;
-        }
-
-        form { 
-            margin-bottom: 20px; 
-            padding: 25px; 
-            border: 1px solid var(--border-color); 
-            border-radius: 8px; 
-            background: var(--text-light); 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
-        }
-
-        input, button { 
-            display: block; 
-            width: 100%; 
-            margin-bottom: 15px; 
-            padding: 12px; 
-            border-radius: 6px; 
-            border: 1px solid var(--border-color); 
-            box-sizing: border-box; 
-        }
-
-        button { 
-            background: var(--primary-color); 
-            color: var(--text-light); 
-            font-weight: bold; 
-            cursor: pointer; 
-            transition: background-color 0.3s ease;
-        }
-        
-        button.rascunho { 
-            background: var(--warning-color); 
-            color: var(--text-dark);
-        }
-        
-        button.rascunho:hover { 
-            background: #ffae00; 
-        }
-        
-        button:hover { 
-            background: #0056b3; 
-        }
-        
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-top: 20px; 
-        }
-        
-        th, td { 
-            border: 1px solid var(--border-color); 
-            padding: 12px; 
-            text-align: left; 
-        }
-        
-        thead th { 
-            background: var(--primary-color); 
-            color: var(--text-light); 
-            position: relative; 
-        }
-        
-        button.edit, button.salvarRascunho, button.copiar { 
-            background-color: var(--success-color);
-        }
-        
-        button.delete, button.edit-rascunho { 
-            background-color: var(--danger-color);
-        }
-        
-        button.edit:hover, button.salvarRascunho:hover, button.copiar:hover {
-            background-color: #218838;
-        }
-
-        button.delete:hover, button.edit-rascunho:hover {
-            background-color: #c82333;
-        }
-
-        /* Layout responsivo para o formulário */
-        #cargasHeader, .carga-item {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 15px;
-            margin-bottom: 10px;
-            padding: 10px;
-            background: var(--background-gray);
-            border-radius: 4px;
-        }
-
-        .carga-item input {
-            margin-bottom: 0;
-        }
-
-        #cargasHeader span {
-            font-weight: bold;
-            text-align: center;
-        }
-
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #fafafa; }
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { color: #cc0000; font-size: 28px; margin: 10px 0 20px 0; font-weight: bold; }
+        form { margin-bottom: 20px; padding: 20px; border: 1px solid #ff9999; border-radius: 6px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        input, button { display: block; width: 100%; margin-bottom: 10px; padding: 8px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { background: #d32f2f; color: white; font-weight: bold; cursor: pointer; }
+        button.rascunho { background: #ff9933; }
+        button.rascunho:hover { background: #e68a00; }
+        button:hover { background: #b71c1c; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        thead th { background: #cc0000; color: white; position: relative; }
+        button.edit, button.delete, button.salvarRascunho, button.copiar, button.edit-rascunho { margin-left: 5px; padding: 5px 10px; font-size: 12px; }
+        .table-container { overflow-x: auto; }
         #userBar {
-            background: var(--background-gray);
-            padding: 15px;
+            background: #E6E6E6;
+            padding: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-radius: 6px;
+            margin-bottom: 12px;
         }
-
-        #exportButtons { 
-            margin-bottom: 15px; 
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
-        #exportButtons button { 
-            flex-grow: 1;
-            width: auto; 
-            padding: 10px 20px; 
-        }
-        
-        #agendamentosTabela_filter { 
-            display: none; 
-        }
-        
+        #exportButtons { margin-bottom: 15px; }
+        #exportButtons button { display: inline-block; width: auto; margin-right: 10px; padding: 10px 20px; }
+        #agendamentosTabela_filter { display: none; }
+        /* Estilos do filtro flutuante */
         .filter-button-text {
             background: none;
             border: none;
-            color: var(--text-light);
+            color: white;
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 14px;
             font-weight: bold;
             margin-left: 5px;
             padding: 0;
@@ -193,64 +55,44 @@
             transform: translateY(-50%);
             width: auto;
         }
-        
         .filter-popup {
             position: absolute;
-            background: var(--text-light);
-            border: 1px solid var(--border-color);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             padding: 10px;
             z-index: 1000;
             min-width: 150px;
             max-height: 200px;
             overflow-y: auto;
-            border-radius: 6px;
         }
-        
         .filter-popup label {
             display: block;
             cursor: pointer;
-            padding: 5px 0;
         }
-        
         .filter-popup label:hover {
-            background: var(--background-gray);
+            background: #f0f0f0;
         }
-        
         #rascunhos-container, #historico-container {
             margin-top: 30px;
             padding: 20px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--text-light);
+            border: 1px solid #ff9999;
+            border-radius: 6px;
+            background: #fff;
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
-        
         .rascunho-item {
-            padding: 15px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 10px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
         }
-
-        .rascunho-item p {
-            margin: 0;
-            flex-grow: 1;
-        }
-        
         .rascunho-item:last-child {
             border-bottom: none;
         }
-        
         .rascunho-item button {
             display: inline-block;
             width: auto;
-            margin-bottom: 0;
-            margin-right: 5px;
+            margin-right: 10px;
         }
-        
         .modal {
             display: none;
             position: fixed;
@@ -263,44 +105,54 @@
             background-color: rgba(0,0,0,0.4);
             padding-top: 60px;
         }
-        
         .modal-content {
-            background-color: var(--background-light);
+            background-color: #fefefe;
             margin: 5% auto;
-            padding: 25px;
-            border: 1px solid var(--border-color);
-            width: 90%;
-            max-width: 600px;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
             border-radius: 10px;
         }
-        
         .close-modal {
-            color: var(--secondary-color);
+            color: #aaa;
             float: right;
-            font-size: 2rem;
+            font-size: 28px;
             font-weight: bold;
-            transition: color 0.2s ease;
         }
-        
         .close-modal:hover, .close-modal:focus {
-            color: var(--text-dark);
+            color: black;
             text-decoration: none;
             cursor: pointer;
         }
-        
         footer {
             text-align: center;
             margin-top: 20px;
-            padding: 15px;
-            border-top: 1px solid var(--border-color);
-            font-size: 0.9rem;
-            color: var(--secondary-color);
+            padding: 10px;
+            border-top: 1px solid #ccc;
+            font-size: 14px;
+            color: #666;
         }
-
-        @media (max-width: 768px) {
-            #cargasHeader, .carga-item {
-                grid-template-columns: 1fr;
-            }
+        #cargasHeader, .carga-item {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 5px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .carga-item input {
+            flex: 1;
+            min-width: 120px;
+            margin-bottom: 0;
+        }
+        #cargasHeader span {
+            flex: 1;
+            font-weight: bold;
+            text-align: center;
+            min-width: 120px;
         }
     </style>
 </head>
@@ -310,13 +162,13 @@
     <button onclick="history.back()" style="
         background: transparent; 
         border: none; 
-        color: var(--text-dark); 
+        color: #333; 
         font-size: 24px; 
         cursor: pointer;
         margin-right: 10px;
     ">←</button>
-    <span id="welcomeUser" style="font-weight:bold; color:var(--text-dark); flex-grow: 1;"></span>
-    <button onclick="logout()" style="background:var(--danger-color); color:var(--text-light); border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Sair</button>
+    <span id="welcomeUser" style="font-weight:bold; color:#333; flex-grow: 1;"></span>
+    <button onclick="logout()" style="background:#CC0000; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Sair</button>
 </div>
 <script>
 const username = localStorage.getItem("username") || "Usuário";
@@ -332,7 +184,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
 <div class="table-container">
     <form id="agendamentoForm">
         <h2>Adicionar/Editar Agendamento</h2>
-        <label for="numCargas">Número de cargas</label>
         <input type="number" id="numCargas" placeholder="Número de cargas" min="1" value="1" required>
         <div id="cargasHeader">
             <span>Data</span>
@@ -885,21 +736,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
         XLSX.writeFile(wb, "agendamentos.xlsx");
     };
 
+    // Histórico de Ações
     async function adicionarHistorico(acao, detalhes) {
-        if (!currentUserUid) {
-            console.warn("currentUserUid é nulo. Não foi possível registrar a ação no histórico.");
-            return;
-        }
-        try {
-            await addDoc(collection(db, "historico-acoes"), {
-                userId: currentUserUid,
-                acao: acao,
-                detalhes: detalhes,
-                timestamp: new Date()
-            });
-        } catch (e) {
-            console.error("Erro ao adicionar histórico:", e);
-        }
+        if (!currentUserUid) return;
+        await addDoc(collection(db, "historico-acoes"), {
+            userId: currentUserUid,
+            username: localStorage.getItem("username"),
+            acao: acao,
+            detalhes: detalhes,
+            timestamp: new Date()
+        });
     }
 
     window.abrirHistorico = async () => {
