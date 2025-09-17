@@ -133,7 +133,6 @@
         font-size: 14px;
         color: #666;
     }
-
     #cargasHeader, .carga-item {
         display: flex;
         flex-wrap: nowrap;
@@ -222,13 +221,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
   <table id="agendamentosTabela" class="display" style="width:100%">
     <thead>
       <tr>
-        <th>Senha</th>
-        <th>Data</th>
-        <th>Central <span class="filter-button-text" data-col="central">Filtrar</span></th>
-        <th>Cargas <span class="filter-button-text" data-col="cargas">Filtrar</span></th>
-        <th>Fornecedor <span class="filter-button-text" data-col="fornecedor">Filtrar</span></th>
-        <th>Tipo de Produto <span class="filter-button-text" data-col="tipoDeProduto">Filtrar</span></th>
-        <th>Produto <span class="filter-button-text" data-col="produto">Filtrar</span></th>
+        <th>Senha <span class="filter-button-text">Filtrar</span></th>
+        <th>Data <span class="filter-button-text">Filtrar</span></th>
+        <th>Central <span class="filter-button-text">Filtrar</span></th>
+        <th>Cargas <span class="filter-button-text">Filtrar</span></th>
+        <th>Fornecedor <span class="filter-button-text">Filtrar</span></th>
+        <th>Tipo de Produto <span class="filter-button-text">Filtrar</span></th>
+        <th>Produto <span class="filter-button-text">Filtrar</span></th>
         <th>Ações</th>
       </tr>
     </thead>
@@ -260,6 +259,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const cargasContainer = document.getElementById('cargasContainer');
   const listaRascunhos = document.getElementById('listaRascunhos');
   const totalCargasSpan = document.getElementById('totalCargas');
+  const historicoModal = document.getElementById('historicoModal');
+  const historicoContent = document.getElementById('historicoContent');
   
   let editingId = null;
   let dataTable = null;
@@ -290,7 +291,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     for (let i = 0; i < numCargas; i++) {
       cargasContainer.innerHTML += `
         <div class="carga-item">
-            <input type="date" class="data">
+            <input type="date" class="data" required>
             <input type="text" class="central" placeholder="Central" required>
             <input type="text" class="cargas" placeholder="Cargas" required>
             <input type="text" class="fornecedor" placeholder="Fornecedor" required>
@@ -319,7 +320,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         formIncomplete = true;
       }
       cargas.push({
-        data: item.querySelector('.data').value || null, // Salva a data, mesmo se vazia
+        data: item.querySelector('.data').value || null,
         central: central,
         cargas: carga,
         fornecedor: item.querySelector('.fornecedor').value,
@@ -360,31 +361,42 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const rascunhoDiv = document.createElement('div');
         rascunhoDiv.classList.add('rascunho-item');
         
-        let rascunhoContent = '<h4>Rascunho de Agendamento</h4>';
-        rascunho.cargas.forEach(carga => {
-            rascunhoContent += `<p>Fornecedor: ${carga.fornecedor} | Produto: ${carga.produto}</p>`;
+        let rascunhoContent = `<p><strong>ID do rascunho:</strong> ${doc.id}</p>`;
+        rascunho.cargas.forEach((carga, index) => {
+            rascunhoContent += `<p><strong>Carga ${index + 1}:</strong> Data: ${carga.data || "Não definida"}, Central: ${carga.central}, Produto: ${carga.produto}</p>`;
         });
         
         rascunhoDiv.innerHTML = rascunhoContent;
         
-        const salvarBtn = document.createElement('button');
-        salvarBtn.textContent = 'Definir Data';
-        salvarBtn.onclick = () => {
-            // Lógica para abrir modal e definir data
-        };
-        rascunhoDiv.appendChild(salvarBtn);
-        
         const copiarBtn = document.createElement('button');
-        copiarBtn.textContent = 'Copiar Dados';
+        copiarBtn.textContent = 'Copiar Dados para o Formulário';
         copiarBtn.onclick = () => {
-            let dados = "";
-            rascunho.cargas.forEach(carga => {
-                dados += `Data: ${carga.data || "Não definida"}\nCentral: ${carga.central}\nCargas: ${carga.cargas}\nFornecedor: ${carga.fornecedor}\nTipo de Produto: ${carga.tipoDeProduto}\nProduto: ${carga.produto}\n\n`;
-            });
-            navigator.clipboard.writeText(dados);
-            alert('Dados copiados para a área de transferência!');
+          document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
+          numCargasInput.value = rascunho.cargas.length;
+          numCargasInput.dispatchEvent(new Event('input'));
+          const cargaItems = document.querySelectorAll('.carga-item');
+          rascunho.cargas.forEach((carga, index) => {
+              if (cargaItems[index]) {
+                  cargaItems[index].querySelector('.data').value = carga.data;
+                  cargaItems[index].querySelector('.central').value = carga.central;
+                  cargaItems[index].querySelector('.cargas').value = carga.cargas;
+                  cargaItems[index].querySelector('.fornecedor').value = carga.fornecedor;
+                  cargaItems[index].querySelector('.tipoDeProduto').value = carga.tipoDeProduto;
+                  cargaItems[index].querySelector('.produto').value = carga.produto;
+              }
+          });
         };
         rascunhoDiv.appendChild(copiarBtn);
+
+        const deletarRascunhoBtn = document.createElement('button');
+        deletarRascunhoBtn.textContent = 'Excluir Rascunho';
+        deletarRascunhoBtn.onclick = async () => {
+            if (confirm("Tem certeza que deseja excluir este rascunho?")) {
+                const docRef = doc(db, "agendamentos-rascunho", doc.id);
+                await deleteDoc(docRef);
+            }
+        };
+        rascunhoDiv.appendChild(deletarRascunhoBtn);
         
         listaRascunhos.appendChild(rascunhoDiv);
       });
@@ -399,16 +411,23 @@ document.addEventListener("DOMContentLoaded", ()=>{
         dataTable.destroy();
       }
 
-      const dadosParaTabela = agendamentos.map(item => [
-        item.senha,
-        item.data,
-        item.central,
-        item.cargas,
-        item.fornecedor,
-        item.tipoDeProduto,
-        item.produto,
-        `<button class="edit" data-id="${item.id}">Editar</button> <button class="delete" data-id="${item.id}">Excluir</button>`
-      ]);
+      const dadosParaTabela = [];
+      let totalCargasCount = 0;
+      agendamentos.forEach(agendamento => {
+          agendamento.cargas.forEach(carga => {
+              dadosParaTabela.push([
+                  agendamento.senha,
+                  carga.data,
+                  carga.central,
+                  carga.cargas,
+                  carga.fornecedor,
+                  carga.tipoDeProduto,
+                  carga.produto,
+                  `<button class="edit" data-id="${agendamento.id}">Editar</button> <button class="delete" data-id="${agendamento.id}">Excluir</button>`
+              ]);
+          });
+          totalCargasCount += agendamento.cargas.length;
+      });
 
       dataTable = $('#agendamentosTabela').DataTable({
         data: dadosParaTabela,
@@ -433,7 +452,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         $(this).text(searchTerm ? 'APLICADO' : 'Filtrar');
       });
       // Atualiza o total de cargas no rodapé
-      totalCargasSpan.textContent = agendamentos.length;
+      totalCargasSpan.textContent = totalCargasCount;
     });
   }
 
@@ -483,22 +502,26 @@ document.addEventListener("DOMContentLoaded", ()=>{
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const cargas = [];
-    const cargaItems = document.querySelectorAll('.carga-item');
+    const agendamento = {
+        cargas: [],
+        timestamp: new Date()
+    };
     
+    const cargaItems = document.querySelectorAll('.carga-item');
     let formIncomplete = false;
+    
     cargaItems.forEach(item => {
       const data = item.querySelector('.data').value;
       const central = item.querySelector('.central').value;
-      const carga = item.querySelector('.cargas').value;
+      const cargas = item.querySelector('.cargas').value;
       
-      if (!data || !central || !carga) {
+      if (!data || !central || !cargas) {
         formIncomplete = true;
       }
-      cargas.push({
+      agendamento.cargas.push({
         data: data,
         central: central,
-        cargas: carga,
+        cargas: cargas,
         fornecedor: item.querySelector('.fornecedor').value,
         tipoDeProduto: item.querySelector('.tipoDeProduto').value,
         produto: item.querySelector('.produto').value
@@ -511,26 +534,30 @@ document.addEventListener("DOMContentLoaded", ()=>{
     }
 
     if (editingId) {
+      // Editar um agendamento existente
       const docRef = doc(db, "agendamentos", editingId);
-      await updateDoc(docRef, cargas[0]);
-      await adicionarHistorico("editou um agendamento", { id: editingId, ...cargas[0] });
+      await updateDoc(docRef, { cargas: agendamento.cargas });
+      await adicionarHistorico("editou um agendamento", { id: editingId, cargas: agendamento.cargas });
       editingId = null;
     } else {
-      for (const carga of cargas) {
-        const contadorRef = doc(db, "metadados", "contador");
-        try {
+      // Criar um novo agendamento com todas as cargas em um único documento
+      const contadorRef = doc(db, "metadados", "contador");
+      try {
           await runTransaction(db, async (transaction) => {
               const contadorDoc = await transaction.get(contadorRef);
-              const novaSenha = contadorDoc.data().ultima_senha + 1;
-              carga.senha = novaSenha;
-              const newDocRef = await addDoc(collection(db, "agendamentos"), carga);
-              transaction.update(contadorRef, { ultima_senha: novaSenha });
-              await adicionarHistorico("agendou um novo carro", { id: newDocRef.id, ...carga });
+              let novaSenha = 1;
+              if (contadorDoc.exists()) {
+                  novaSenha = contadorDoc.data().ultima_senha + 1;
+              }
+              agendamento.senha = novaSenha;
+              const newDocRef = doc(collection(db, "agendamentos"));
+              transaction.set(newDocRef, agendamento);
+              transaction.set(contadorRef, { ultima_senha: novaSenha });
+              await adicionarHistorico("agendou um novo carro", { id: newDocRef.id, ...agendamento });
           });
-        } catch (e) {
-            console.error("Erro ao gerar senha e salvar agendamento: ", e);
-            alert("Ocorreu um erro ao salvar. Tente novamente.");
-        }
+      } catch (e) {
+          console.error("Erro ao gerar senha e salvar agendamento: ", e);
+          alert("Ocorreu um erro ao salvar. Tente novamente.");
       }
     }
     form.reset();
@@ -546,15 +573,20 @@ document.addEventListener("DOMContentLoaded", ()=>{
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const dados = docSnap.data();
-        numCargasInput.value = 1;
+        numCargasInput.value = dados.cargas.length;
         numCargasInput.dispatchEvent(new Event('input'));
-        const cargaItem = document.querySelector('.carga-item');
-        cargaItem.querySelector('.data').value = dados.data;
-        cargaItem.querySelector('.central').value = dados.central;
-        cargaItem.querySelector('.cargas').value = dados.cargas;
-        cargaItem.querySelector('.fornecedor').value = dados.fornecedor;
-        cargaItem.querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
-        cargaItem.querySelector('.produto').value = dados.produto;
+        
+        const cargaItems = document.querySelectorAll('.carga-item');
+        dados.cargas.forEach((carga, index) => {
+            if (cargaItems[index]) {
+                cargaItems[index].querySelector('.data').value = carga.data;
+                cargaItems[index].querySelector('.central').value = carga.central;
+                cargaItems[index].querySelector('.cargas').value = carga.cargas;
+                cargaItems[index].querySelector('.fornecedor').value = carga.fornecedor;
+                cargaItems[index].querySelector('.tipoDeProduto').value = carga.tipoDeProduto;
+                cargaItems[index].querySelector('.produto').value = carga.produto;
+            }
+        });
       }
   });
 
@@ -603,26 +635,29 @@ document.addEventListener("DOMContentLoaded", ()=>{
   }
 
   window.abrirHistorico = async () => {
-      const historicoContent = document.getElementById('historicoContent');
       historicoContent.innerHTML = 'Carregando...';
       const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid));
       const snapshot = await getDocs(q);
       historicoContent.innerHTML = '';
-      snapshot.forEach(doc => {
-          const acao = doc.data();
-          const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
-          historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} (ID: ${acao.detalhes.id}).</p>`;
-      });
-      document.getElementById('historicoModal').style.display = 'block';
+      if (snapshot.empty) {
+          historicoContent.innerHTML = '<p>Nenhuma ação registrada.</p>';
+      } else {
+          snapshot.forEach(doc => {
+              const acao = doc.data();
+              const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
+              historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} (ID: ${acao.detalhes.id}).</p>`;
+          });
+      }
+      historicoModal.style.display = 'block';
   };
 
   document.querySelector('.close-modal').onclick = () => {
-      document.getElementById('historicoModal').style.display = 'none';
+      historicoModal.style.display = 'none';
   };
 
   window.onclick = (event) => {
-      if (event.target == document.getElementById('historicoModal')) {
-          document.getElementById('historicoModal').style.display = 'none';
+      if (event.target == historicoModal) {
+          historicoModal.style.display = 'none';
       }
   };
 </script>
