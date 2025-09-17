@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Histórico de Ações</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #fafafa; }
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { color: #cc0000; font-size: 28px; margin: 10px 0 20px 0; font-weight: bold; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+        thead th { background-color: #cc0000; color: white; }
+        a.back-button {
+            display: inline-block;
+            margin-bottom: 20px;
+            text-decoration: none;
+            color: #cc0000;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        a.back-button:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Histórico de Ações</h1>
+</header>
+
+<div class="table-container">
+    <table id="historicoTabela" class="display" style="width:100%">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Usuário</th>
+                <th>Ação</th>
+                <th>Detalhes</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+    <p id="carregando" style="text-align: center;">Carregando...</p>
+</div>
+
+<script type="module">
+    import { db, auth } from "./firebase-config.js";
+    import { collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    let historicoDataTable = null;
+    const carregandoEl = document.getElementById('carregando');
+
+    onAuthStateChanged(auth, user => {
+        if (user) {
+            carregarHistorico(user.uid);
+        } else {
+            carregandoEl.textContent = "Você precisa estar logado para ver o histórico.";
+        }
+    });
+
+    async function carregarHistorico(currentUserUid) {
+        carregandoEl.textContent = 'Carregando...';
+        const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
+        try {
+            const snapshot = await getDocs(q);
+            const dadosParaTabela = [];
+            
+            if (snapshot.empty) {
+                carregandoEl.textContent = 'Nenhuma ação registrada.';
+            } else {
+                carregandoEl.style.display = 'none';
+                snapshot.forEach(doc => {
+                    const acao = doc.data();
+                    const dataFormatada = new Date(acao.timestamp.seconds * 1000).toLocaleString('pt-BR');
+                    let detalhesHTML = '';
+                    
+                    if (acao.acao.includes("excluiu um")) {
+                        detalhesHTML = `
+                            <strong>Senha:</strong> ${acao.detalhes.senha}<br>
+                            <strong>Central:</strong> ${acao.detalhes.central}<br>
+                            <strong>Cargas:</strong> ${acao.detalhes.cargas}<br>
+                            <strong>Fornecedor:</strong> ${acao.detalhes.fornecedor}
+                        `;
+                    } else if (acao.acao.includes("excluiu múltiplos")) {
+                        detalhesHTML = "<ul>";
+                        acao.detalhes.agendamentos.forEach(item => {
+                            detalhesHTML += `<li>Senha: ${item.senha}, Central: ${item.central}, Fornecedor: ${item.fornecedor}</li>`;
+                        });
+                        detalhesHTML += "</ul>";
+                    } else if (acao.acao.includes("agendou")) {
+                         detalhesHTML = `
+                            <strong>Senha:</strong> ${acao.detalhes.senha}<br>
+                            <strong>Central:</strong> ${acao.detalhes.central}<br>
+                            <strong>Fornecedor:</strong> ${acao.detalhes.fornecedor}
+                        `;
+                    } else {
+                        detalhesHTML = `<span>N/A</span>`;
+                    }
+
+                    dadosParaTabela.push([
+                        dataFormatada,
+                        acao.username || "Desconhecido",
+                        acao.acao,
+                        detalhesHTML
+                    ]);
+                });
+            }
+
+            if (historicoDataTable) {
+                historicoDataTable.destroy();
+            }
+
+            historicoDataTable = $('#historicoTabela').DataTable({
+                data: dadosParaTabela,
+                columns: [
+                    { title: "Data" },
+                    { title: "Usuário" },
+                    { title: "Ação" },
+                    { title: "Detalhes" }
+                ],
+                paging: true,
+                info: true,
+                order: [[0, 'desc']],
+                oLanguage: {
+                    sEmptyTable: "Nenhuma ação registrada.",
+                    sSearch: "Buscar:",
+                    sInfo: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                    sInfoEmpty: "Mostrando 0 a 0 de 0 registros"
+                }
+            });
+        } catch (e) {
+            console.error("Erro ao carregar histórico: ", e);
+            carregandoEl.textContent = 'Ocorreu um erro ao carregar o histórico. Tente novamente mais tarde.';
+        }
+    }
+</script>
+
+</body>
+</html>
