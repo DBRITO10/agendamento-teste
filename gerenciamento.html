@@ -259,6 +259,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const cargasContainer = document.getElementById('cargasContainer');
   const listaRascunhos = document.getElementById('listaRascunhos');
   const totalCargasSpan = document.getElementById('totalCargas');
+  const historicoModal = document.getElementById('historicoModal');
+  const historicoContent = document.getElementById('historicoContent');
   
   let editingId = null;
   let dataTable = null;
@@ -289,7 +291,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     for (let i = 0; i < numCargas; i++) {
       cargasContainer.innerHTML += `
         <div class="carga-item">
-            <input type="date" class="data" required>
+            <input type="date" class="data">
             <input type="text" class="central" placeholder="Central" required>
             <input type="text" class="cargas" placeholder="Cargas" required>
             <input type="text" class="fornecedor" placeholder="Fornecedor" required>
@@ -366,13 +368,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         
         rascunhoDiv.innerHTML = rascunhoContent;
         
-        const salvarBtn = document.createElement('button');
-        salvarBtn.textContent = 'Definir Data';
-        salvarBtn.onclick = () => {
-            // Lógica para abrir modal e definir data
-        };
-        rascunhoDiv.appendChild(salvarBtn);
-        
         const copiarBtn = document.createElement('button');
         copiarBtn.textContent = 'Copiar Dados';
         copiarBtn.onclick = () => {
@@ -398,16 +393,26 @@ document.addEventListener("DOMContentLoaded", ()=>{
         dataTable.destroy();
       }
 
-      const dadosParaTabela = agendamentos.map(item => [
-        item.senha,
-        item.data,
-        item.central,
-        item.cargas,
-        item.fornecedor,
-        item.tipoDeProduto,
-        item.produto,
-        `<button class="edit" data-id="${item.id}">Editar</button> <button class="delete" data-id="${item.id}">Excluir</button>`
-      ]);
+      const dadosParaTabela = agendamentos.map(item => {
+        // Concatenar os dados das cargas em uma única linha
+        const data = item.cargas.map(c => c.data).join(', ');
+        const central = item.cargas.map(c => c.central).join(', ');
+        const cargas = item.cargas.map(c => c.cargas).join(', ');
+        const fornecedor = item.cargas.map(c => c.fornecedor).join(', ');
+        const tipoDeProduto = item.cargas.map(c => c.tipoDeProduto).join(', ');
+        const produto = item.cargas.map(c => c.produto).join(', ');
+
+        return [
+          item.senha,
+          data,
+          central,
+          cargas,
+          fornecedor,
+          tipoDeProduto,
+          produto,
+          `<button class="edit" data-id="${item.id}">Editar</button> <button class="delete" data-id="${item.id}">Excluir</button>`
+        ];
+      });
 
       dataTable = $('#agendamentosTabela').DataTable({
         data: dadosParaTabela,
@@ -612,26 +617,29 @@ document.addEventListener("DOMContentLoaded", ()=>{
   }
 
   window.abrirHistorico = async () => {
-      const historicoContent = document.getElementById('historicoContent');
       historicoContent.innerHTML = 'Carregando...';
       const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid));
       const snapshot = await getDocs(q);
       historicoContent.innerHTML = '';
-      snapshot.forEach(doc => {
-          const acao = doc.data();
-          const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
-          historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} (ID: ${acao.detalhes.id}).</p>`;
-      });
-      document.getElementById('historicoModal').style.display = 'block';
+      if (snapshot.empty) {
+          historicoContent.innerHTML = '<p>Nenhuma ação registrada.</p>';
+      } else {
+          snapshot.forEach(doc => {
+              const acao = doc.data();
+              const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
+              historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} (ID: ${acao.detalhes.id}).</p>`;
+          });
+      }
+      historicoModal.style.display = 'block';
   };
 
   document.querySelector('.close-modal').onclick = () => {
-      document.getElementById('historicoModal').style.display = 'none';
+      historicoModal.style.display = 'none';
   };
 
   window.onclick = (event) => {
-      if (event.target == document.getElementById('historicoModal')) {
-          document.getElementById('historicoModal').style.display = 'none';
+      if (event.target == historicoModal) {
+          historicoModal.style.display = 'none';
       }
   };
 </script>
