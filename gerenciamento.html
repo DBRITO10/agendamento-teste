@@ -385,10 +385,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 buttonsDiv.style.marginTop = '10px';
 
                 const copiarSelecionadasBtn = document.createElement('button');
-                copiarSelecionadasBtn.textContent = 'Copiar Cargas Selecionadas';
-                copiarSelecionadasBtn.className = 'copiar-selecionadas';
-                copiarSelecionadasBtn.onclick = () => copiarCargasSelecionadas(doc.id, rascunho.cargas);
-                buttonsDiv.appendChild(copiarSelecionadasBtn);
+                copiarSelecionadasBtn.textContent = 'Copiar';
+                copiarSelecionadasBtn.className = 'copiar';
+                copiarSelecionadasBtn.onclick = () => copiar(doc.id, rascunho.cargas);
+                buttonsDiv.appendChild(copiarBtn);
                 
                 const editarRascunhoBtn = document.createElement('button');
                 editarRascunhoBtn.textContent = 'Editar Rascunho';
