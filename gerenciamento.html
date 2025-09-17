@@ -4,6 +4,14 @@
   <meta charset="UTF-8">
   <title>Gerenciamento de Agendamentos</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; background-color: #fafafa; }
     header { text-align: center; margin-bottom: 20px; }
@@ -26,6 +34,10 @@
         border-radius: 6px;
         margin-bottom: 12px;
     }
+    #exportButtons { margin-bottom: 15px; }
+    #exportButtons button { display: inline-block; width: auto; margin-right: 10px; padding: 10px 20px; }
+    .filter-input { width: 100%; box-sizing: border-box; }
+    #agendamentosTabela_filter { display: none; }
   </style>
 </head>
 <body>
@@ -66,7 +78,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
   </form>
 
   <h2>Lista de Agendamentos</h2>
-  <table id="agendamentosTabela">
+  <div id="exportButtons">
+    <button onclick="exportarExcel()">Exportar Excel</button>
+    <button onclick="exportarPDF()">Exportar PDF</button>
+  </div>
+  <table id="agendamentosTabela" class="display" style="width:100%">
     <thead>
       <tr>
         <th>Senha</th>
@@ -77,6 +93,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
         <th>Tipo de Produto</th>
         <th>Produto</th>
         <th>Ações</th>
+      </tr>
+      <tr id="filter-row">
+        <th><input type="text" placeholder="Filtrar Senha" class="filter-input"></th>
+        <th><input type="text" placeholder="Filtrar Data" class="filter-input"></th>
+        <th><input type="text" placeholder="Filtrar Central" class="filter-input"></th>
+        <th><input type="text" placeholder="Filtrar Cargas" class="filter-input"></th>
+        <th><input type="text" placeholder="Filtrar Fornecedor" class="filter-input"></th>
+        <th><input type="text" placeholder="Filtrar Tipo" class="filter-input"></th>
+        <th><input type="text" placeholder="Filtrar Produto" class="filter-input"></th>
+        <th></th>
       </tr>
     </thead>
     <tbody>
@@ -92,6 +118,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   const form = document.getElementById('agendamentoForm');
   const tabelaBody = document.querySelector('#agendamentosTabela tbody');
   let editingId = null;
+  let dataTable = null;
 
   onAuthStateChanged(auth, user => {
     if (!user) {
@@ -109,24 +136,59 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
   function carregarAgendamentos() {
     onSnapshot(collection(db, "agendamentos"), (snapshot) => {
-      tabelaBody.innerHTML = '';
-      snapshot.forEach((doc) => {
-        const dados = doc.data();
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${dados.senha}</td>
-          <td>${dados.data}</td>
-          <td>${dados.central}</td>
-          <td>${dados.cargas}</td>
-          <td>${dados.fornecedor}</td>
-          <td>${dados.tipoDeProduto}</td>
-          <td>${dados.produto}</td>
-          <td>
-            <button class="edit" data-id="${doc.id}">Editar</button>
-            <button class="delete" data-id="${doc.id}">Excluir</button>
-          </td>
-        `;
-        tabelaBody.appendChild(tr);
+      const agendamentos = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      if (dataTable) {
+        dataTable.destroy();
+      }
+
+      const dadosParaTabela = agendamentos.map(item => [
+        item.senha,
+        item.data,
+        item.central,
+        item.cargas,
+        item.fornecedor,
+        item.tipoDeProduto,
+        item.produto,
+        `<button class="edit" data-id="${item.id}">Editar</button> <button class="delete" data-id="${item.id}">Excluir</button>`
+      ]);
+
+      dataTable = $('#agendamentosTabela').DataTable({
+        data: dadosParaTabela,
+        columns: [
+          { title: "Senha" },
+          { title: "Data" },
+          { title: "Central" },
+          { title: "Cargas" },
+          { title: "Fornecedor" },
+          { title: "Tipo de Produto" },
+          { title: "Produto" },
+          { title: "Ações", orderable: false, searchable: false }
+        ],
+        columnDefs: [
+            { width: '10%', targets: 0 },
+            { width: '10%', targets: 1 },
+            { width: '10%', targets: 2 },
+            { width: '10%', targets: 3 },
+            { width: '20%', targets: 4 },
+            { width: '20%', targets: 5 },
+            { width: '10%', targets: 6 },
+            { width: '10%', targets: 7 }
+        ],
+        paging: false,
+        info: false
+      });
+
+      // Configura os filtros de coluna
+      dataTable.columns().eq(0).each(function (colIdx) {
+        if (colIdx < dataTable.columns().count() - 1) { // Ignora a coluna de ações
+          const filterInput = $('#filter-row th').eq(colIdx).find('input');
+          if (filterInput.length) {
+            $(filterInput).on('keyup change', function () {
+              dataTable.column(colIdx).search(this.value).draw();
+            });
+          }
+        }
       });
     });
   }
@@ -153,18 +215,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
       const contadorRef = doc(db, "metadados", "contador");
       
       try {
-        // Inicia uma transação para evitar que dois usuários peguem a mesma senha
         await runTransaction(db, async (transaction) => {
             const contadorDoc = await transaction.get(contadorRef);
             const novaSenha = contadorDoc.data().ultima_senha + 1;
             
-            // Adiciona a senha gerada ao objeto de agendamento
             agendamento.senha = novaSenha;
 
-            // Adiciona o novo agendamento com a senha gerada
             await addDoc(collection(db, "agendamentos"), agendamento);
             
-            // Atualiza o contador para o próximo número
             transaction.update(contadorRef, { ultima_senha: novaSenha });
         });
       } catch (e) {
@@ -175,9 +233,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
     form.reset();
   });
 
-  tabelaBody.addEventListener('click', async (e) => {
-    if (e.target.classList.contains('edit')) {
-      editingId = e.target.dataset.id;
+  // Edita ou Exclui um agendamento
+  $(document).on('click', '.edit', async function () {
+      editingId = $(this).data('id');
       const docRef = doc(db, "agendamentos", editingId);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
@@ -189,14 +247,38 @@ document.addEventListener("DOMContentLoaded", ()=>{
         form['tipoDeProduto'].value = dados.tipoDeProduto;
         form['produto'].value = dados.produto;
       }
-    } else if (e.target.classList.contains('delete')) {
-      const id = e.target.dataset.id;
+  });
+
+  $(document).on('click', '.delete', async function () {
+      const id = $(this).data('id');
       const docRef = doc(db, "agendamentos", id);
       if (confirm("Tem certeza que deseja excluir este agendamento?")) {
         await deleteDoc(docRef);
       }
-    }
   });
+
+  // Funções de exportação
+  window.exportarPDF = () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+    const dadosVisiveis = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(0, 7));
+    doc.autoTable({
+      head: [headers],
+      body: dadosVisiveis,
+    });
+    doc.save('agendamentos.pdf');
+  };
+
+  window.exportarExcel = () => {
+    const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+    const dadosVisiveis = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(0, 7));
+    const ws_data = [headers, ...dadosVisiveis];
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Agendamentos");
+    XLSX.writeFile(wb, "agendamentos.xlsx");
+  };
 
   carregarAgendamentos();
 </script>
