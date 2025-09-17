@@ -231,6 +231,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
   
     <h2>Lista de Agendamentos</h2>
     <div id="exportButtons">
+        <button id="copiarSelecionadosBtn">Copiar Selecionados</button>
+        <button id="excluirSelecionadosBtn">Excluir Selecionados</button>
         <button onclick="exportarExcel()">Exportar Excel</button>
         <button onclick="exportarPDF()">Exportar PDF</button>
         <button onclick="abrirHistorico()">Ver Histórico</button>
@@ -286,7 +288,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const copiarRascunhosBtn = document.getElementById('copiarRascunhosBtn');
     const excluirRascunhosBtn = document.getElementById('excluirRascunhosBtn');
     const editarRascunhoBtn = document.getElementById('editarRascunhoBtn');
-    
+    const copiarSelecionadosBtn = document.getElementById('copiarSelecionadosBtn');
+    const excluirSelecionadosBtn = document.getElementById('excluirSelecionadosBtn');
+
     let editingId = null;
     let editingRascunhoId = null;
     let dataTable = null;
@@ -713,8 +717,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
             const rascunhoDocRef = doc(db, "agendamentos-rascunho", editingRascunhoId);
             const rascunhoDoc = await getDoc(rascunhoDocRef);
             if (rascunhoDoc.exists()) {
-                 const currentSenha = rascunhoDoc.data().senha;
-                 await updateDoc(rascunhoDocRef, { ...cargas[0], timestamp: new Date(), senha: currentSenha });
+                const currentSenha = rascunhoDoc.data().senha;
+                await updateDoc(rascunhoDocRef, { ...cargas[0], timestamp: new Date(), senha: currentSenha });
             }
             alert("Rascunho atualizado com sucesso!");
             editingRascunhoId = null;
@@ -732,7 +736,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     const savedCargas = [];
                     for (const carga of cargas) {
                         ultimaSenha++;
-                        const novaCarga = { ...carga, senha: ultimaSenha };
+                        const novaCarga = { ...carga, senha: ultimaSenha, userId: currentUserUid, timestamp: new Date() };
                         const newDocRef = doc(collection(db, "agendamentos"));
                         transaction.set(newDocRef, novaCarga);
                         savedCargas.push({ id: newDocRef.id, ...novaCarga });
@@ -784,45 +788,41 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
     $(document).on('click', '.delete', async function () {
         const id = $(this).data('id');
-        const docRef = doc(db, "agendamentos", id);
-        if (confirm("Tem certeza que deseja excluir este agendamento?")) {
+        if (confirm('Tem certeza que deseja excluir este agendamento?')) {
+            const docRef = doc(db, "agendamentos", id);
             await deleteDoc(docRef);
             await adicionarHistorico("excluiu um agendamento", { id: id });
+            alert('Agendamento excluído com sucesso!');
         }
     });
 
-    window.exportarPDF = () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
-        const dadosVisiveis = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8)); // Updated to slice correctly
-        doc.autoTable({
-            head: [headers],
-            body: dadosVisiveis,
-        });
-        doc.save('agendamentos.pdf');
-    };
+    async function adicionarHistorico(acao, detalhes = {}) {
+        try {
+            await addDoc(collection(db, "historico-acoes"), {
+                userId: currentUserUid,
+                timestamp: new Date(),
+                acao: acao,
+                detalhes: detalhes
+            });
+        } catch (e) {
+            console.error("Erro ao adicionar histórico: ", e);
+        }
+    }
 
     window.exportarExcel = () => {
-        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
-        const dadosVisiveis = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8)); // Updated to slice correctly
-        const ws_data = [headers, ...dadosVisiveis];
-        const ws = XLSX.utils.aoa_to_sheet(ws_data);
+        const table = document.getElementById('agendamentosTabela');
+        const ws = XLSX.utils.table_to_sheet(table);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Agendamentos");
         XLSX.writeFile(wb, "agendamentos.xlsx");
     };
 
-    async function adicionarHistorico(acao, detalhes) {
-        if (!currentUserUid) return;
-        await addDoc(collection(db, "historico-acoes"), {
-            userId: currentUserUid,
-            username: localStorage.getItem("username"),
-            acao: acao,
-            detalhes: detalhes,
-            timestamp: new Date()
-        });
-    }
+    window.exportarPDF = () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('l', 'pt');
+        doc.autoTable({ html: '#agendamentosTabela' });
+        doc.save('agendamentos.pdf');
+    };
 
     window.abrirHistorico = async () => {
         console.log("Tentando abrir histórico para o UID:", currentUserUid);
@@ -842,7 +842,15 @@ document.addEventListener("DOMContentLoaded", ()=>{
             snapshot.forEach(doc => {
                 const acao = doc.data();
                 const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
-                historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} (ID: ${acao.detalhes.id}).</p>`;
+                let detalhes = '';
+                if (acao.detalhes) {
+                    if (acao.detalhes.ids && Array.isArray(acao.detalhes.ids)) {
+                        detalhes = `(IDs: ${acao.detalhes.ids.join(', ')})`;
+                    } else if (acao.detalhes.id) {
+                        detalhes = `(ID: ${acao.detalhes.id})`;
+                    }
+                }
+                historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} ${detalhes}.</p>`;
             });
         }
         historicoModal.style.display = 'block';
@@ -857,6 +865,94 @@ document.addEventListener("DOMContentLoaded", ()=>{
             historicoModal.style.display = 'none';
         }
     };
+
+    selectAllCheckbox.addEventListener('change', (e) => {
+        $('.row-checkbox').prop('checked', e.target.checked).trigger('change');
+    });
+
+    $(document).on('change', '.row-checkbox', function () {
+        const checkedCount = $('.row-checkbox:checked').length;
+        if (checkedCount > 0) {
+            copiarSelecionadosBtn.style.display = 'inline-block';
+            excluirSelecionadosBtn.style.display = 'inline-block';
+        } else {
+            copiarSelecionadosBtn.style.display = 'none';
+            excluirSelecionadosBtn.style.display = 'none';
+        }
+    });
+
+    // Copiar selecionados da tabela principal
+    copiarSelecionadosBtn.addEventListener('click', async () => {
+        const checkedRows = $('.row-checkbox:checked');
+        if (checkedRows.length === 0) {
+            alert('Por favor, selecione pelo menos um agendamento para copiar.');
+            return;
+        }
+        
+        const selectedIds = checkedRows.map(function() {
+            return $(this).data('id');
+        }).get();
+
+        const agendamentosRef = collection(db, "agendamentos");
+        const q = query(agendamentosRef, where("__name__", "in", selectedIds));
+        const snapshot = await getDocs(q);
+        
+        const agendamentosSelecionados = snapshot.docs.map(doc => doc.data());
+        
+        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+        let content = headers.join('\t') + '\n';
+        agendamentosSelecionados.forEach(agendamento => {
+            const values = [
+                agendamento.senha || '',
+                agendamento.data || '',
+                agendamento.central || '',
+                agendamento.cargas || '',
+                agendamento.fornecedor || '',
+                agendamento.tipoDeProduto || '',
+                agendamento.produto || ''
+            ];
+            content += values.join('\t') + '\n';
+        });
+
+        try {
+            await navigator.clipboard.writeText(content);
+            alert("Dados copiados para a área de transferência com sucesso!");
+        } catch (err) {
+            console.error('Erro ao copiar os dados:', err);
+            alert('Erro ao copiar os dados. Por favor, tente novamente.');
+        }
+    });
+
+    // Excluir selecionados da tabela principal
+    excluirSelecionadosBtn.addEventListener('click', async () => {
+        const checkedRows = $('.row-checkbox:checked');
+        if (checkedRows.length === 0) {
+            alert('Por favor, selecione pelo menos um agendamento para excluir.');
+            return;
+        }
+
+        if (confirm(`Tem certeza que deseja excluir ${checkedRows.length} agendamento(s) selecionado(s)?`)) {
+            const batch = writeBatch(db);
+            const deletedIds = [];
+
+            checkedRows.each(function() {
+                const id = $(this).data('id');
+                const docRef = doc(db, "agendamentos", id);
+                batch.delete(docRef);
+                deletedIds.push(id);
+            });
+
+            try {
+                await batch.commit();
+                await adicionarHistorico(`excluiu múltiplos agendamentos (${deletedIds.length})`, { ids: deletedIds });
+                alert(`${checkedRows.length} agendamento(s) excluído(s) com sucesso.`);
+            } catch (e) {
+                console.error("Erro ao excluir agendamentos em lote:", e);
+                alert("Ocorreu um erro ao excluir os agendamentos. Tente novamente.");
+            }
+        }
+    });
+    
 </script>
 
 </body>
