@@ -658,14 +658,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
         checkedRows.each(function() {
             const rowData = rascunhosDataTable.row(this).data();
             const values = [
-                $(rowData[1]).text().trim(),
-                $(rowData[2]).text().trim(),
-                $(rowData[3]).text().trim(),
-                $(rowData[4]).text().trim(),
-                $(rowData[5]).text().trim(),
-                $(rowData[6]).text().trim(),
-                $(rowData[7]).text().trim(),
-                $(rowData[8]).text().trim(),
+                String(rowData[1]).replace(/<br>/g, ' ').trim(),
+                String(rowData[2]).replace(/<br>/g, ' ').trim(),
+                String(rowData[3]).replace(/<br>/g, ' ').trim(),
+                String(rowData[4]).replace(/<br>/g, ' ').trim(),
+                String(rowData[5]).replace(/<br>/g, ' ').trim(),
+                String(rowData[6]).replace(/<br>/g, ' ').trim(),
+                String(rowData[7]).replace(/<br>/g, ' ').trim(),
+                String(rowData[8]).replace(/<br>/g, ' ').trim(),
             ];
             plainTextContent += values.join('\t') + '\n';
             
@@ -1074,14 +1074,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
         const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
             return [
-                $(row[1]).text().trim(),
-                $(row[2]).text().trim(),
-                $(row[3]).text().trim(),
-                $(row[4]).text().trim(),
-                $(row[5]).text().trim(),
-                $(row[6]).text().trim(),
-                $(row[7]).text().trim(),
-                $(row[8]).text().trim(),
+                String(row[1]).replace(/<br>/g, ' ').trim(),
+                String(row[2]).replace(/<br>/g, ' ').trim(),
+                String(row[3]).replace(/<br>/g, ' ').trim(),
+                String(row[4]).replace(/<br>/g, ' ').trim(),
+                String(row[5]).replace(/<br>/g, ' ').trim(),
+                String(row[6]).replace(/<br>/g, ' ').trim(),
+                String(row[7]).replace(/<br>/g, ' ').trim(),
+                String(row[8]).replace(/<br>/g, ' ').trim(),
             ];
         });
         
@@ -1109,14 +1109,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
         const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
             return [
-                $(row[1]).text().trim(),
-                $(row[2]).text().trim(),
-                $(row[3]).text().trim(),
-                $(row[4]).text().trim(),
-                $(row[5]).text().trim(),
-                $(row[6]).text().trim(),
-                $(row[7]).text().trim(),
-                $(row[8]).text().trim(),
+                String(row[1]).replace(/<br>/g, ' ').trim(),
+                String(row[2]).replace(/<br>/g, ' ').trim(),
+                String(row[3]).replace(/<br>/g, ' ').trim(),
+                String(row[4]).replace(/<br>/g, ' ').trim(),
+                String(row[5]).replace(/<br>/g, ' ').trim(),
+                String(row[6]).replace(/<br>/g, ' ').trim(),
+                String(row[7]).replace(/<br>/g, ' ').trim(),
+                String(row[8]).replace(/<br>/g, ' ').trim(),
             ];
         });
         const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
@@ -1196,14 +1196,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
         checkedRows.each(function() {
             const rowData = dataTable.row(this).data();
             const values = [
-                $(rowData[1]).text().trim(),
-                $(rowData[2]).text().trim(),
-                $(rowData[3]).text().trim(),
-                $(rowData[4]).text().trim(),
-                $(rowData[5]).text().trim(),
-                $(rowData[6]).text().trim(),
-                $(rowData[7]).text().trim(),
-                $(rowData[8]).text().trim(),
+                String(rowData[1]).replace(/<br>/g, ' ').trim(),
+                String(rowData[2]).replace(/<br>/g, ' ').trim(),
+                String(rowData[3]).replace(/<br>/g, ' ').trim(),
+                String(rowData[4]).replace(/<br>/g, ' ').trim(),
+                String(rowData[5]).replace(/<br>/g, ' ').trim(),
+                String(rowData[6]).replace(/<br>/g, ' ').trim(),
+                String(rowData[7]).replace(/<br>/g, ' ').trim(),
+                String(rowData[8]).replace(/<br>/g, ' ').trim(),
             ];
             plainTextContent += values.join('\t') + '\n';
             
