@@ -233,6 +233,11 @@
             background-color: #ccc;
             cursor: not-allowed;
         }
+
+        /* Estilo para quebra de linha em colunas específicas */
+        .wrap-text {
+            white-space: normal;
+        }
     </style>
 </head>
 <body>
@@ -821,8 +826,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     agendamento.senha,
                     agendamento.data,
                     agendamento.central,
-                    agendamento.cargas,
-                    agendamento.pedidoCompra,
+                    `<div class="wrap-text">${agendamento.cargas}</div>`,
+                    `<div class="wrap-text">${agendamento.pedidoCompra}</div>`,
                     agendamento.fornecedor,
                     agendamento.tipoDeProduto,
                     agendamento.produto,
@@ -1149,8 +1154,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 rowData[1],
                 rowData[2],
                 rowData[3],
-                rowData[4],
-                rowData[5],
+                $(rowData[4]).text(),
+                $(rowData[5]).text(),
                 rowData[6],
                 rowData[7],
                 rowData[8],
