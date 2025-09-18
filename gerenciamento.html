@@ -54,17 +54,21 @@
         #exportButtons { margin-bottom: 15px; }
         #exportButtons button { display: inline-block; width: auto; margin-right: 10px; padding: 10px 20px; }
         #agendamentosTabela_filter { display: none; }
-        /* Estilos do filtro */
+        /* Estilos do filtro flutuante */
         .filter-button-text {
-            display: block;
             background: none;
             border: none;
             color: white;
             cursor: pointer;
             font-size: 14px;
             font-weight: bold;
+            margin-left: 5px;
             padding: 0;
-            margin-top: 5px; /* Adiciona um pequeno espaço entre o título e o filtro */
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: auto;
         }
         .filter-popup {
             position: absolute;
@@ -242,13 +246,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
         <thead>
             <tr>
                 <th><input type="checkbox" id="selectAllCheckbox"></th>
-                <th>Senha <br><span class="filter-button-text">Filtrar</span></th>
-                <th>Data <br><span class="filter-button-text">Filtrar</span></th>
-                <th>Central <br><span class="filter-button-text">Filtrar</span></th>
-                <th>Cargas <br><span class="filter-button-text">Filtrar</span></th>
-                <th>Fornecedor <br><span class="filter-button-text">Filtrar</span></th>
-                <th>Tipo de Produto <br><span class="filter-button-text">Filtrar</span></th>
-                <th>Produto <br><span class="filter-button-text">Filtrar</span></th>
+                <th>Senha <span class="filter-button-text">Filtrar</span></th>
+                <th>Data <span class="filter-button-text">Filtrar</span></th>
+                <th>Central <span class="filter-button-text">Filtrar</span></th>
+                <th>Cargas <span class="filter-button-text">Filtrar</span></th>
+                <th>Fornecedor <span class="filter-button-text">Filtrar</span></th>
+                <th>Tipo de Produto <span class="filter-button-text">Filtrar</span></th>
+                <th>Produto <span class="filter-button-text">Filtrar</span></th>
                 <th>Ações</th>
             </tr>
         </thead>
@@ -691,18 +695,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const columnIndex = dataTable.column($(this).closest('th')).index();
         const columnData = dataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
         
-        let popupHtml = `
-            <div style="padding: 10px; border-bottom: 1px solid #ddd;">
-                <label><input type="checkbox" id="selectAllFilter"> Todos</label>
-            </div>
-        `;
+        let popupHtml = '<div><label><input type="radio" name="filter-radio" value="" checked> Todos</label></div>';
         columnData.each(value => {
-            const isChecked = dataTable.column(columnIndex).search().includes(value);
-            popupHtml += `
-                <div style="padding: 5px;">
-                    <label><input type="checkbox" class="filter-checkbox" value="${value}" ${isChecked ? 'checked' : ''}> ${value}</label>
-                </div>
-            `;
+            popupHtml += `<div><label><input type="radio" name="filter-radio" value="${value}"> ${value}</label></div>`;
         });
         
         filterPopupContainer.innerHTML = popupHtml;
@@ -714,30 +709,15 @@ document.addEventListener("DOMContentLoaded", ()=>{
         activeColumnIndex = columnIndex;
     });
 
-    $(document).on('change', '#selectAllFilter', function () {
-        const isChecked = $(this).prop('checked');
-        $('.filter-checkbox').prop('checked', isChecked);
-        applyFilter();
-    });
-
-    $(document).on('change', '.filter-checkbox', function () {
-        const allChecked = $('.filter-checkbox:checked').length === $('.filter-checkbox').length;
-        $('#selectAllFilter').prop('checked', allChecked);
-        applyFilter();
-    });
-
-    function applyFilter() {
-        const selectedValues = $('.filter-checkbox:checked').map(function() {
-            return $.fn.dataTable.util.escapeRegex(this.value);
-        }).get();
-        
-        const filterRegex = selectedValues.join('|');
-        dataTable.column(activeColumnIndex).search(filterRegex, true, false).draw();
-        
+    $(document).on('change', '.filter-popup input', function () {
+        const value = $(this).val();
+        dataTable.column(activeColumnIndex).search(value).draw();
         if (activeFilterButton) {
-            activeFilterButton.text(selectedValues.length > 0 ? 'APLICADO' : 'Filtrar');
+            activeFilterButton.text(value ? 'APLICADO' : 'Filtrar');
         }
-    }
+        filterPopupContainer.classList.remove('filter-popup');
+        filterPopupContainer.innerHTML = '';
+    });
 
     $(document).on('click', function (e) {
         if (!$(e.target).closest('.filter-popup').length && !$(e.target).hasClass('filter-button-text')) {
@@ -1000,8 +980,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
             await navigator.clipboard.write([item]);
             alert('Dados copiados para a área de transferência com sucesso!');
         } catch (err) {
-                console.error('Erro ao copiar os dados:', err);
-                alert('Erro ao copiar os dados. Por favor, tente novamente.');
+            console.error('Erro ao copiar os dados:', err);
+            alert('Erro ao copiar os dados. Por favor, tente novamente.');
         }
     });
 
