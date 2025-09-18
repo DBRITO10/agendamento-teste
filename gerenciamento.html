@@ -1210,11 +1210,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     deletedDetails.push({
-                        senha: data.senha || "N/A",
-                        central: data.central || "N/A",
-                        cargas: data.cargas || "N/A",
-                        pedidoCompra: data.pedidoCompra || "N/A",
-                        fornecedor: data.fornecedor || "N/A"
+                        senha: data.senha || null,
+                        data: data.data || null,
+                        central: data.central || null,
+                        cargas: data.cargas || null,
+                        pedidoCompra: data.pedidoCompra || null,
+                        fornecedor: data.fornecedor || null,
+                        tipoDeProduto: data.tipoDeProduto || null,
+                        produto: data.produto || null
                     });
                     batch.delete(docRef);
                 }
