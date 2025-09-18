@@ -47,7 +47,7 @@
 <body>
 
 <div id="userBar">
-    <button onclick="history.back()" style="
+    <button onclick="window.location.href = 'gerenciamento.html'" style="
         background: transparent; 
         border: none; 
         color: #333; 
@@ -116,6 +116,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
         try {
             const snapshot = await getDocs(q);
+            console.log("Documentos encontrados:", snapshot.docs.length); // Adicionado para depuração
             const dadosParaTabela = [];
             
             if (snapshot.empty) {
