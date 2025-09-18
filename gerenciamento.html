@@ -190,6 +190,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             <span>Data</span>
             <span>Central</span>
             <span>Cargas</span>
+            <span>Pedido de Compra</span>
             <span>Fornecedor</span>
             <span>Tipo de Produto</span>
             <span>Produto</span>
@@ -199,6 +200,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 <input type="date" class="data" required>
                 <input type="text" class="central" placeholder="Central" required>
                 <input type="text" class="cargas" placeholder="Cargas" required>
+                <input type="text" class="pedidoDeCompra" placeholder="Pedido de Compra" required>
                 <input type="text" class="fornecedor" placeholder="Fornecedor" required>
                 <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
                 <input type="text" class="produto" placeholder="Produto" required>
@@ -222,6 +224,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     <th><input type="checkbox" id="selectAllRascunhoCheckbox"></th>
                     <th>Senha</th>
                     <th>Cargas</th>
+                    <th>Pedido de Compra</th>
                     <th>Data</th>
                     <th>Central</th>
                     <th>Fornecedor</th>
@@ -250,6 +253,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 <th>Data <span class="filter-button-text">Filtrar</span></th>
                 <th>Central <span class="filter-button-text">Filtrar</span></th>
                 <th>Cargas <span class="filter-button-text">Filtrar</span></th>
+                <th>Pedido de Compra <span class="filter-button-text">Filtrar</span></th>
                 <th>Fornecedor <span class="filter-button-text">Filtrar</span></th>
                 <th>Tipo de Produto <span class="filter-button-text">Filtrar</span></th>
                 <th>Produto <span class="filter-button-text">Filtrar</span></th>
@@ -320,6 +324,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     <input type="date" class="data" required>
                     <input type="text" class="central" placeholder="Central" required>
                     <input type="text" class="cargas" placeholder="Cargas" required>
+                    <input type="text" class="pedidoDeCompra" placeholder="Pedido de Compra" required>
                     <input type="text" class="fornecedor" placeholder="Fornecedor" required>
                     <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
                     <input type="text" class="produto" placeholder="Produto" required>
@@ -415,6 +420,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     `<input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}">`,
                     rascunho.senha || "Não Definida",
                     rascunho.cargas || "Não definido",
+                    rascunho.pedidoDeCompra || "Não definido",
                     rascunho.data || "Não definida",
                     rascunho.central || "Não definido",
                     rascunho.fornecedor || "Não definido",
@@ -429,6 +435,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     { title: "<input type='checkbox' id='selectAllRascunhoCheckbox'>" },
                     { title: "Senha" },
                     { title: "Cargas" },
+                    { title: "Pedido de Compra" },
                     { title: "Data" },
                     { title: "Central" },
                     { title: "Fornecedor" },
@@ -506,7 +513,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             return;
         }
 
-        const headers = ["Senha", "Cargas", "Data", "Central", "Fornecedor", "Tipo de Produto", "Produto"];
+        const headers = ["Senha", "Cargas", "Pedido de Compra", "Data", "Central", "Fornecedor", "Tipo de Produto", "Produto"];
         let plainTextContent = headers.join('\t') + '\n';
         
         let htmlContent = '<table style="width:100%; border-collapse: collapse; margin-top: 20px;">';
@@ -526,7 +533,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 rowData[5], // Fornecedor
                 rowData[6], // Tipo de Produto
                 rowData[7], // Produto
-            ];
+                rowData[8], // Pedido de Compra 
+                ];
             plainTextContent += values.join('\t') + '\n';
             
             htmlContent += '<tr>';
