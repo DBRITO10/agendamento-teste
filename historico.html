@@ -183,19 +183,19 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     if (Array.isArray(detalhes.agendamentos)) {
                         detalhesHTML = "<ul>";
                         detalhes.agendamentos.forEach(item => {
-                            detalhesHTML += `<li>Senha: ${item.senha || 'N/A'}, Central: ${item.central || 'N/A'}, Fornecedor: ${item.fornecedor || 'N/A'}</li>`;
+                            detalhesHTML += `<li>Senha: ${item.senha || 'Vazio'}, Central: ${item.central || 'Vazio'}, Fornecedor: ${item.fornecedor || 'Vazio'}</li>`;
                         });
                         detalhesHTML += "</ul>";
                     } else {
                          detalhesHTML = `
-                            <strong>Data:</strong> ${detalhes.data || 'N/A'}<br>
-                            <strong>Senha:</strong> ${detalhes.senha || 'N/A'}<br>
-                            <strong>Central:</strong> ${detalhes.central || 'N/A'}<br>
-                            <strong>Cargas:</strong> ${detalhes.cargas || 'N/A'}<br>
-                            <strong>Pedido de Compra:</strong> ${detalhes.pedidoCompra || 'N/A'}<br>
-                            <strong>Fornecedor:</strong> ${detalhes.fornecedor || 'N/A'}<br>
-                            <strong>Tipo de Produto:</strong> ${detalhes.tipoDeProduto || 'N/A'}<br>
-                            <strong>Produto:</strong> ${detalhes.produto || 'N/A'}
+                            <strong>Senha:</strong> ${detalhes.senha || 'Vazio'}<br>
+                            <strong>Data:</strong> ${detalhes.data || 'Vazio'}<br>
+                            <strong>Central:</strong> ${detalhes.central || 'Vazio'}<br>
+                            <strong>Cargas:</strong> ${detalhes.cargas || 'Vazio'}<br>
+                            <strong>Pedido de Compra:</strong> ${detalhes.pedidoCompra || 'Vazio'}<br>
+                            <strong>Fornecedor:</strong> ${detalhes.fornecedor || 'Vazio'}<br>
+                            <strong>Tipo de Produto:</strong> ${detalhes.tipoDeProduto || 'Vazio'}<br>
+                            <strong>Produto:</strong> ${detalhes.produto || 'Vazio'}
                         `;
                     }
 
@@ -298,26 +298,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     if (singleDetail && singleDetail.senha) {
                         const newRascunhoRef = doc(collection(db, "agendamentos-rascunho"));
                         
-                        // Garante que o valor é null se for undefined ou não existir
-                        const data = singleDetail.data !== undefined ? singleDetail.data : null;
-                        const senha = singleDetail.senha !== undefined ? singleDetail.senha : null;
-                        const central = singleDetail.central !== undefined ? singleDetail.central : null;
-                        const cargas = singleDetail.cargas !== undefined ? singleDetail.cargas : null;
-                        const pedidoCompra = singleDetail.pedidoCompra !== undefined ? singleDetail.pedidoCompra : null;
-                        const fornecedor = singleDetail.fornecedor !== undefined ? singleDetail.fornecedor : null;
-                        const tipoDeProduto = singleDetail.tipoDeProduto !== undefined ? singleDetail.tipoDeProduto : null;
-                        const produto = singleDetail.produto !== undefined ? singleDetail.produto : null;
-
                         const newRascunhoData = {
                             userId: currentUserUid,
-                            senha: senha,
-                            data: data,
-                            central: central,
-                            cargas: cargas,
-                            pedidoCompra: pedidoCompra,
-                            fornecedor: fornecedor,
-                            tipoDeProduto: tipoDeProduto,
-                            produto: produto,
+                            senha: singleDetail.senha || null,
+                            data: singleDetail.data || null,
+                            central: singleDetail.central || null,
+                            cargas: singleDetail.cargas || null,
+                            pedidoCompra: singleDetail.pedidoCompra || null,
+                            fornecedor: singleDetail.fornecedor || null,
+                            tipoDeProduto: singleDetail.tipoDeProduto || null,
+                            produto: singleDetail.produto || null,
                             timestamp: new Date()
                         };
                         batch.set(newRascunhoRef, newRascunhoData);
