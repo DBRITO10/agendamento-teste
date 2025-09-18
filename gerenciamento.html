@@ -16,293 +16,281 @@
         body { font-family: Arial, sans-serif; padding: 20px; background-color: #fafafa; }
         header { text-align: center; margin-bottom: 20px; }
         h1 { color: #cc0000; font-size: 28px; margin: 10px 0 20px 0; font-weight: bold; }
-        form { margin-bottom: 20px; padding: 20px; border: 1px solid #ff9999; border-radius: 6px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-        input, button { display: block; width: 100%; margin-bottom: 10px; padding: 8px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
-        button { background: #d32f2f; color: white; font-weight: bold; cursor: pointer; }
-        button.rascunho { background: #ff9933; }
-        button.rascunho:hover { background: #e68a00; }
-        button:hover { background: #b71c1c; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        thead th { background: #cc0000; color: white; position: relative; }
-        button.edit, button.delete, button.salvarRascunho, button.copiar, button.edit-rascunho { margin-left: 5px; padding: 5px 10px; font-size: 12px; }
-        .table-container { overflow-x: auto; }
-        #userBar {
-            background: #E6E6E6;
-            padding: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: 6px;
-            margin-bottom: 12px;
-            flex-wrap: nowrap;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        #userBar span {
-            flex-shrink: 1;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        #userBar button {
-            width: auto;
-            flex-shrink: 0;
-            margin-left: 10px;
-        }
-        #exportButtons { margin-bottom: 15px; }
-        #exportButtons button { display: inline-block; width: auto; margin-right: 10px; padding: 10px 20px; }
-        
-        /* Estilos do filtro */
-        .filter-button {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-            padding: 0;
-            margin-top: 5px; 
-            display: block;
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            border-radius: 8px;
         }
 
-        .filter-popup {
+        .auth-buttons {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+
+        .auth-buttons button {
+            background-color: #cc0000;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        .auth-buttons button:hover {
+            background-color: #a00000;
+        }
+
+        #agendamentoForm {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        #agendamentoForm input, #agendamentoForm select, #agendamentoForm button {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #cargasContainer {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .carga-item {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+        }
+
+        #totalCargasDisplay {
+            margin-top: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .action-buttons button, .rascunhos-buttons button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        #copiarSelecionadosBtn, #salvarSelecionadosRascunhoBtn {
+            background-color: #007bff;
+            color: white;
+        }
+        #excluirSelecionadosBtn, #excluirSelecionadosRascunhoBtn {
+            background-color: #dc3545;
+            color: white;
+        }
+        #editarRascunhoBtn {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        .dataTables_wrapper {
+            position: relative;
+        }
+
+        thead th {
+            background: #cc0000;
+            color: white;
+            position: relative;
+        }
+
+        .filter-button-text {
+            cursor: pointer;
+            padding: 0 5px;
+            font-size: 0.9em;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .filter-popup-container {
             position: absolute;
             background: white;
             border: 1px solid #ccc;
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             padding: 10px;
             z-index: 1000;
-            min-width: 180px;
-            max-height: 250px;
+            min-width: 150px;
+            max-height: 200px;
             overflow-y: auto;
-            display: none;
+            top: 100%;
+            left: 0;
         }
-        .filter-popup label {
+
+        .filter-popup-container label {
             display: block;
             cursor: pointer;
-            padding: 2px 0;
         }
-        .filter-popup label:hover {
+
+        .filter-popup-container label:hover {
             background: #f0f0f0;
         }
-        .filter-popup .filter-actions {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 10px;
-            border-top: 1px solid #ddd;
-            padding-top: 10px;
+
+        .edit, .delete {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
         }
-        .filter-popup .filter-actions button {
-            width: 48%;
-            margin: 0;
-            padding: 5px;
-            display: inline-block;
+
+        .delete {
+            background-color: #dc3545;
         }
-        #rascunhos-container, #agendamentos-container {
-            margin-top: 30px;
-            padding: 20px;
-            border: 1px solid #ff9999;
-            border-radius: 6px;
-            background: #fff;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-        }
-        .rascunho-item {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        .rascunho-item:last-child {
-            border-bottom: none;
-        }
-        .rascunho-item button {
-            display: inline-block;
-            width: auto;
-            margin-right: 10px;
-        }
-        footer {
-            text-align: center;
-            margin-top: 20px;
-            padding: 10px;
-            border-top: 1px solid #ccc;
-            font-size: 14px;
-            color: #666;
-        }
-        #cargasHeader, .carga-item {
-            display: flex;
-            flex-wrap: nowrap;
-            gap: 10px;
-            margin-bottom: 10px;
-            padding: 5px;
-            background: #f5f5f5;
-            border-radius: 4px;
-            overflow-x: auto;
-        }
-        .carga-item input {
-            flex: 1;
-            min-width: 120px;
-            margin-bottom: 0;
-        }
-        #cargasHeader span {
-            flex: 1;
-            font-weight: bold;
-            text-align: center;
-            min-width: 120px;
-        }
-        .hidden {
+
+        #historicoModal {
             display: none;
-        }
-        #rascunhosTabela {
-            margin-top: 15px;
-        }
-        #rascunhos-buttons {
-            margin-bottom: 10px;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        #rascunhos-buttons button {
-            width: auto;
-            margin-bottom: 0;
-            display: inline-block;
-        }
-        
-        /* Novas regras para o layout da lista de agendamentos */
-        div.dataTables_wrapper {
-            max-width: 100%;
-            overflow-x: auto; 
-        }
-        div.dataTables_wrapper div.dataTables_filter {
-            text-align: right;
-            margin-bottom: 10px;
-        }
-        div.dataTables_wrapper div.dataTables_filter label {
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
             width: 100%;
-            max-width: 250px;
-            text-align: left;
-            display: inline-block;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
         }
-        div.dataTables_wrapper div.dataTables_filter input {
-            width: calc(100% - 60px); 
-            display: inline-block;
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-height: 60vh;
+            overflow-y: auto;
+            border-radius: 8px;
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close-modal:hover, .close-modal:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .footer {
+            margin-top: 20px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
-<div id="userBar">
-    <button onclick="history.back()" style="
-        background: transparent; 
-        border: none; 
-        color: #333; 
-        font-size: 24px; 
-        cursor: pointer;
-        margin-right: 10px;
-    ">←</button>
-    <span id="welcomeUser" style="font-weight:bold; color:#333; flex-grow: 1;"></span>
-    <button onclick="logout()" style="background:#CC0000; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Sair</button>
-</div>
-<script>
-const username = localStorage.getItem("username") || "Usuário";
-document.addEventListener("DOMContentLoaded", ()=>{
-    document.getElementById("welcomeUser").textContent = "Bem-vindo, " + username;
-});
-</script>
+<div class="container">
+    <header>
+        <h1>Gerenciamento de Agendamentos</h1>
+    </header>
 
-<header>
-    <h1>Gerenciamento de Agendamentos</h1>
-</header>
-  
-<div class="table-container">
+    <div class="auth-buttons">
+        <button onclick="window.logout()">Sair</button>
+    </div>
+
     <form id="agendamentoForm">
-        <h2>Adicionar/Editar Agendamento</h2>
-        <input type="hidden" id="editRascunhoId">
-        <input type="number" id="numCargas" placeholder="Número de cargas" min="1" value="1" required>
-        <div id="cargasHeader">
-            <span>Data</span>
-            <span>Central</span>
-            <span>Cargas</span>
-            <span>Pedido de Compra</span>
-            <span>Fornecedor</span>
-            <span>Tipo de Produto</span>
-            <span>Produto</span>
-        </div>
-        <div id="cargasContainer">
-            <div class="carga-item">
-                <input type="date" class="data" required>
-                <input type="text" class="central" placeholder="Central" required>
-                <input type="text" class="cargas" placeholder="Cargas" required>
-                <input type="text" class="pedidoCompra" placeholder="Pedido de Compra" required>
-                <input type="text" class="fornecedor" placeholder="Fornecedor" required>
-                <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
-                <input type="text" class="produto" placeholder="Produto" required>
-            </div>
-        </div>
+        <h2>Novo Agendamento</h2>
+        <input type="number" id="numCargas" placeholder="Número de Cargas" min="1" value="1">
+        <div id="cargasContainer"></div>
         <button type="submit" id="salvarBtn">Salvar Agendamento</button>
-        <button type="button" id="rascunhoBtn" class="rascunho">Salvar em Rascunho</button>
+        <button type="button" id="rascunhoBtn">Salvar como Rascunho</button>
     </form>
-  
-    <div id="rascunhos-container">
-        <h2>Agendamentos em Rascunho</h2>
-        <div id="rascunhos-buttons" class="hidden">
-            <button id="salvarSelecionadosRascunhoBtn">Salvar Selecionados</button>
-            <button id="copiarSelecionadosRascunhoBtn">Copiar Selecionados</button>
-            <button id="excluirSelecionadosRascunhoBtn">Excluir Selecionados</button>
-            <button id="editarRascunhoBtn">Editar Rascunho</button>
-        </div>
-        <table id="rascunhosTabela" class="display" style="width:100%">
-            <thead>
-                <tr>
-                    <th><input type="checkbox" id="selectAllRascunhoCheckbox"></th>
-                    <th>Senha</th>
-                    <th>Cargas</th>
-                    <th>Pedido de Compra</th>
-                    <th>Data</th>
-                    <th>Central</th>
-                    <th>Fornecedor</th>
-                    <th>Tipo de Produto</th>
-                    <th>Produto</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
+
+    <div id="totalCargasDisplay">
+        <p>Total de cargas agendadas: <span id="totalCargas"></span></p>
     </div>
-  
-    <div id="agendamentos-container">
-        <h2>Lista de Agendamentos</h2>
-        <div id="exportButtons">
-            <button onclick="exportarExcel()">Exportar Excel</button>
-            <button onclick="exportarPDF()">Exportar PDF</button>
-            <button onclick="abrirHistorico()">Ver Histórico</button>
-            <button id="copiarSelecionadosBtn" class="hidden">Copiar Selecionados</button>
-            <button id="excluirSelecionadosBtn" class="hidden">Excluir Selecionados</button>
-        </div>
-        <table id="agendamentosTabela" class="display" style="width:100%">
-            <thead>
-                <tr>
-                    <th><input type="checkbox" id="selectAllCheckbox"></th>
-                    <th>Senha</th>
-                    <th>Data</th>
-                    <th>Central</th>
-                    <th>Cargas</th>
-                    <th>Pedido de Compra</th>
-                    <th>Fornecedor</th>
-                    <th>Tipo de Produto</th>
-                    <th>Produto</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
+
+    <h2>Agendamentos</h2>
+    <div class="action-buttons">
+        <button onclick="window.exportarPDF()">Exportar PDF</button>
+        <button onclick="window.exportarExcel()">Exportar Excel</button>
+        <button onclick="window.abrirHistorico()">Histórico</button>
+        <button id="copiarSelecionadosBtn" class="hidden">Copiar Selecionados</button>
+        <button id="excluirSelecionadosBtn" class="hidden">Excluir Selecionados</button>
     </div>
-    <div id="filter-popup-container"></div>
+    <table id="agendamentosTabela" class="display" style="width:100%">
+        <thead>
+            <tr>
+                <th><input type="checkbox" id="selectAllCheckbox"></th>
+                <th>Senha <span class="filter-button-text">Filtrar</span><div class="filter-popup-container hidden"></div></th>
+                <th>Data <span class="filter-button-text">Filtrar</span><div class="filter-popup-container hidden"></div></th>
+                <th>Pedido de Compra <span class="filter-button-text">Filtrar</span><div class="filter-popup-container hidden"></div></th>
+                <th>Central <span class="filter-button-text">Filtrar</span><div class="filter-popup-container hidden"></div></th>
+                <th>Cargas <span class="filter-button-text">Filtrar</span><div class="filter-popup-container hidden"></div></th>
+                <th>Fornecedor <span class="filter-button-text">Filtrar</span><div class="filter-popup-container hidden"></div></th>
+                <th>Tipo de Produto <span class="filter-button-text">Filtrar</span><div class="filter-popup-container hidden"></div></th>
+                <th>Produto <span class="filter-button-text">Filtrar</span><div class="filter-popup-container hidden"></div></th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h2>Rascunhos</h2>
+    <div class="rascunhos-buttons hidden" id="rascunhos-buttons">
+        <button id="salvarSelecionadosRascunhoBtn">Salvar Selecionados</button>
+        <button id="copiarSelecionadosRascunhoBtn">Copiar Selecionados</button>
+        <button id="excluirSelecionadosRascunhoBtn">Excluir Selecionados</button>
+        <button id="editarRascunhoBtn">Editar</button>
+    </div>
+    <table id="rascunhosTabela" class="display" style="width:100%">
+        <thead>
+            <tr>
+                <th><input type="checkbox" id="selectAllRascunhoCheckbox"></th>
+                <th>ID Rascunho</th>
+                <th>Cargas</th>
+                <th>Data</th>
+                <th>Central</th>
+                <th>Fornecedor</th>
+                <th>Tipo de Produto</th>
+                <th>Produto</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
 </div>
 
-<footer>
-    <p>Total de Registros: <span id="totalCargas">0</span></p>
-</footer>
+<div id="historicoModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2>Histórico de Ações</h2>
+        <div id="historicoContent"></div>
+    </div>
+</div>
 
 <script type="module">
     import { db, auth } from "./firebase-config.js";
@@ -310,11 +298,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const form = document.getElementById('agendamentoForm');
-    const editRascunhoIdInput = document.getElementById('editRascunhoId');
     const numCargasInput = document.getElementById('numCargas');
     const cargasContainer = document.getElementById('cargasContainer');
     const rascunhosTabela = document.getElementById('rascunhosTabela');
     const totalCargasSpan = document.getElementById('totalCargas');
+    const historicoModal = document.getElementById('historicoModal');
+    const historicoContent = document.getElementById('historicoContent');
     const salvarBtn = document.getElementById("salvarBtn");
 
     const rascunhosButtonsContainer = document.getElementById('rascunhos-buttons');
@@ -326,15 +315,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
     let dataTable = null;
     let rascunhosDataTable = null;
     let currentUserUid = null;
-    let currentUserName = null;
-    const filterPopupContainer = document.getElementById('filter-popup-container');
-    let activeColumnIndex = null;
-    let activeDataTable = null;
 
     onAuthStateChanged(auth, user => {
         if (user) {
             currentUserUid = user.uid;
-            currentUserName = localStorage.getItem("username") || user.email;
             console.log("Usuário autenticado. UID:", currentUserUid);
             carregarAgendamentos();
             carregarRascunhos();
@@ -359,9 +343,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
             cargasContainer.innerHTML += `
                 <div class="carga-item">
                     <input type="date" class="data" required>
+                    <input type="text" class="pedido-compra" placeholder="Pedido de Compra" required>
                     <input type="text" class="central" placeholder="Central" required>
                     <input type="text" class="cargas" placeholder="Cargas" required>
-                    <input type="text" class="pedidoCompra" placeholder="Pedido de Compra" required>
                     <input type="text" class="fornecedor" placeholder="Fornecedor" required>
                     <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
                     <input type="text" class="produto" placeholder="Produto" required>
@@ -383,14 +367,15 @@ document.addEventListener("DOMContentLoaded", ()=>{
         cargaItems.forEach(item => {
             const central = item.querySelector('.central').value;
             const carga = item.querySelector('.cargas').value;
-            if (!central || !carga) {
+            const pedidoCompra = item.querySelector('.pedido-compra').value;
+            if (!central || !carga || !pedidoCompra) {
                 formIncomplete = true;
             }
             cargas.push({
                 data: item.querySelector('.data').value || null,
+                pedidoCompra: pedidoCompra,
                 central: central,
                 cargas: carga,
-                pedidoCompra: item.querySelector('.pedidoCompra').value,
                 fornecedor: item.querySelector('.fornecedor').value,
                 tipoDeProduto: item.querySelector('.tipoDeProduto').value,
                 produto: item.querySelector('.produto').value
@@ -398,41 +383,17 @@ document.addEventListener("DOMContentLoaded", ()=>{
         });
 
         if (formIncomplete) {
-            alert("Por favor, preencha pelo menos os campos Central e Cargas.");
+            alert("Por favor, preencha pelo menos os campos Pedido de Compra, Central e Cargas.");
             return;
         }
-        const contadorRef = doc(db, "metadados", "contador");
-        try {
-            await runTransaction(db, async (transaction) => {
-                const contadorDoc = await transaction.get(contadorRef);
-                let ultimaSenha = 0;
-                if (contadorDoc.exists()) {
-                    ultimaSenha = contadorDoc.data().ultima_senha;
-                }
-                
-                const rascunhoRefs = [];
-                for (const carga of cargas) {
-                    ultimaSenha++;
-                    const newRascunho = {
-                        userId: currentUserUid,
-                        senha: ultimaSenha,
-                        data: carga.data,
-                        central: carga.central,
-                        cargas: carga.cargas,
-                        pedidoCompra: carga.pedidoCompra,
-                        fornecedor: carga.fornecedor,
-                        tipoDeProduto: carga.tipoDeProduto,
-                        produto: carga.produto,
-                        timestamp: new Date()
-                    };
-                    const newDocRef = doc(collection(db, "agendamentos-rascunho"));
-                    transaction.set(newDocRef, newRascunho);
-                    rascunhoRefs.push(newDocRef.id);
-                }
-                transaction.update(contadorRef, { ultima_senha: ultimaSenha });
 
+        try {
+            await addDoc(collection(db, "agendamentos-rascunho"), {
+                userId: currentUserUid,
+                cargas: cargas,
+                timestamp: new Date()
             });
-            alert('Agendamento(s) salvo(s) como rascunho!');
+            alert('Agendamento salvo como rascunho!');
             form.reset();
             numCargasInput.value = 1;
             numCargasInput.dispatchEvent(new Event('input'));
@@ -455,26 +416,26 @@ document.addEventListener("DOMContentLoaded", ()=>{
             const dadosParaTabela = [];
             snapshot.forEach(doc => {
                 const rascunho = doc.data();
-                dadosParaTabela.push([
-                    `<input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}">`,
-                    rascunho.senha || "Não Definida",
-                    rascunho.cargas || "Não definido",
-                    rascunho.pedidoCompra || "Não definido",
-                    rascunho.data || "Não definida",
-                    rascunho.central || "Não definido",
-                    rascunho.fornecedor || "Não definido",
-                    rascunho.tipoDeProduto || "Não definido",
-                    rascunho.produto || "Não definido"
-                ]);
+                rascunho.cargas.forEach(carga => {
+                     dadosParaTabela.push([
+                        `<input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}" data-rascunho='${JSON.stringify(rascunho.cargas)}'>`,
+                        doc.id,
+                        rascunho.cargas.length,
+                        carga.data || "Não definida",
+                        carga.central,
+                        carga.fornecedor,
+                        carga.tipoDeProduto,
+                        carga.produto
+                    ]);
+                });
             });
 
             rascunhosDataTable = $('#rascunhosTabela').DataTable({
                 data: dadosParaTabela,
                 columns: [
                     { title: "<input type='checkbox' id='selectAllRascunhoCheckbox'>" },
-                    { title: "Senha" },
+                    { title: "ID Rascunho" },
                     { title: "Cargas" },
-                    { title: "Pedido de Compra" },
                     { title: "Data" },
                     { title: "Central" },
                     { title: "Fornecedor" },
@@ -483,19 +444,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 ],
                 paging: false,
                 info: false,
-                order: [[1, 'asc']],
-                oLanguage: {
-                    sEmptyTable: "Nenhum rascunho salvo.",
-                    sSearch: "Buscar:"
-                },
-                initComplete: function() {
-                    this.api().columns([1, 2, 3, 4, 5, 6, 7, 8]).every(function() {
-                        const column = this;
-                        const header = $(column.header());
-                        const title = header.text();
-                        header.html(`<div>${title}</div><button class="filter-button" data-table="rascunhos" data-column="${column.index()}">Filtrar</button>`);
-                    });
-                }
+                order: [[1, 'asc']]
             });
         });
     }
@@ -519,7 +468,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     }
     
-    editarRascunhoBtn.addEventListener('click', async () => {
+    editarRascunhoBtn.addEventListener('click', () => {
         const selectedCheckboxes = $('.rascunho-checkbox:checked');
         if (selectedCheckboxes.length !== 1) {
             alert("Por favor, selecione exatamente um rascunho para editar.");
@@ -528,30 +477,25 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         const checkbox = selectedCheckboxes[0];
         const rascunhoId = $(checkbox).data('id');
-        
+        const rascunhoCargas = $(checkbox).data('rascunho');
+
         document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
         
-        const docRef = doc(db, "agendamentos-rascunho", rascunhoId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            const dados = docSnap.data();
-            numCargasInput.value = 1;
-            numCargasInput.dispatchEvent(new Event('input'));
-
-            const cargaItems = document.querySelectorAll('.carga-item');
-            if (cargaItems[0]) {
-                cargaItems[0].querySelector('.data').value = dados.data;
-                cargaItems[0].querySelector('.central').value = dados.central;
-                cargaItems[0].querySelector('.cargas').value = dados.cargas;
-                cargaItems[0].querySelector('.pedidoCompra').value = dados.pedidoCompra;
-                cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
-                cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
-                cargaItems[0].querySelector('.produto').value = dados.produto;
+        salvarBtn.textContent = "Atualizar Rascunho";
+        numCargasInput.value = rascunhoCargas.length;
+        numCargasInput.dispatchEvent(new Event('input'));
+        const cargaItems = document.querySelectorAll('.carga-item');
+        rascunhoCargas.forEach((carga, index) => {
+            if (cargaItems[index]) {
+                cargaItems[index].querySelector('.data').value = carga.data;
+                cargaItems[index].querySelector('.pedido-compra').value = carga.pedidoCompra;
+                cargaItems[index].querySelector('.central').value = carga.central;
+                cargaItems[index].querySelector('.cargas').value = carga.cargas;
+                cargaItems[index].querySelector('.fornecedor').value = carga.fornecedor;
+                cargaItems[index].querySelector('.tipoDeProduto').value = carga.tipoDeProduto;
+                cargaItems[index].querySelector('.produto').value = carga.produto;
             }
-
-            salvarBtn.textContent = "Atualizar Rascunho";
-            editRascunhoIdInput.value = rascunhoId;
-        }
+        });
     });
 
     copiarSelecionadosRascunhoBtn.addEventListener('click', async () => {
@@ -561,47 +505,24 @@ document.addEventListener("DOMContentLoaded", ()=>{
             return;
         }
 
-        const headers = ["Senha", "Cargas", "Pedido de Compra", "Data", "Central", "Fornecedor", "Tipo de Produto", "Produto"];
-        let plainTextContent = headers.join('\t') + '\n';
-        
-        let htmlContent = '<table style="width:100%; border-collapse: collapse; margin-top: 20px;">';
-        htmlContent += '<thead><tr style="background: #cc0000; color: white;">';
-        headers.forEach(header => {
-            htmlContent += `<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${header}</th>`;
-        });
-        htmlContent += '</tr></thead><tbody>';
+        const headers = ["ID Rascunho", "Data", "Pedido de Compra", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+        let content = headers.join('\t') + '\n';
 
         checkedRows.each(function() {
             const rowData = rascunhosDataTable.row(this).data();
             const values = [
-                rowData[1], // Senha
-                rowData[2], // Cargas
-                rowData[3], // Pedido de Compra
-                rowData[4], // Data
-                rowData[5], // Central
-                rowData[6], // Fornecedor
-                rowData[7], // Tipo de Produto
-                rowData[8], // Produto
+                rowData[1], // ID Rascunho
+                rowData[3], // Data
+                rowData[4], // Central
+                rowData[5], // Fornecedor
+                rowData[6], // Tipo de Produto
+                rowData[7], // Produto
             ];
-            plainTextContent += values.join('\t') + '\n';
-            
-            htmlContent += '<tr>';
-            values.forEach(value => {
-                htmlContent += `<td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${value}</td>`;
-            });
-            htmlContent += '</tr>';
+            content += values.join('\t') + '\n';
         });
 
-        htmlContent += '</tbody></table>';
-
         try {
-            const blobHtml = new Blob([htmlContent], { type: 'text/html' });
-            const blobPlain = new Blob([plainTextContent], { type: 'text/plain' });
-            const item = new ClipboardItem({
-                'text/html': blobHtml,
-                'text/plain': blobPlain
-            });
-            await navigator.clipboard.write([item]);
+            await navigator.clipboard.writeText(content);
             alert('Dados copiados para a área de transferência com sucesso!');
         } catch (err) {
             console.error('Erro ao copiar os dados:', err);
@@ -617,28 +538,40 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
 
         if (confirm(`Tem certeza que deseja salvar ${checkedRows.length} rascunho(s) selecionado(s) como agendamentos definitivos?`)) {
-            const batch = writeBatch(db);
-            const rascunhoIdsToMove = [];
-            
+            const rascunhosParaSalvar = {};
             checkedRows.each(function() {
-                rascunhoIdsToMove.push($(this).data('id'));
+                const id = $(this).data('id');
+                const cargas = $(this).data('rascunho');
+                if (!rascunhosParaSalvar[id]) {
+                    rascunhosParaSalvar[id] = cargas;
+                }
             });
 
             try {
-                for (const rascunhoId of rascunhoIdsToMove) {
-                    const docRef = doc(db, "agendamentos-rascunho", rascunhoId);
-                    const docSnap = await getDoc(docRef);
-                    
-                    if (docSnap.exists()) {
-                        const rascunhoData = docSnap.data();
-                        const newDocRef = doc(collection(db, "agendamentos"));
-                        batch.set(newDocRef, { ...rascunhoData, timestamp: new Date() });
-                        batch.delete(docRef);
-                        await adicionarHistorico("agendou uma nova carga (a partir de rascunho)", { id: newDocRef.id, ...rascunhoData });
+                const batch = writeBatch(db);
+                const contadorRef = doc(db, "metadados", "contador");
+                let ultimaSenha = 0;
+
+                await runTransaction(db, async (transaction) => {
+                    const contadorDoc = await transaction.get(contadorRef);
+                    if (contadorDoc.exists()) {
+                        ultimaSenha = contadorDoc.data().ultima_senha;
                     }
-                }
-                
-                await batch.commit();
+
+                    for (const id in rascunhosParaSalvar) {
+                        for (const carga of rascunhosParaSalvar[id]) {
+                            ultimaSenha++;
+                            const novaCarga = { ...carga, senha: ultimaSenha };
+                            const newDocRef = doc(collection(db, "agendamentos"));
+                            batch.set(newDocRef, novaCarga);
+                            await adicionarHistorico("agendou uma nova carga (a partir de rascunho)", { id: newDocRef.id, ...novaCarga });
+                        }
+                        const rascunhoDocRef = doc(db, "agendamentos-rascunho", id);
+                        batch.delete(rascunhoDocRef);
+                    }
+                    batch.update(contadorRef, { ultima_senha: ultimaSenha });
+                });
+
                 alert(`${checkedRows.length} rascunho(s) salvo(s) com sucesso como agendamento(s).`);
             } catch (e) {
                 console.error("Erro ao salvar rascunhos selecionados:", e);
@@ -656,28 +589,21 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         if (confirm(`Tem certeza que deseja excluir ${checkedRows.length} rascunho(s) selecionado(s)?`)) {
             const batch = writeBatch(db);
-            const deletedDetails = [];
-            
-            for (const el of checkedRows) {
-                const id = $(el).data('id');
-                const docRef = doc(db, "agendamentos-rascunho", id);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    deletedDetails.push({
-                        senha: data.senha || "N/A",
-                        central: data.central || "N/A",
-                        cargas: data.cargas || "N/A",
-                        pedidoCompra: data.pedidoCompra || "N/A",
-                        fornecedor: data.fornecedor || "N/A"
-                    });
+            const deletedIds = [];
+            const rascunhosUnicos = new Set();
+            checkedRows.each(function() {
+                const id = $(this).data('id');
+                if (!rascunhosUnicos.has(id)) {
+                    rascunhosUnicos.add(id);
+                    const docRef = doc(db, "agendamentos-rascunho", id);
                     batch.delete(docRef);
+                    deletedIds.push(id);
                 }
-            }
+            });
 
             try {
                 await batch.commit();
-                await adicionarHistorico(`excluiu múltiplos rascunhos`, { agendamentos: deletedDetails });
+                await adicionarHistorico(`excluiu múltiplos rascunhos (${deletedIds.length})`, { ids: deletedIds });
                 alert(`${checkedRows.length} rascunho(s) excluído(s) com sucesso.`);
             } catch (e) {
                 console.error("Erro ao excluir rascunhos em lote:", e);
@@ -704,9 +630,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     `<input type="checkbox" class="row-checkbox" data-id="${agendamento.id}">`,
                     agendamento.senha,
                     agendamento.data,
+                    agendamento.pedidoCompra,
                     agendamento.central,
                     agendamento.cargas,
-                    agendamento.pedidoCompra,
                     agendamento.fornecedor,
                     agendamento.tipoDeProduto,
                     agendamento.produto,
@@ -720,9 +646,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     { title: "<input type='checkbox' id='selectAllCheckbox'>" },
                     { title: "Senha" },
                     { title: "Data" },
+                    { title: "Pedido de Compra" },
                     { title: "Central" },
                     { title: "Cargas" },
-                    { title: "Pedido de Compra" },
                     { title: "Fornecedor" },
                     { title: "Tipo de Produto" },
                     { title: "Produto" },
@@ -730,329 +656,256 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 ],
                 paging: false,
                 info: false,
-                order: [[2, 'asc']],
-                oLanguage: {
-                    sSearch: "Buscar:"
-                },
-                initComplete: function () {
-                    this.api().columns([1, 2, 3, 4, 5, 6, 7, 8]).every(function () {
-                        const column = this;
-                        const header = $(column.header());
-                        const title = header.text();
-                        header.html(`<div>${title}</div><button class="filter-button" data-table="agendamentos" data-column="${column.index()}">Filtrar</button>`);
-                    });
-                }
+                order: [[2, 'asc']]
             });
-        });
-    }
-
-    $(document).on('click', '.filter-button', function (e) {
-        e.stopPropagation();
-        const button = $(this);
-        const columnIndex = button.data('column');
-        const tableName = button.data('table');
-        
-        activeDataTable = (tableName === 'agendamentos') ? dataTable : rascunhosDataTable;
-        activeColumnIndex = columnIndex;
-
-        const columnData = activeDataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
-        const currentSearch = activeDataTable.column(columnIndex).search();
-        
-        let popupHtml = `
-            <div style="padding: 10px; border-bottom: 1px solid #ddd;">
-                <label><input type="checkbox" id="selectAllFilter"> Todos</label>
-            </div>
-            <div style="max-height: 150px; overflow-y: auto;">
-        `;
-        columnData.each(value => {
-            const isChecked = currentSearch.includes(value);
-            popupHtml += `
-                <div style="padding: 2px 5px;">
-                    <label><input type="checkbox" class="filter-checkbox" value="${value}" ${isChecked ? 'checked' : ''}> ${value}</label>
-                </div>
-            `;
-        });
-        popupHtml += `</div>
-            <div class="filter-actions">
-                <button id="applyFilterBtn" class="salvarRascunho">Aplicar Filtro</button>
-                <button id="clearFilterBtn" class="rascunho">Desfazer Filtro</button>
-            </div>
-        `;
-        
-        filterPopupContainer.innerHTML = popupHtml;
-        
-        const buttonRect = this.getBoundingClientRect();
-        filterPopupContainer.style.top = `${buttonRect.bottom + window.scrollY + 5}px`;
-        filterPopupContainer.style.left = `${buttonRect.left}px`;
-        filterPopupContainer.style.display = 'block';
-
-        $('#selectAllFilter').prop('checked', $('.filter-checkbox').length === $('.filter-checkbox:checked').length);
-    });
-
-    $(document).on('click', '#applyFilterBtn', function () {
-        const selectedValues = $('.filter-checkbox:checked').map(function() {
-            return $.fn.dataTable.util.escapeRegex(this.value);
-        }).get();
-        
-        const searchRegex = selectedValues.length > 0 ? selectedValues.join('|') : '';
-        activeDataTable.column(activeColumnIndex).search(searchRegex, true, false).draw();
-        
-        filterPopupContainer.style.display = 'none';
-    });
-
-    $(document).on('click', '#clearFilterBtn', function () {
-        activeDataTable.column(activeColumnIndex).search('').draw();
-        filterPopupContainer.style.display = 'none';
-    });
-
-    $(document).on('click', '#selectAllFilter', function () {
-        const isChecked = $(this).prop('checked');
-        $('.filter-checkbox').prop('checked', isChecked);
-    });
-
-    $(document).on('click', function(e) {
-        if (!$(e.target).closest('.filter-popup').length && !$(e.target).hasClass('filter-button')) {
-            filterPopupContainer.style.display = 'none';
-        }
-    });
-
-    function carregarHistorico() {
-        if (!currentUserUid) return;
-        
-        const historicoRef = collection(db, `historico-${currentUserUid}`);
-        const q = query(historicoRef, orderBy("timestamp", "desc"));
-        
-        onSnapshot(q, (snapshot) => {
-            const historico = [];
-            snapshot.forEach(doc => {
-                historico.push(doc.data());
+            // Adicionado: Evento para atualizar a contagem do rodapé em cada redesenho da tabela
+            dataTable.on('draw.dt', function () {
+                const filteredRowsCount = dataTable.rows({search: 'applied'}).count();
+                totalCargasSpan.textContent = filteredRowsCount;
             });
-            console.log("Histórico carregado:", historico);
-        });
-    }
-
-    async function adicionarHistorico(acao, detalhes = {}) {
-        if (!currentUserUid) return;
-        const historicoRef = collection(db, `historico-${currentUserUid}`);
-        try {
-            await addDoc(historicoRef, {
-                acao,
-                detalhes,
-                timestamp: new Date()
-            });
-            console.log("Histórico adicionado com sucesso.");
-        } catch (e) {
-            console.error("Erro ao adicionar histórico:", e);
-        }
-    }
-
-    window.abrirHistorico = () => {
-        alert("Ainda não implementado. O histórico está sendo salvo no banco de dados, mas a interface para visualizá-lo ainda não foi criada.");
-        carregarHistorico();
-    };
-
-    window.exportarExcel = () => {
-        const agendamentos = dataTable.data().toArray();
-        if (agendamentos.length === 0) {
-            alert("Nenhum dado para exportar.");
-            return;
-        }
-
-        const data = agendamentos.map(row => ({
-            "Senha": row[1],
-            "Data": row[2],
-            "Central": row[3],
-            "Cargas": row[4],
-            "Pedido de Compra": row[5],
-            "Fornecedor": row[6],
-            "Tipo de Produto": row[7],
-            "Produto": row[8]
-        }));
-
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Agendamentos");
-        XLSX.writeFile(wb, "agendamentos.xlsx");
-    };
-
-    window.exportarPDF = () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        const agendamentos = dataTable.data().toArray();
-        if (agendamentos.length === 0) {
-            alert("Nenhum dado para exportar.");
-            return;
-        }
-
-        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
-        const rows = agendamentos.map(row => [
-            row[1],
-            row[2],
-            row[3],
-            row[4],
-            row[5],
-            row[6],
-            row[7],
-            row[8]
-        ]);
-
-        doc.autoTable({
-            head: [headers],
-            body: rows,
-            startY: 20,
-            theme: 'striped',
-            headStyles: { fillColor: [204, 0, 0] }
-        });
-
-        doc.save('agendamentos.pdf');
-    };
-
-    $('#agendamentosTabela').on('click', '.edit', async function() {
-        const id = $(this).data('id');
-        const docRef = doc(db, "agendamentos", id);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            numCargasInput.value = 1; 
-            numCargasInput.dispatchEvent(new Event('input'));
             
-            const cargaItem = document.querySelector('.carga-item');
-            if (cargaItem) {
-                cargaItem.querySelector('.data').value = data.data;
-                cargaItem.querySelector('.central').value = data.central;
-                cargaItem.querySelector('.cargas').value = data.cargas;
-                cargaItem.querySelector('.pedidoCompra').value = data.pedidoCompra;
-                cargaItem.querySelector('.fornecedor').value = data.fornecedor;
-                cargaItem.querySelector('.tipoDeProduto').value = data.tipoDeProduto;
-                cargaItem.querySelector('.produto').value = data.produto;
-            }
+            // Adicionado: Atualiza a contagem inicial
+            totalCargasSpan.textContent = agendamentos.length;
+        });
+    }
+    
+    // Variáveis para rastrear o estado do filtro
+    let activeFilterButton = null;
+    let activePopupContainer = null;
+    let activeColumnIndex = null;
+    
+    $(document).on('click', '.filter-button-text', function (e) {
+        e.stopPropagation();
+        
+        // Fecha o popup anterior, se houver
+        if (activePopupContainer) {
+            activePopupContainer.classList.add('hidden');
+        }
 
-            salvarBtn.textContent = "Atualizar Agendamento";
-            form.setAttribute('data-doc-id', id);
-            document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
-        } else {
-            console.log("Nenhum documento encontrado!");
+        activeFilterButton = $(this);
+        const columnIndex = dataTable.column($(this).closest('th')).index();
+        const columnData = dataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
+        
+        const popupContainer = $(this).closest('th').find('.filter-popup-container')[0];
+
+        let popupHtml = '<div><label><input type="radio" name="filter-radio" value="" checked> Todos</label></div>';
+        columnData.each(value => {
+            popupHtml += `<div><label><input type="radio" name="filter-radio" value="${value}"> ${value}</label></div>`;
+        });
+        
+        popupContainer.innerHTML = popupHtml;
+        popupContainer.classList.remove('hidden');
+
+        activeColumnIndex = columnIndex;
+        activePopupContainer = popupContainer;
+    });
+
+    $(document).on('change', '.filter-popup-container input', function () {
+        const value = $(this).val();
+        dataTable.column(activeColumnIndex).search(value).draw();
+        if (activeFilterButton) {
+            activeFilterButton.text(value ? 'APLICADO' : 'Filtrar');
+        }
+        if (activePopupContainer) {
+            activePopupContainer.classList.add('hidden');
+            activePopupContainer.innerHTML = '';
         }
     });
 
-    $('#agendamentosTabela').on('click', '.delete', async function() {
-        const id = $(this).data('id');
-        if (confirm('Tem certeza que deseja excluir este agendamento?')) {
-            try {
-                const docRef = doc(db, "agendamentos", id);
-                await deleteDoc(docRef);
-                await adicionarHistorico("excluiu agendamento", { id: id });
-                alert('Agendamento excluído com sucesso!');
-            } catch (e) {
-                console.error("Erro ao excluir agendamento: ", e);
-                alert('Erro ao excluir agendamento. Tente novamente.');
-            }
+    $(document).on('click', function (e) {
+        if (activePopupContainer && !$(e.target).closest('.filter-popup-container').length && !$(e.target).hasClass('filter-button-text')) {
+            activePopupContainer.classList.add('hidden');
+            activePopupContainer.innerHTML = '';
+            activePopupContainer = null;
         }
     });
 
-    $('#agendamentoForm').on('submit', async (e) => {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        if (!currentUserUid) {
-            alert("Sua sessão expirou. Por favor, faça login novamente.");
-            return;
-        }
-
-        const docId = form.getAttribute('data-doc-id');
-        const rascunhoId = editRascunhoIdInput.value;
-        const cargas = [];
+        
         const cargaItems = document.querySelectorAll('.carga-item');
+        let formIncomplete = false;
+        const cargas = [];
+        
         cargaItems.forEach(item => {
+            const data = item.querySelector('.data').value;
+            const pedidoCompra = item.querySelector('.pedido-compra').value;
+            const central = item.querySelector('.central').value;
+            const carga = item.querySelector('.cargas').value;
+            
+            if (!data || !pedidoCompra || !central || !carga) {
+                formIncomplete = true;
+            }
             cargas.push({
-                data: item.querySelector('.data').value || null,
-                central: item.querySelector('.central').value,
-                cargas: item.querySelector('.cargas').value,
-                pedidoCompra: item.querySelector('.pedidoCompra').value,
+                data: data,
+                pedidoCompra: pedidoCompra,
+                central: central,
+                cargas: carga,
                 fornecedor: item.querySelector('.fornecedor').value,
                 tipoDeProduto: item.querySelector('.tipoDeProduto').value,
                 produto: item.querySelector('.produto').value
             });
         });
-
-        if (docId) { 
-            try {
-                const docRef = doc(db, "agendamentos", docId);
-                await updateDoc(docRef, { ...cargas[0], timestamp: new Date() });
-                await adicionarHistorico("editou agendamento", { id: docId, ...cargas[0] });
-                alert('Agendamento atualizado com sucesso!');
-            } catch (e) {
-                console.error("Erro ao atualizar agendamento: ", e);
-                alert('Erro ao atualizar agendamento. Tente novamente.');
-            }
-        } else if (rascunhoId) {
-            try {
-                const docRef = doc(db, "agendamentos-rascunho", rascunhoId);
-                await updateDoc(docRef, { ...cargas[0], timestamp: new Date() });
-                await adicionarHistorico("editou rascunho", { id: rascunhoId, ...cargas[0] });
-                alert('Rascunho atualizado com sucesso!');
-            } catch (e) {
-                console.error("Erro ao atualizar rascunho: ", e);
-                alert('Erro ao atualizar rascunho. Tente novamente.');
-            }
-        } else {
-            const contadorRef = doc(db, "metadados", "contador");
-            try {
-                await runTransaction(db, async (transaction) => {
-                    const contadorDoc = await transaction.get(contadorRef);
-                    let ultimaSenha = 0;
-                    if (contadorDoc.exists()) {
-                        ultimaSenha = contadorDoc.data().ultima_senha;
-                    }
-                    
-                    const agendamentoRefs = [];
-                    for (const carga of cargas) {
-                        ultimaSenha++;
-                        const newAgendamento = {
-                            userId: currentUserUid,
-                            senha: ultimaSenha,
-                            data: carga.data,
-                            central: carga.central,
-                            cargas: carga.cargas,
-                            pedidoCompra: carga.pedidoCompra,
-                            fornecedor: carga.fornecedor,
-                            tipoDeProduto: carga.tipoDeProduto,
-                            produto: carga.produto,
-                            timestamp: new Date()
-                        };
-                        const newDocRef = doc(collection(db, "agendamentos"));
-                        transaction.set(newDocRef, newAgendamento);
-                        agendamentoRefs.push(newDocRef.id);
-                        await adicionarHistorico("adicionou novo agendamento", { id: newDocRef.id, ...newAgendamento });
-                    }
-                    transaction.update(contadorRef, { ultima_senha: ultimaSenha });
-                });
-                alert('Agendamento(s) salvo(s) com sucesso!');
-            } catch (e) {
-                console.error("Erro ao salvar agendamento: ", e);
-                alert('Erro ao salvar agendamento. Tente novamente.');
-            }
+        
+        if (formIncomplete) {
+            alert("Por favor, preencha todos os campos obrigatórios (Data, Pedido de Compra, Central e Cargas).");
+            return;
         }
+        
+        const contadorRef = doc(db, "metadados", "contador");
+        try {
+            const result = await runTransaction(db, async (transaction) => {
+                const contadorDoc = await transaction.get(contadorRef);
+                let ultimaSenha = 0;
+                if (contadorDoc.exists()) {
+                    ultimaSenha = contadorDoc.data().ultima_senha;
+                }
+                
+                const savedCargas = [];
+                for (const carga of cargas) {
+                    ultimaSenha++;
+                    const novaCarga = { ...carga, senha: ultimaSenha };
+                    const newDocRef = doc(collection(db, "agendamentos"));
+                    transaction.set(newDocRef, novaCarga);
+                    savedCargas.push({ id: newDocRef.id, ...novaCarga });
+                }
+                
+                transaction.set(contadorRef, { ultima_senha: ultimaSenha });
+                return savedCargas;
+            });
 
+            for (const carga of result) {
+                await adicionarHistorico("agendou uma nova carga", { id: carga.id, ...carga });
+            }
+            alert("Agendamentos salvos com sucesso!");
+
+        } catch (e) {
+            console.error("Erro ao gerar senhas e salvar agendamentos: ", e);
+            alert("Ocorreu um erro ao salvar. Tente novamente.");
+        }
         form.reset();
-        form.removeAttribute('data-doc-id');
-        editRascunhoIdInput.value = "";
-        salvarBtn.textContent = "Salvar Agendamento";
         numCargasInput.value = 1;
         numCargasInput.dispatchEvent(new Event('input'));
+        salvarBtn.textContent = "Salvar Agendamento";
     });
 
-    $(document).on('change', '.row-checkbox', function() {
-        toggleMainButtons();
+    $(document).on('click', '.edit', async function () {
+        document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
+        const id = $(this).data('id');
+        const docRef = doc(db, "agendamentos", id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            const dados = docSnap.data();
+            numCargasInput.value = 1;
+            numCargasInput.dispatchEvent(new Event('input'));
+            
+            const cargaItems = document.querySelectorAll('.carga-item');
+            if (cargaItems[0]) {
+                cargaItems[0].querySelector('.data').value = dados.data;
+                cargaItems[0].querySelector('.pedido-compra').value = dados.pedidoCompra;
+                cargaItems[0].querySelector('.central').value = dados.central;
+                cargaItems[0].querySelector('.cargas').value = dados.cargas;
+                cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
+                cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
+                cargaItems[0].querySelector('.produto').value = dados.produto;
+            }
+            salvarBtn.textContent = "Atualizar Agendamento";
+        }
     });
 
+    $(document).on('click', '.delete', async function () {
+        const id = $(this).data('id');
+        const docRef = doc(db, "agendamentos", id);
+        if (confirm("Tem certeza que deseja excluir este agendamento?")) {
+            await deleteDoc(docRef);
+            await adicionarHistorico("excluiu um agendamento", { id: id });
+        }
+    });
+
+    window.exportarPDF = () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const headers = ["Senha", "Data", "Pedido de Compra", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 9)); // Exclude checkbox and actions columns
+        doc.autoTable({ head: [headers], body: data });
+        doc.save('agendamentos.pdf');
+    };
+
+    window.exportarExcel = () => {
+        const headers = ["Senha", "Data", "Pedido de Compra", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 9)); // Exclude checkbox and actions columns
+        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Agendamentos");
+        XLSX.writeFile(workbook, "agendamentos.xlsx");
+    };
+
+    window.abrirHistorico = async () => {
+        console.log("Tentando abrir histórico para o UID:", currentUserUid);
+        if (!currentUserUid) {
+            console.warn("currentUserUid é nulo. Não foi possível abrir o histórico.");
+            historicoContent.innerHTML = '<p>Você precisa estar logado para ver o histórico.</p>';
+            historicoModal.style.display = 'block';
+            return;
+        }
+        historicoContent.innerHTML = 'Carregando...';
+        const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
+        const snapshot = await getDocs(q);
+        historicoContent.innerHTML = '';
+        if (snapshot.empty) {
+            historicoContent.innerHTML = '<p>Nenhuma ação registrada.</p>';
+        } else {
+            snapshot.forEach(doc => {
+                const acao = doc.data();
+                const data = new Date(acao.timestamp.seconds * 1000).toLocaleString();
+                historicoContent.innerHTML += `<p><strong>${data}</strong>: Você ${acao.acao} (ID: ${acao.detalhes.id}).</p>`;
+            });
+        }
+        historicoModal.style.display = 'block';
+    };
+
+    document.querySelector('.close-modal').onclick = () => {
+        historicoModal.style.display = 'none';
+    };
+
+    window.onclick = (event) => {
+        if (event.target == historicoModal) {
+            historicoModal.style.display = 'none';
+        }
+    };
+
+    async function adicionarHistorico(acao, detalhes) {
+        if (!currentUserUid) {
+            console.error("Não foi possível adicionar ao histórico. Usuário não logado.");
+            return;
+        }
+        try {
+            await addDoc(collection(db, "historico-acoes"), {
+                userId: currentUserUid,
+                acao: acao,
+                detalhes: detalhes,
+                timestamp: new Date()
+            });
+        } catch (e) {
+            console.error("Erro ao adicionar histórico: ", e);
+        }
+    }
+
+    // New multi-select functionality
+    
+    // Toggle "select all" checkbox
     $(document).on('click', '#selectAllCheckbox', function() {
         const isChecked = $(this).prop('checked');
         $('.row-checkbox').prop('checked', isChecked);
-        toggleMainButtons();
+        toggleActionButtons();
     });
 
-    function toggleMainButtons() {
+    // Toggle action buttons based on checkbox selection
+    $(document).on('change', '.row-checkbox', function() {
+        toggleActionButtons();
+    });
+
+    function toggleActionButtons() {
         const checkedCount = $('.row-checkbox:checked').length;
         if (checkedCount > 0) {
             $('#copiarSelecionadosBtn').removeClass('hidden');
@@ -1063,6 +916,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     }
 
+    // "Copy Selected" button logic
     $('#copiarSelecionadosBtn').click(async () => {
         const checkedRows = $('.row-checkbox:checked').closest('tr');
         if (checkedRows.length === 0) {
@@ -1070,47 +924,26 @@ document.addEventListener("DOMContentLoaded", ()=>{
             return;
         }
 
-        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
-        let plainTextContent = headers.join('\t') + '\n';
-        
-        let htmlContent = '<table style="width:100%; border-collapse: collapse; margin-top: 20px;">';
-        htmlContent += '<thead><tr style="background: #cc0000; color: white;">';
-        headers.forEach(header => {
-            htmlContent += `<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${header}</th>`;
-        });
-        htmlContent += '</tr></thead><tbody>';
+        const headers = ["Senha", "Data", "Pedido de Compra", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+        let content = headers.join('\t') + '\n';
 
         checkedRows.each(function() {
             const rowData = dataTable.row(this).data();
             const values = [
                 rowData[1], // Senha
                 rowData[2], // Data
-                rowData[3], // Central
-                rowData[4], // Cargas
-                rowData[5], // Pedido de Compra
+                rowData[3], // Pedido de Compra
+                rowData[4], // Central
+                rowData[5], // Cargas
                 rowData[6], // Fornecedor
                 rowData[7], // Tipo de Produto
                 rowData[8], // Produto
             ];
-            plainTextContent += values.join('\t') + '\n';
-            
-            htmlContent += '<tr>';
-            values.forEach(value => {
-                htmlContent += `<td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${value}</td>`;
-            });
-            htmlContent += '</tr>';
+            content += values.join('\t') + '\n';
         });
 
-        htmlContent += '</tbody></table>';
-
         try {
-            const blobHtml = new Blob([htmlContent], { type: 'text/html' });
-            const blobPlain = new Blob([plainTextContent], { type: 'text/plain' });
-            const item = new ClipboardItem({
-                'text/html': blobHtml,
-                'text/plain': blobPlain
-            });
-            await navigator.clipboard.write([item]);
+            await navigator.clipboard.writeText(content);
             alert('Dados copiados para a área de transferência com sucesso!');
         } catch (err) {
             console.error('Erro ao copiar os dados:', err);
@@ -1118,6 +951,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     });
 
+    // "Delete Selected" button logic
     $('#excluirSelecionadosBtn').click(async () => {
         const checkedRows = $('.row-checkbox:checked');
         if (checkedRows.length === 0) {
@@ -1147,6 +981,5 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     });
 </script>
-
 </body>
 </html>
