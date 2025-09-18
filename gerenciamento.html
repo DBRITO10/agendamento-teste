@@ -544,13 +544,15 @@ document.addEventListener("DOMContentLoaded", ()=>{
             const dadosParaTabela = [];
             snapshot.forEach(doc => {
                 const rascunho = doc.data();
+                const formattedCargas = rascunho.cargas ? rascunho.cargas.replace(/ /g, '<br>') : "Não definido";
+                const formattedPedidoCompra = rascunho.pedidoCompra ? rascunho.pedidoCompra.replace(/ /g, '<br>') : "Não definido";
                 dadosParaTabela.push([
                     `<input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}">`,
                     rascunho.senha || "Não Definida",
                     rascunho.data || "Não definida",
                     rascunho.central || "Não definido",
-                    rascunho.cargas || "Não definido",
-                    rascunho.pedidoCompra || "Não definido",
+                    formattedCargas,
+                    formattedPedidoCompra,
                     rascunho.fornecedor || "Não definido",
                     rascunho.tipoDeProduto || "Não definido",
                     rascunho.produto || "Não definido"
@@ -576,6 +578,17 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 oLanguage: {
                     sEmptyTable: "Nenhum rascunho salvo.",
                     sSearch: "Buscar:"
+                },
+                initComplete: function () {
+                    this.api().columns().every(function () {
+                        const column = this;
+                        const header = $(column.header());
+                        const title = header.text();
+
+                        if (title !== 'Ações' && title !== '' && column.index() !== 0) { // Exclui a primeira coluna (checkbox)
+                            header.html(`<div>${title}</div><button class="filter-button" data-column="${column.index()}">Filtrar</button>`);
+                        }
+                    });
                 }
             });
         });
@@ -659,8 +672,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 rowData[1],
                 rowData[2],
                 rowData[3],
-                rowData[4],
-                rowData[5],
+                $(rowData[4]).text().trim(),
+                $(rowData[5]).text().trim(),
                 rowData[6],
                 rowData[7],
                 rowData[8],
@@ -821,13 +834,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
             const dadosParaTabela = [];
             agendamentos.forEach(agendamento => {
+                const formattedCargas = agendamento.cargas ? agendamento.cargas.replace(/ /g, '<br>') : "Não definido";
+                const formattedPedidoCompra = agendamento.pedidoCompra ? agendamento.pedidoCompra.replace(/ /g, '<br>') : "Não definido";
+                
                 dadosParaTabela.push([
                     `<input type="checkbox" class="row-checkbox" data-id="${agendamento.id}">`,
                     agendamento.senha,
                     agendamento.data,
                     agendamento.central,
-                    `<div class="wrap-text">${agendamento.cargas}</div>`,
-                    `<div class="wrap-text">${agendamento.pedidoCompra}</div>`,
+                    formattedCargas,
+                    formattedPedidoCompra,
                     agendamento.fornecedor,
                     agendamento.tipoDeProduto,
                     agendamento.produto,
@@ -841,8 +857,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     { title: "Senha" },
                     { title: "Data" },
                     { title: "Central" },
-                    { title: "Cargas" },
-                    { title: "Pedido de Compra" },
+                    { title: "Cargas", className: "wrap-text" },
+                    { title: "Pedido de Compra", className: "wrap-text" },
                     { title: "Fornecedor" },
                     { title: "Tipo de Produto" },
                     { title: "Produto" },
@@ -859,7 +875,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         const header = $(column.header());
                         const title = header.text();
 
-                        if (title !== 'Ações' && title !== '') {
+                        if (title !== 'Ações' && title !== '' && column.index() !== 0) {
                             header.html(`<div>${title}</div><button class="filter-button" data-column="${column.index()}">Filtrar</button>`);
                         }
                     });
@@ -912,8 +928,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const currentSearchArray = currentSearch ? currentSearch.substring(0, currentSearch.length - 1).split('|') : [];
 
         columnData.each(value => {
-            const isChecked = currentSearchArray.includes($.fn.dataTable.util.escapeRegex(value));
-            filterModalContent.append(`<div><label><input type="checkbox" class="filter-checkbox" value="${value}" ${isChecked ? 'checked' : ''}> ${value}</label></div>`);
+            const cleanedValue = $('<div>').html(value).text().trim(); // Limpa o HTML da quebra de linha
+            const isChecked = currentSearchArray.includes($.fn.dataTable.util.escapeRegex(cleanedValue));
+            filterModalContent.append(`<div><label><input type="checkbox" class="filter-checkbox" value="${cleanedValue}" ${isChecked ? 'checked' : ''}> ${cleanedValue}</label></div>`);
         });
 
         $('#filter-modal').show();
@@ -1154,8 +1171,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 rowData[1],
                 rowData[2],
                 rowData[3],
-                $(rowData[4]).text(),
-                $(rowData[5]).text(),
+                $(rowData[4]).text().trim(),
+                $(rowData[5]).text().trim(),
                 rowData[6],
                 rowData[7],
                 rowData[8],
