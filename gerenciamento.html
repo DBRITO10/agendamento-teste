@@ -55,8 +55,7 @@
         #exportButtons button { display: inline-block; width: auto; margin-right: 10px; padding: 10px 20px; }
         
         /* Estilos do filtro */
-        table.dataTable thead .filter-button-text {
-            display: block !important;
+        .filter-button {
             background: none;
             border: none;
             color: white;
@@ -85,7 +84,7 @@
         .filter-popup label:hover {
             background: #f0f0f0;
         }
-        #rascunhos-container, #historico-container {
+        #rascunhos-container, #agendamentos-container {
             margin-top: 30px;
             padding: 20px;
             border: 1px solid #ff9999;
@@ -254,32 +253,34 @@ document.addEventListener("DOMContentLoaded", ()=>{
         </table>
     </div>
   
-    <h2>Lista de Agendamentos</h2>
-    <div id="exportButtons">
-        <button onclick="exportarExcel()">Exportar Excel</button>
-        <button onclick="exportarPDF()">Exportar PDF</button>
-        <button onclick="abrirHistorico()">Ver Histórico</button>
-        <button id="copiarSelecionadosBtn" class="hidden">Copiar Selecionados</button>
-        <button id="excluirSelecionadosBtn" class="hidden">Excluir Selecionados</button>
+    <div id="agendamentos-container">
+        <h2>Lista de Agendamentos</h2>
+        <div id="exportButtons">
+            <button onclick="exportarExcel()">Exportar Excel</button>
+            <button onclick="exportarPDF()">Exportar PDF</button>
+            <button onclick="abrirHistorico()">Ver Histórico</button>
+            <button id="copiarSelecionadosBtn" class="hidden">Copiar Selecionados</button>
+            <button id="excluirSelecionadosBtn" class="hidden">Excluir Selecionados</button>
+        </div>
+        <table id="agendamentosTabela" class="display" style="width:100%">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAllCheckbox"></th>
+                    <th>Senha</th>
+                    <th>Data</th>
+                    <th>Central</th>
+                    <th>Cargas</th>
+                    <th>Pedido de Compra</th>
+                    <th>Fornecedor</th>
+                    <th>Tipo de Produto</th>
+                    <th>Produto</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
     </div>
-    <table id="agendamentosTabela" class="display" style="width:100%">
-        <thead>
-            <tr>
-                <th><input type="checkbox" id="selectAllCheckbox"></th>
-                <th>Senha <br><span class="filter-button-text">Filtrar</span></th>
-                <th>Data <br><span class="filter-button-text">Filtrar</span></th>
-                <th>Central <br><span class="filter-button-text">Filtrar</span></th>
-                <th>Cargas <br><span class="filter-button-text">Filtrar</span></th>
-                <th>Pedido de Compra <br><span class="filter-button-text">Filtrar</span></th>
-                <th>Fornecedor <br><span class="filter-button-text">Filtrar</span></th>
-                <th>Tipo de Produto <br><span class="filter-button-text">Filtrar</span></th>
-                <th>Produto <br><span class="filter-button-text">Filtrar</span></th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-        </tbody>
-    </table>
     <div id="filter-popup-container"></div>
 </div>
 
@@ -705,14 +706,19 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 order: [[2, 'asc']],
                 oLanguage: {
                     sSearch: "Buscar:"
+                },
+                initComplete: function () {
+                    this.api().columns().every(function () {
+                        const column = this;
+                        const header = $(column.header());
+                        const title = header.text();
+
+                        if (title.includes('Filtrar') || ['Data', 'Central', 'Fornecedor', 'Tipo de Produto', 'Produto', 'Cargas'].includes(title.trim())) {
+                            header.html(`<div>${title}</div><button class="filter-button" data-column="${column.index()}">Filtrar</button>`);
+                        }
+                    });
                 }
             });
-            $('.filter-button-text').each(function() {
-                const columnIndex = dataTable.column($(this).closest('th')).index();
-                const searchTerm = dataTable.column(columnIndex).search();
-                $(this).text(searchTerm ? 'APLICADO' : 'Filtrar');
-            });
-            totalCargasSpan.textContent = agendamentos.length;
         });
     }
 
@@ -720,10 +726,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
     let activeColumnIndex = null;
     let activeFilterButton = null;
     
-    $(document).on('click', '.filter-button-text', function (e) {
+    $(document).on('click', '.filter-button', function (e) {
         e.stopPropagation();
         activeFilterButton = $(this);
-        const columnIndex = dataTable.column($(this).closest('th')).index();
+        const columnIndex = $(this).data('column');
         const columnData = dataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
         
         let popupHtml = `
@@ -775,7 +781,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     }
 
     $(document).on('click', function (e) {
-        if (!$(e.target).closest('.filter-popup').length && !$(e.target).hasClass('filter-button-text')) {
+        if (!$(e.target).closest('.filter-popup').length && !$(e.target).hasClass('filter-button')) {
             filterPopupContainer.classList.remove('filter-popup');
             filterPopupContainer.innerHTML = '';
         }
