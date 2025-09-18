@@ -23,7 +23,7 @@
         button.rascunho:hover { background: #e68a00; }
         button:hover { background: #b71c1c; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; } /* Centraliza títulos e dados */
         thead th { background: #cc0000; color: white; position: relative; }
         button.edit, button.delete, button.salvarRascunho, button.copiar, button.edit-rascunho { margin-left: 5px; padding: 5px 10px; font-size: 12px; }
         .table-container { overflow-x: auto; }
@@ -76,24 +76,75 @@
             box-shadow: 0 2px 6px rgba(0, 123, 255, 0.4);
         }
 
-        .filter-popup {
-            position: absolute;
-            background: white;
-            border: 1px solid #ccc;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-            padding: 10px;
-            z-index: 1000;
-            min-width: 150px;
-            max-height: 200px;
-            overflow-y: auto;
+        /* Estilos do Modal */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1001; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.4); 
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .filter-popup label {
-            display: block;
+
+        .modal-content {
+            background-color: #fefefe;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+        }
+
+        #filter-modal-content {
+            max-height: 250px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #filter-modal-content label {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
             cursor: pointer;
         }
-        .filter-popup label:hover {
-            background: #f0f0f0;
+
+        #filter-modal-content label input {
+            margin-right: 10px; /* Espaço entre o checkbox e o texto */
+            width: auto;
         }
+
+        #filter-modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        #filter-modal-buttons button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: auto;
+            margin-bottom: 0;
+            display: inline-block;
+        }
+        #apply-filter-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #clear-filter-btn {
+            background-color: #f44336;
+            color: white;
+        }
+
         #rascunhos-container, #agendamentos-container {
             margin-top: 30px;
             padding: 20px;
@@ -179,75 +230,6 @@
         div.dataTables_wrapper div.dataTables_filter input {
             width: calc(100% - 60px); /* Ajusta a largura para caber no container */
             display: inline-block;
-        }
-
-        /* Estilos do Modal */
-        .modal {
-            display: none; 
-            position: fixed; 
-            z-index: 1001; 
-            left: 0;
-            top: 0;
-            width: 100%; 
-            height: 100%; 
-            overflow: auto; 
-            background-color: rgba(0,0,0,0.4); 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background-color: #fefefe;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 400px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
-        }
-
-        #filter-modal-content {
-            max-height: 250px;
-            overflow-y: auto;
-            margin-bottom: 15px;
-            display: flex;
-            flex-direction: column;
-        }
-
-        #filter-modal-content label {
-            display: flex;
-            align-items: center;
-            margin: 5px 0;
-            cursor: pointer;
-        }
-
-        #filter-modal-content label input {
-            margin-right: 10px; /* Espaço entre o checkbox e o texto */
-            width: auto;
-        }
-
-        #filter-modal-buttons {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-        #filter-modal-buttons button {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            width: auto;
-            margin-bottom: 0;
-            display: inline-block;
-        }
-        #apply-filter-btn {
-            background-color: #4CAF50;
-            color: white;
-        }
-        #clear-filter-btn {
-            background-color: #f44336;
-            color: white;
         }
     </style>
 </head>
@@ -839,6 +821,20 @@ document.addEventListener("DOMContentLoaded", ()=>{
                             header.html(`<div>${title}</div><button class="filter-button" data-column="${column.index()}">Filtrar</button>`);
                         }
                     });
+
+                    // Load saved filter from local storage
+                    const savedFilter = localStorage.getItem('datatableFilter');
+                    if (savedFilter) {
+                        const filterData = JSON.parse(savedFilter);
+                        const columnIndex = filterData.columnIndex;
+                        const filterRegex = filterData.filterRegex;
+                        dataTable.column(columnIndex).search(filterRegex, true, false).draw();
+                        const filterButton = $(`.filter-button[data-column='${columnIndex}']`);
+                        if (filterButton) {
+                            filterButton.text('APLICADO');
+                            filterButton.addClass('filtered');
+                        }
+                    }
                 }
             });
 
@@ -888,6 +884,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const filterRegex = selectedValues.join('|');
         dataTable.column(activeColumnIndex).search(filterRegex, true, false).draw();
         
+        // Save filter to local storage
+        if (selectedValues.length > 0) {
+            localStorage.setItem('datatableFilter', JSON.stringify({ columnIndex: activeColumnIndex, filterRegex: filterRegex }));
+        } else {
+            localStorage.removeItem('datatableFilter');
+        }
+
         if (activeFilterButton) {
             activeFilterButton.text(selectedValues.length > 0 ? 'APLICADO' : 'Filtrar');
             if (selectedValues.length > 0) {
@@ -903,6 +906,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
     // Lógica para o botão "Desfazer Filtro"
     $('#clear-filter-btn').on('click', function() {
         dataTable.column(activeColumnIndex).search('').draw();
+        
+        localStorage.removeItem('datatableFilter');
         
         if (activeFilterButton) {
             activeFilterButton.text('Filtrar');
