@@ -17,20 +17,53 @@
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
         thead th { background-color: #cc0000; color: white; }
-        a.back-button {
-            display: inline-block;
-            margin-bottom: 20px;
-            text-decoration: none;
-            color: #cc0000;
-            font-weight: bold;
-            font-size: 16px;
+        /* Estilos da nova userBar */
+        #userBar {
+            background: #E6E6E6;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        a.back-button:hover {
-            text-decoration: underline;
+        #userBar span {
+            flex-shrink: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #userBar button {
+            width: auto;
+            flex-shrink: 0;
+            margin-left: 10px;
         }
     </style>
 </head>
 <body>
+
+<div id="userBar">
+    <button onclick="history.back()" style="
+        background: transparent; 
+        border: none; 
+        color: #333; 
+        font-size: 24px; 
+        cursor: pointer;
+        margin-right: 10px;
+    ">←</button>
+    <span id="welcomeUser" style="font-weight:bold; color:#333; flex-grow: 1;"></span>
+    <button onclick="logout()" style="background:#CC0000; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Sair</button>
+</div>
+<script>
+const username = localStorage.getItem("username") || "Usuário";
+document.addEventListener("DOMContentLoaded", ()=>{
+    document.getElementById("welcomeUser").textContent = "Bem-vindo, " + username;
+});
+</script>
 
 <header>
     <h1>Histórico de Ações</h1>
@@ -55,18 +88,28 @@
 <script type="module">
     import { db, auth } from "./firebase-config.js";
     import { collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     let historicoDataTable = null;
     const carregandoEl = document.getElementById('carregando');
+    let currentUserName = null;
 
     onAuthStateChanged(auth, user => {
         if (user) {
+            currentUserName = localStorage.getItem("username") || user.email;
             carregarHistorico(user.uid);
         } else {
             carregandoEl.textContent = "Você precisa estar logado para ver o histórico.";
         }
     });
+
+    window.logout = () => {
+        signOut(auth).then(() => {
+            window.location.href = "index.html";
+        }).catch((error) => {
+            console.error("Erro ao fazer logout: ", error);
+        });
+    };
 
     async function carregarHistorico(currentUserUid) {
         carregandoEl.textContent = 'Carregando...';
