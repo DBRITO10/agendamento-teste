@@ -183,7 +183,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     if (Array.isArray(detalhes.agendamentos)) {
                         detalhesHTML = "<ul>";
                         detalhes.agendamentos.forEach(item => {
-                            detalhesHTML += `<li>Senha: ${item.senha || 'Vazio'}, Central: ${item.central || 'Vazio'}, Fornecedor: ${item.fornecedor || 'Vazio'}</li>`;
+                            detalhesHTML += `<li>
+                                <strong>Senha:</strong> ${item.senha || 'Vazio'}<br>
+                                <strong>Data:</strong> ${item.data || 'Vazio'}<br>
+                                <strong>Central:</strong> ${item.central || 'Vazio'}<br>
+                                <strong>Cargas:</strong> ${item.cargas || 'Vazio'}<br>
+                                <strong>Pedido de Compra:</strong> ${item.pedidoCompra || 'Vazio'}<br>
+                                <strong>Fornecedor:</strong> ${item.fornecedor || 'Vazio'}<br>
+                                <strong>Tipo de Produto:</strong> ${item.tipoDeProduto || 'Vazio'}<br>
+                                <strong>Produto:</strong> ${item.produto || 'Vazio'}
+                            </li>`;
                         });
                         detalhesHTML += "</ul>";
                     } else {
