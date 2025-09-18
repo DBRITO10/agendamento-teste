@@ -579,17 +579,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     sEmptyTable: "Nenhum rascunho salvo.",
                     sSearch: "Buscar:"
                 },
-                initComplete: function () {
-                    this.api().columns().every(function () {
-                        const column = this;
-                        const header = $(column.header());
-                        const title = header.text();
-
-                        if (title !== 'Ações' && title !== '' && column.index() !== 0) { // Exclui a primeira coluna (checkbox)
-                            header.html(`<div>${title}</div><button class="filter-button" data-column="${column.index()}">Filtrar</button>`);
-                        }
-                    });
-                }
             });
         });
     }
