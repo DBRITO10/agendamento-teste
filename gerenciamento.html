@@ -695,9 +695,18 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const columnIndex = dataTable.column($(this).closest('th')).index();
         const columnData = dataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
         
-        let popupHtml = '<div><label><input type="radio" name="filter-radio" value="" checked> Todos</label></div>';
+        let popupHtml = `
+            <div style="padding: 10px; border-bottom: 1px solid #ddd;">
+                <label><input type="checkbox" id="selectAllFilter"> Todos</label>
+            </div>
+        `;
         columnData.each(value => {
-            popupHtml += `<div><label><input type="radio" name="filter-radio" value="${value}"> ${value}</label></div>`;
+            const isChecked = dataTable.column(columnIndex).search().includes(value);
+            popupHtml += `
+                <div style="padding: 5px;">
+                    <label><input type="checkbox" class="filter-checkbox" value="${value}" ${isChecked ? 'checked' : ''}> ${value}</label>
+                </div>
+            `;
         });
         
         filterPopupContainer.innerHTML = popupHtml;
@@ -709,15 +718,30 @@ document.addEventListener("DOMContentLoaded", ()=>{
         activeColumnIndex = columnIndex;
     });
 
-    $(document).on('change', '.filter-popup input', function () {
-        const value = $(this).val();
-        dataTable.column(activeColumnIndex).search(value).draw();
-        if (activeFilterButton) {
-            activeFilterButton.text(value ? 'APLICADO' : 'Filtrar');
-        }
-        filterPopupContainer.classList.remove('filter-popup');
-        filterPopupContainer.innerHTML = '';
+    $(document).on('change', '#selectAllFilter', function () {
+        const isChecked = $(this).prop('checked');
+        $('.filter-checkbox').prop('checked', isChecked);
+        applyFilter();
     });
+
+    $(document).on('change', '.filter-checkbox', function () {
+        const allChecked = $('.filter-checkbox:checked').length === $('.filter-checkbox').length;
+        $('#selectAllFilter').prop('checked', allChecked);
+        applyFilter();
+    });
+
+    function applyFilter() {
+        const selectedValues = $('.filter-checkbox:checked').map(function() {
+            return $.fn.dataTable.util.escapeRegex(this.value);
+        }).get();
+        
+        const filterRegex = selectedValues.join('|');
+        dataTable.column(activeColumnIndex).search(filterRegex, true, false).draw();
+        
+        if (activeFilterButton) {
+            activeFilterButton.text(selectedValues.length > 0 ? 'APLICADO' : 'Filtrar');
+        }
+    }
 
     $(document).on('click', function (e) {
         if (!$(e.target).closest('.filter-popup').length && !$(e.target).hasClass('filter-button-text')) {
@@ -980,7 +1004,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
             await navigator.clipboard.write([item]);
             alert('Dados copiados para a área de transferência com sucesso!');
         } catch (err) {
-            console.error('Erro ao copiar os dados:', err);
+error_code
+console.error('Erro ao copiar os dados:', err);
             alert('Erro ao copiar os dados. Por favor, tente novamente.');
         }
     });
