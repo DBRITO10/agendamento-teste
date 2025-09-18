@@ -60,10 +60,11 @@
             border: none;
             color: white;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: bold;
             padding: 0;
             margin-top: 5px; 
+            display: block;
         }
 
         .filter-popup {
@@ -73,16 +74,31 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.2);
             padding: 10px;
             z-index: 1000;
-            min-width: 150px;
-            max-height: 200px;
+            min-width: 180px;
+            max-height: 250px;
             overflow-y: auto;
+            display: none;
         }
         .filter-popup label {
             display: block;
             cursor: pointer;
+            padding: 2px 0;
         }
         .filter-popup label:hover {
             background: #f0f0f0;
+        }
+        .filter-popup .filter-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+        .filter-popup .filter-actions button {
+            width: 48%;
+            margin: 0;
+            padding: 5px;
+            display: inline-block;
         }
         #rascunhos-container, #agendamentos-container {
             margin-top: 30px;
@@ -154,7 +170,7 @@
         /* Novas regras para o layout da lista de agendamentos */
         div.dataTables_wrapper {
             max-width: 100%;
-            overflow-x: auto; /* Garante que a tabela role se for muito larga */
+            overflow-x: auto; 
         }
         div.dataTables_wrapper div.dataTables_filter {
             text-align: right;
@@ -167,7 +183,7 @@
             display: inline-block;
         }
         div.dataTables_wrapper div.dataTables_filter input {
-            width: calc(100% - 60px); /* Ajusta a largura para caber no container */
+            width: calc(100% - 60px); 
             display: inline-block;
         }
     </style>
@@ -311,6 +327,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
     let rascunhosDataTable = null;
     let currentUserUid = null;
     let currentUserName = null;
+    const filterPopupContainer = document.getElementById('filter-popup-container');
+    let activeColumnIndex = null;
+    let activeDataTable = null;
 
     onAuthStateChanged(auth, user => {
         if (user) {
@@ -468,6 +487,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 oLanguage: {
                     sEmptyTable: "Nenhum rascunho salvo.",
                     sSearch: "Buscar:"
+                },
+                initComplete: function() {
+                    this.api().columns([1, 2, 3, 4, 5, 6, 7, 8]).every(function() {
+                        const column = this;
+                        const header = $(column.header());
+                        const title = header.text();
+                        header.html(`<div>${title}</div><button class="filter-button" data-table="rascunhos" data-column="${column.index()}">Filtrar</button>`);
+                    });
                 }
             });
         });
@@ -708,278 +735,324 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     sSearch: "Buscar:"
                 },
                 initComplete: function () {
-                    this.api().columns().every(function () {
+                    this.api().columns([1, 2, 3, 4, 5, 6, 7, 8]).every(function () {
                         const column = this;
                         const header = $(column.header());
                         const title = header.text();
-
-                        if (title.includes('Filtrar') || ['Data', 'Central', 'Fornecedor', 'Tipo de Produto', 'Produto', 'Cargas'].includes(title.trim())) {
-                            header.html(`<div>${title}</div><button class="filter-button" data-column="${column.index()}">Filtrar</button>`);
-                        }
+                        header.html(`<div>${title}</div><button class="filter-button" data-table="agendamentos" data-column="${column.index()}">Filtrar</button>`);
                     });
                 }
             });
         });
     }
 
-    const filterPopupContainer = document.getElementById('filter-popup-container');
-    let activeColumnIndex = null;
-    let activeFilterButton = null;
-    
     $(document).on('click', '.filter-button', function (e) {
         e.stopPropagation();
-        activeFilterButton = $(this);
-        const columnIndex = $(this).data('column');
-        const columnData = dataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
+        const button = $(this);
+        const columnIndex = button.data('column');
+        const tableName = button.data('table');
+        
+        activeDataTable = (tableName === 'agendamentos') ? dataTable : rascunhosDataTable;
+        activeColumnIndex = columnIndex;
+
+        const columnData = activeDataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
+        const currentSearch = activeDataTable.column(columnIndex).search();
         
         let popupHtml = `
             <div style="padding: 10px; border-bottom: 1px solid #ddd;">
                 <label><input type="checkbox" id="selectAllFilter"> Todos</label>
             </div>
+            <div style="max-height: 150px; overflow-y: auto;">
         `;
         columnData.each(value => {
-            const isChecked = dataTable.column(columnIndex).search().includes(value);
+            const isChecked = currentSearch.includes(value);
             popupHtml += `
-                <div style="padding: 5px;">
+                <div style="padding: 2px 5px;">
                     <label><input type="checkbox" class="filter-checkbox" value="${value}" ${isChecked ? 'checked' : ''}> ${value}</label>
                 </div>
             `;
         });
+        popupHtml += `</div>
+            <div class="filter-actions">
+                <button id="applyFilterBtn" class="salvarRascunho">Aplicar Filtro</button>
+                <button id="clearFilterBtn" class="rascunho">Desfazer Filtro</button>
+            </div>
+        `;
         
         filterPopupContainer.innerHTML = popupHtml;
+        
         const buttonRect = this.getBoundingClientRect();
-        filterPopupContainer.style.top = `${buttonRect.bottom + window.scrollY}px`;
+        filterPopupContainer.style.top = `${buttonRect.bottom + window.scrollY + 5}px`;
         filterPopupContainer.style.left = `${buttonRect.left}px`;
-        filterPopupContainer.classList.add('filter-popup');
+        filterPopupContainer.style.display = 'block';
 
-        activeColumnIndex = columnIndex;
+        $('#selectAllFilter').prop('checked', $('.filter-checkbox').length === $('.filter-checkbox:checked').length);
     });
 
-    $(document).on('change', '#selectAllFilter', function () {
-        const isChecked = $(this).prop('checked');
-        $('.filter-checkbox').prop('checked', isChecked);
-        applyFilter();
-    });
-
-    $(document).on('change', '.filter-checkbox', function () {
-        const allChecked = $('.filter-checkbox:checked').length === $('.filter-checkbox').length;
-        $('#selectAllFilter').prop('checked', allChecked);
-        applyFilter();
-    });
-
-    function applyFilter() {
+    $(document).on('click', '#applyFilterBtn', function () {
         const selectedValues = $('.filter-checkbox:checked').map(function() {
             return $.fn.dataTable.util.escapeRegex(this.value);
         }).get();
         
-        const filterRegex = selectedValues.join('|');
-        dataTable.column(activeColumnIndex).search(filterRegex, true, false).draw();
+        const searchRegex = selectedValues.length > 0 ? selectedValues.join('|') : '';
+        activeDataTable.column(activeColumnIndex).search(searchRegex, true, false).draw();
         
-        if (activeFilterButton) {
-            activeFilterButton.text(selectedValues.length > 0 ? 'APLICADO' : 'Filtrar');
-        }
-    }
+        filterPopupContainer.style.display = 'none';
+    });
 
-    $(document).on('click', function (e) {
+    $(document).on('click', '#clearFilterBtn', function () {
+        activeDataTable.column(activeColumnIndex).search('').draw();
+        filterPopupContainer.style.display = 'none';
+    });
+
+    $(document).on('click', '#selectAllFilter', function () {
+        const isChecked = $(this).prop('checked');
+        $('.filter-checkbox').prop('checked', isChecked);
+    });
+
+    $(document).on('click', function(e) {
         if (!$(e.target).closest('.filter-popup').length && !$(e.target).hasClass('filter-button')) {
-            filterPopupContainer.classList.remove('filter-popup');
-            filterPopupContainer.innerHTML = '';
+            filterPopupContainer.style.display = 'none';
         }
     });
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    function carregarHistorico() {
+        if (!currentUserUid) return;
         
-        const cargaItems = document.querySelectorAll('.carga-item');
-        let formIncomplete = false;
-        const cargas = [];
+        const historicoRef = collection(db, `historico-${currentUserUid}`);
+        const q = query(historicoRef, orderBy("timestamp", "desc"));
         
-        cargaItems.forEach(item => {
-            const data = item.querySelector('.data').value;
-            const central = item.querySelector('.central').value;
-            const carga = item.querySelector('.cargas').value;
+        onSnapshot(q, (snapshot) => {
+            const historico = [];
+            snapshot.forEach(doc => {
+                historico.push(doc.data());
+            });
+            console.log("Histórico carregado:", historico);
+        });
+    }
+
+    async function adicionarHistorico(acao, detalhes = {}) {
+        if (!currentUserUid) return;
+        const historicoRef = collection(db, `historico-${currentUserUid}`);
+        try {
+            await addDoc(historicoRef, {
+                acao,
+                detalhes,
+                timestamp: new Date()
+            });
+            console.log("Histórico adicionado com sucesso.");
+        } catch (e) {
+            console.error("Erro ao adicionar histórico:", e);
+        }
+    }
+
+    window.abrirHistorico = () => {
+        alert("Ainda não implementado. O histórico está sendo salvo no banco de dados, mas a interface para visualizá-lo ainda não foi criada.");
+        carregarHistorico();
+    };
+
+    window.exportarExcel = () => {
+        const agendamentos = dataTable.data().toArray();
+        if (agendamentos.length === 0) {
+            alert("Nenhum dado para exportar.");
+            return;
+        }
+
+        const data = agendamentos.map(row => ({
+            "Senha": row[1],
+            "Data": row[2],
+            "Central": row[3],
+            "Cargas": row[4],
+            "Pedido de Compra": row[5],
+            "Fornecedor": row[6],
+            "Tipo de Produto": row[7],
+            "Produto": row[8]
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Agendamentos");
+        XLSX.writeFile(wb, "agendamentos.xlsx");
+    };
+
+    window.exportarPDF = () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        const agendamentos = dataTable.data().toArray();
+        if (agendamentos.length === 0) {
+            alert("Nenhum dado para exportar.");
+            return;
+        }
+
+        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
+        const rows = agendamentos.map(row => [
+            row[1],
+            row[2],
+            row[3],
+            row[4],
+            row[5],
+            row[6],
+            row[7],
+            row[8]
+        ]);
+
+        doc.autoTable({
+            head: [headers],
+            body: rows,
+            startY: 20,
+            theme: 'striped',
+            headStyles: { fillColor: [204, 0, 0] }
+        });
+
+        doc.save('agendamentos.pdf');
+    };
+
+    $('#agendamentosTabela').on('click', '.edit', async function() {
+        const id = $(this).data('id');
+        const docRef = doc(db, "agendamentos", id);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            numCargasInput.value = 1; 
+            numCargasInput.dispatchEvent(new Event('input'));
             
-            if (!data || !central || !carga) {
-                formIncomplete = true;
+            const cargaItem = document.querySelector('.carga-item');
+            if (cargaItem) {
+                cargaItem.querySelector('.data').value = data.data;
+                cargaItem.querySelector('.central').value = data.central;
+                cargaItem.querySelector('.cargas').value = data.cargas;
+                cargaItem.querySelector('.pedidoCompra').value = data.pedidoCompra;
+                cargaItem.querySelector('.fornecedor').value = data.fornecedor;
+                cargaItem.querySelector('.tipoDeProduto').value = data.tipoDeProduto;
+                cargaItem.querySelector('.produto').value = data.produto;
             }
+
+            salvarBtn.textContent = "Atualizar Agendamento";
+            form.setAttribute('data-doc-id', id);
+            document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
+        } else {
+            console.log("Nenhum documento encontrado!");
+        }
+    });
+
+    $('#agendamentosTabela').on('click', '.delete', async function() {
+        const id = $(this).data('id');
+        if (confirm('Tem certeza que deseja excluir este agendamento?')) {
+            try {
+                const docRef = doc(db, "agendamentos", id);
+                await deleteDoc(docRef);
+                await adicionarHistorico("excluiu agendamento", { id: id });
+                alert('Agendamento excluído com sucesso!');
+            } catch (e) {
+                console.error("Erro ao excluir agendamento: ", e);
+                alert('Erro ao excluir agendamento. Tente novamente.');
+            }
+        }
+    });
+
+    $('#agendamentoForm').on('submit', async (e) => {
+        e.preventDefault();
+        if (!currentUserUid) {
+            alert("Sua sessão expirou. Por favor, faça login novamente.");
+            return;
+        }
+
+        const docId = form.getAttribute('data-doc-id');
+        const rascunhoId = editRascunhoIdInput.value;
+        const cargas = [];
+        const cargaItems = document.querySelectorAll('.carga-item');
+        cargaItems.forEach(item => {
             cargas.push({
-                data: data,
-                central: central,
-                cargas: carga,
+                data: item.querySelector('.data').value || null,
+                central: item.querySelector('.central').value,
+                cargas: item.querySelector('.cargas').value,
                 pedidoCompra: item.querySelector('.pedidoCompra').value,
                 fornecedor: item.querySelector('.fornecedor').value,
                 tipoDeProduto: item.querySelector('.tipoDeProduto').value,
                 produto: item.querySelector('.produto').value
             });
         });
-        
-        const rascunhoId = editRascunhoIdInput.value;
-        if (rascunhoId) {
-            // Editando um rascunho existente
-            const rascunhoRef = doc(db, "agendamentos-rascunho", rascunhoId);
+
+        if (docId) { 
             try {
-                await updateDoc(rascunhoRef, { 
-                    data: cargas[0].data,
-                    central: cargas[0].central,
-                    cargas: cargas[0].cargas,
-                    pedidoCompra: cargas[0].pedidoCompra,
-                    fornecedor: cargas[0].fornecedor,
-                    tipoDeProduto: cargas[0].tipoDeProduto,
-                    produto: cargas[0].produto,
-                    timestamp: new Date() 
-                });
-                alert("Rascunho atualizado com sucesso!");
-                await adicionarHistorico("atualizou um rascunho", { ...cargas[0] });
-                editRascunhoIdInput.value = "";
-                salvarBtn.textContent = "Salvar Agendamento";
+                const docRef = doc(db, "agendamentos", docId);
+                await updateDoc(docRef, { ...cargas[0], timestamp: new Date() });
+                await adicionarHistorico("editou agendamento", { id: docId, ...cargas[0] });
+                alert('Agendamento atualizado com sucesso!');
+            } catch (e) {
+                console.error("Erro ao atualizar agendamento: ", e);
+                alert('Erro ao atualizar agendamento. Tente novamente.');
+            }
+        } else if (rascunhoId) {
+            try {
+                const docRef = doc(db, "agendamentos-rascunho", rascunhoId);
+                await updateDoc(docRef, { ...cargas[0], timestamp: new Date() });
+                await adicionarHistorico("editou rascunho", { id: rascunhoId, ...cargas[0] });
+                alert('Rascunho atualizado com sucesso!');
             } catch (e) {
                 console.error("Erro ao atualizar rascunho: ", e);
-                alert("Ocorreu um erro ao atualizar o rascunho. Tente novamente.");
+                alert('Erro ao atualizar rascunho. Tente novamente.');
             }
         } else {
-            // Criando um novo agendamento definitivo
             const contadorRef = doc(db, "metadados", "contador");
             try {
-                const result = await runTransaction(db, async (transaction) => {
+                await runTransaction(db, async (transaction) => {
                     const contadorDoc = await transaction.get(contadorRef);
                     let ultimaSenha = 0;
                     if (contadorDoc.exists()) {
                         ultimaSenha = contadorDoc.data().ultima_senha;
                     }
                     
-                    const savedCargas = [];
+                    const agendamentoRefs = [];
                     for (const carga of cargas) {
                         ultimaSenha++;
-                        const novaCarga = { ...carga, senha: ultimaSenha, userId: currentUserUid };
+                        const newAgendamento = {
+                            userId: currentUserUid,
+                            senha: ultimaSenha,
+                            data: carga.data,
+                            central: carga.central,
+                            cargas: carga.cargas,
+                            pedidoCompra: carga.pedidoCompra,
+                            fornecedor: carga.fornecedor,
+                            tipoDeProduto: carga.tipoDeProduto,
+                            produto: carga.produto,
+                            timestamp: new Date()
+                        };
                         const newDocRef = doc(collection(db, "agendamentos"));
-                        transaction.set(newDocRef, novaCarga);
-                        savedCargas.push({ id: newDocRef.id, ...novaCarga });
+                        transaction.set(newDocRef, newAgendamento);
+                        agendamentoRefs.push(newDocRef.id);
+                        await adicionarHistorico("adicionou novo agendamento", { id: newDocRef.id, ...newAgendamento });
                     }
-                    
                     transaction.update(contadorRef, { ultima_senha: ultimaSenha });
-                    return savedCargas;
                 });
-
-                for (const carga of result) {
-                    await adicionarHistorico("agendou uma nova carga", { ...carga });
-                }
-                alert("Agendamentos salvos com sucesso!");
-
+                alert('Agendamento(s) salvo(s) com sucesso!');
             } catch (e) {
-                console.error("Erro ao gerar senhas e salvar agendamentos: ", e);
-                alert("Ocorreu um erro ao salvar. Tente novamente.");
+                console.error("Erro ao salvar agendamento: ", e);
+                alert('Erro ao salvar agendamento. Tente novamente.');
             }
         }
-        
+
         form.reset();
+        form.removeAttribute('data-doc-id');
+        editRascunhoIdInput.value = "";
+        salvarBtn.textContent = "Salvar Agendamento";
         numCargasInput.value = 1;
         numCargasInput.dispatchEvent(new Event('input'));
     });
 
-    $(document).on('click', '.edit', async function () {
-        document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
-        const id = $(this).data('id');
-        const docRef = doc(db, "agendamentos", id);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            const dados = docSnap.data();
-            numCargasInput.value = 1;
-            numCargasInput.dispatchEvent(new Event('input'));
-            
-            const cargaItems = document.querySelectorAll('.carga-item');
-            if (cargaItems[0]) {
-                cargaItems[0].querySelector('.data').value = dados.data;
-                cargaItems[0].querySelector('.central').value = dados.central;
-                cargaItems[0].querySelector('.cargas').value = dados.cargas;
-                cargaItems[0].querySelector('.pedidoCompra').value = dados.pedidoCompra;
-                cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
-                cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
-                cargaItems[0].querySelector('.produto').value = dados.produto;
-            }
-            salvarBtn.textContent = "Atualizar Agendamento";
-        }
+    $(document).on('change', '.row-checkbox', function() {
+        toggleMainButtons();
     });
 
-    $(document).on('click', '.delete', async function () {
-        const id = $(this).data('id');
-        const docRef = doc(db, "agendamentos", id);
-        if (confirm("Tem certeza que deseja excluir este agendamento?")) {
-            try {
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    await deleteDoc(docRef);
-                    await adicionarHistorico("excluiu um agendamento", {
-                        senha: data.senha || "N/A",
-                        central: data.central || "N/A",
-                        cargas: data.cargas || "N/A",
-                        pedidoCompra: data.pedidoCompra || "N/A",
-                        fornecedor: data.fornecedor || "N/A"
-                    });
-                    alert("Agendamento excluído com sucesso.");
-                }
-            } catch (e) {
-                console.error("Erro ao excluir agendamento:", e);
-                alert("Ocorreu um erro ao excluir. Tente novamente.");
-            }
-        }
-    });
-
-    window.exportarPDF = () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 9)); // Exclude checkbox and actions columns
-        doc.autoTable({ head: [headers], body: data });
-        doc.save('agendamentos.pdf');
-    };
-
-    window.exportarExcel = () => {
-        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 9)); // Exclude checkbox and actions columns
-        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Agendamentos");
-        XLSX.writeFile(workbook, "agendamentos.xlsx");
-    };
-
-    window.abrirHistorico = () => {
-        window.location.href = 'historico.html';
-    };
-
-    async function adicionarHistorico(acao, detalhes) {
-        if (!currentUserUid) {
-            console.error("Não foi possível adicionar ao histórico. Usuário não logado.");
-            return;
-        }
-        try {
-            await addDoc(collection(db, "historico-acoes"), {
-                userId: currentUserUid,
-                username: currentUserName,
-                acao: acao,
-                detalhes: detalhes,
-                timestamp: new Date()
-            });
-        } catch (e) {
-            console.error("Erro ao adicionar histórico: ", e);
-        }
-    }
-
-    // New multi-select functionality
-    
-    // Toggle "select all" checkbox
     $(document).on('click', '#selectAllCheckbox', function() {
         const isChecked = $(this).prop('checked');
         $('.row-checkbox').prop('checked', isChecked);
-        toggleActionButtons();
+        toggleMainButtons();
     });
 
-    // Toggle action buttons based on checkbox selection
-    $(document).on('change', '.row-checkbox', function() {
-        toggleActionButtons();
-    });
-
-    function toggleActionButtons() {
+    function toggleMainButtons() {
         const checkedCount = $('.row-checkbox:checked').length;
         if (checkedCount > 0) {
             $('#copiarSelecionadosBtn').removeClass('hidden');
@@ -990,17 +1063,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     }
 
-    // "Copy Selected" button logic
     $('#copiarSelecionadosBtn').click(async () => {
         const checkedRows = $('.row-checkbox:checked').closest('tr');
         if (checkedRows.length === 0) {
             alert('Por favor, selecione pelo menos um agendamento para copiar.');
             return;
         }
-        
+
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
         let plainTextContent = headers.join('\t') + '\n';
-
+        
         let htmlContent = '<table style="width:100%; border-collapse: collapse; margin-top: 20px;">';
         htmlContent += '<thead><tr style="background: #cc0000; color: white;">';
         headers.forEach(header => {
@@ -1041,12 +1113,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
             await navigator.clipboard.write([item]);
             alert('Dados copiados para a área de transferência com sucesso!');
         } catch (err) {
-                console.error('Erro ao copiar os dados:', err);
-                alert('Erro ao copiar os dados. Por favor, tente novamente.');
+            console.error('Erro ao copiar os dados:', err);
+            alert('Erro ao copiar os dados. Por favor, tente novamente.');
         }
     });
 
-    // "Delete Selected" button logic
     $('#excluirSelecionadosBtn').click(async () => {
         const checkedRows = $('.row-checkbox:checked');
         if (checkedRows.length === 0) {
@@ -1056,28 +1127,18 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         if (confirm(`Tem certeza que deseja excluir ${checkedRows.length} agendamento(s) selecionado(s)?`)) {
             const batch = writeBatch(db);
-            const deletedDetails = [];
+            const deletedIds = [];
 
-            for (const el of checkedRows) {
-                const id = $(el).data('id');
+            checkedRows.each(function() {
+                const id = $(this).data('id');
                 const docRef = doc(db, "agendamentos", id);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    deletedDetails.push({
-                        senha: data.senha || "N/A",
-                        central: data.central || "N/A",
-                        cargas: data.cargas || "N/A",
-                        pedidoCompra: data.pedidoCompra || "N/A",
-                        fornecedor: data.fornecedor || "N/A"
-                    });
-                    batch.delete(docRef);
-                }
-            }
+                batch.delete(docRef);
+                deletedIds.push(id);
+            });
 
             try {
                 await batch.commit();
-                await adicionarHistorico(`excluiu múltiplos agendamentos`, { agendamentos: deletedDetails });
+                await adicionarHistorico(`excluiu múltiplos agendamentos (${deletedIds.length})`, { ids: deletedIds });
                 alert(`${checkedRows.length} agendamento(s) excluído(s) com sucesso.`);
             } catch (e) {
                 console.error("Erro ao excluir agendamentos em lote:", e);
