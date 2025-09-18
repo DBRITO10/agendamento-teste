@@ -1070,16 +1070,55 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
     window.exportarPDF = () => {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        const doc = new jsPDF('l', 'pt', 'a4'); // Alterado para paisagem
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8));
-        doc.autoTable({ head: [headers], body: data });
+        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
+            return [
+                String(row[1]).replace(/<br>/g, ' ').trim(),
+                String(row[2]).replace(/<br>/g, ' ').trim(),
+                String(row[3]).replace(/<br>/g, ' ').trim(),
+                String(row[4]).replace(/<br>/g, ' ').trim(),
+                String(row[5]).replace(/<br>/g, ' ').trim(),
+                String(row[6]).replace(/<br>/g, ' ').trim(),
+                String(row[7]).replace(/<br>/g, ' ').trim(),
+                String(row[8]).replace(/<br>/g, ' ').trim(),
+            ];
+        });
+        
+        doc.autoTable({
+            head: [headers],
+            body: data,
+            tableWidth: 'wrap',
+            styles: {
+                cellPadding: 4,
+                fontSize: 10,
+                valign: 'top',
+            },
+            headStyles: {
+                fillColor: [204, 0, 0],
+                textColor: 255,
+                fontStyle: 'bold',
+                halign: 'center'
+            }
+        });
+
         doc.save('agendamentos.pdf');
     };
 
     window.exportarExcel = () => {
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8));
+        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
+            return [
+                String(row[1]).replace(/<br>/g, ' ').trim(),
+                String(row[2]).replace(/<br>/g, ' ').trim(),
+                String(row[3]).replace(/<br>/g, ' ').trim(),
+                String(row[4]).replace(/<br>/g, ' ').trim(),
+                String(row[5]).replace(/<br>/g, ' ').trim(),
+                String(row[6]).replace(/<br>/g, ' ').trim(),
+                String(row[7]).replace(/<br>/g, ' ').trim(),
+                String(row[8]).replace(/<br>/g, ' ').trim(),
+            ];
+        });
         const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Agendamentos");
@@ -1146,7 +1185,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
         let plainTextContent = headers.join('\t') + '\n';
-
+        
         let htmlContent = '<table style="width:100%; border-collapse: collapse; margin-top: 20px;">';
         htmlContent += '<thead><tr style="background: #cc0000; color: white;">';
         headers.forEach(header => {
