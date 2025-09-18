@@ -63,7 +63,8 @@
             font-size: 14px;
             font-weight: bold;
             padding: 0;
-            margin-top: 5px; /* Adiciona um pequeno espaço entre o título e o filtro */
+            margin-top: 5px; 
+            /* Remover o position absolute que causava o problema */
         }
         .filter-popup {
             position: absolute;
@@ -785,11 +786,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
             });
         });
         
-        if (formIncomplete) {
-            alert("Por favor, preencha todos os campos obrigatórios (Data, Central e Cargas).");
-            return;
-        }
-        
         const rascunhoId = editRascunhoIdInput.value;
         if (rascunhoId) {
             // Editando um rascunho existente
@@ -1065,4 +1061,4 @@ document.addEventListener("DOMContentLoaded", ()=>{
 </script>
 
 </body>
-    </html>
+</html>
