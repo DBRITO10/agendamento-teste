@@ -170,6 +170,65 @@
             width: calc(100% - 60px); /* Ajusta a largura para caber no container */
             display: inline-block;
         }
+
+        /* Estilos do Modal */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1001; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.4); 
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+        }
+
+        #filter-modal-content {
+            max-height: 250px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        #filter-modal-content label {
+            display: block;
+            margin: 5px 0;
+            cursor: pointer;
+        }
+
+        #filter-modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        #filter-modal-buttons button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: auto;
+            margin-bottom: 0;
+            display: inline-block;
+        }
+        #apply-filter-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #clear-filter-btn {
+            background-color: #f44336;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -198,8 +257,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
 </header>
   
 <div class="table-container">
+    <h2>Adicionar/Editar Agendamento</h2>
     <form id="agendamentoForm">
-        <h2>Adicionar/Editar Agendamento</h2>
         <input type="hidden" id="editRascunhoId">
         <input type="number" id="numCargas" placeholder="Número de cargas" min="1" value="1" required>
         <div id="cargasHeader">
@@ -281,17 +340,27 @@ document.addEventListener("DOMContentLoaded", ()=>{
             </tbody>
         </table>
     </div>
-    <div id="filter-popup-container"></div>
 </div>
 
 <footer>
     <p>Total de Registros: <span id="totalCargas">0</span></p>
 </footer>
 
+<div id="filter-modal" class="modal">
+    <div class="modal-content">
+        <h2>Filtro da Coluna</h2>
+        <div id="filter-modal-content"></div>
+        <div id="filter-modal-buttons">
+            <button id="apply-filter-btn">Aplicar Filtro</button>
+            <button id="clear-filter-btn">Desfazer Filtro</button>
+        </div>
+    </div>
+</div>
+
 <script type="module">
     import { db, auth } from "./firebase-config.js";
     import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc, runTransaction, query, where, getDocs, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebase/10.12.2/auth";
 
     const form = document.getElementById('agendamentoForm');
     const editRascunhoIdInput = document.getElementById('editRascunhoId');
@@ -713,61 +782,52 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         const header = $(column.header());
                         const title = header.text();
 
-                        if (title.includes('Filtrar') || ['Data', 'Central', 'Fornecedor', 'Tipo de Produto', 'Produto', 'Cargas'].includes(title.trim())) {
+                        if (title !== 'Ações' && title !== '') {
                             header.html(`<div>${title}</div><button class="filter-button" data-column="${column.index()}">Filtrar</button>`);
                         }
                     });
                 }
             });
+
+            // Atualiza a contagem do rodapé em cada redesenho da tabela
+            dataTable.on('draw.dt', function () {
+                const filteredRowsCount = dataTable.rows({search: 'applied'}).count();
+                totalCargasSpan.textContent = filteredRowsCount;
+            });
+
+            // Atualiza a contagem inicial
+            totalCargasSpan.textContent = agendamentos.length;
         });
     }
 
-    const filterPopupContainer = document.getElementById('filter-popup-container');
+    // Variáveis para rastrear o estado do filtro
     let activeColumnIndex = null;
     let activeFilterButton = null;
-    
+
     $(document).on('click', '.filter-button', function (e) {
         e.stopPropagation();
+        
         activeFilterButton = $(this);
         const columnIndex = $(this).data('column');
-        const columnData = dataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
-        
-        let popupHtml = `
-            <div style="padding: 10px; border-bottom: 1px solid #ddd;">
-                <label><input type="checkbox" id="selectAllFilter"> Todos</label>
-            </div>
-        `;
-        columnData.each(value => {
-            const isChecked = dataTable.column(columnIndex).search().includes(value);
-            popupHtml += `
-                <div style="padding: 5px;">
-                    <label><input type="checkbox" class="filter-checkbox" value="${value}" ${isChecked ? 'checked' : ''}> ${value}</label>
-                </div>
-            `;
-        });
-        
-        filterPopupContainer.innerHTML = popupHtml;
-        const buttonRect = this.getBoundingClientRect();
-        filterPopupContainer.style.top = `${buttonRect.bottom + window.scrollY}px`;
-        filterPopupContainer.style.left = `${buttonRect.left}px`;
-        filterPopupContainer.classList.add('filter-popup');
-
         activeColumnIndex = columnIndex;
-    });
 
-    $(document).on('change', '#selectAllFilter', function () {
-        const isChecked = $(this).prop('checked');
-        $('.filter-checkbox').prop('checked', isChecked);
-        applyFilter();
-    });
+        const columnData = dataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
+        const filterModalContent = $('#filter-modal-content');
+        filterModalContent.empty();
 
-    $(document).on('change', '.filter-checkbox', function () {
-        const allChecked = $('.filter-checkbox:checked').length === $('.filter-checkbox').length;
-        $('#selectAllFilter').prop('checked', allChecked);
-        applyFilter();
-    });
+        const currentSearch = dataTable.column(activeColumnIndex).search();
+        const currentSearchArray = currentSearch ? currentSearch.substring(0, currentSearch.length - 1).split('|') : [];
 
-    function applyFilter() {
+        columnData.each(value => {
+            const isChecked = currentSearchArray.includes($.fn.dataTable.util.escapeRegex(value));
+            filterModalContent.append(`<div><label><input type="checkbox" class="filter-checkbox" value="${value}" ${isChecked ? 'checked' : ''}> ${value}</label></div>`);
+        });
+
+        $('#filter-modal').show();
+    });
+    
+    // Lógica para o botão "Aplicar Filtro"
+    $('#apply-filter-btn').on('click', function() {
         const selectedValues = $('.filter-checkbox:checked').map(function() {
             return $.fn.dataTable.util.escapeRegex(this.value);
         }).get();
@@ -778,12 +838,25 @@ document.addEventListener("DOMContentLoaded", ()=>{
         if (activeFilterButton) {
             activeFilterButton.text(selectedValues.length > 0 ? 'APLICADO' : 'Filtrar');
         }
-    }
 
-    $(document).on('click', function (e) {
-        if (!$(e.target).closest('.filter-popup').length && !$(e.target).hasClass('filter-button')) {
-            filterPopupContainer.classList.remove('filter-popup');
-            filterPopupContainer.innerHTML = '';
+        $('#filter-modal').hide();
+    });
+
+    // Lógica para o botão "Desfazer Filtro"
+    $('#clear-filter-btn').on('click', function() {
+        dataTable.column(activeColumnIndex).search('').draw();
+        
+        if (activeFilterButton) {
+            activeFilterButton.text('Filtrar');
+        }
+        
+        $('#filter-modal').hide();
+    });
+
+    // Fecha o modal se clicar fora dele
+    $(document).on('click', function (event) {
+        if ($(event.target).is('#filter-modal')) {
+            $('#filter-modal').hide();
         }
     });
 
