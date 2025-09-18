@@ -298,10 +298,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 <tr>
                     <th><input type="checkbox" id="selectAllRascunhoCheckbox"></th>
                     <th>Senha</th>
-                    <th>Cargas</th>
-                    <th>Pedido de Compra</th>
                     <th>Data</th>
                     <th>Central</th>
+                    <th>Cargas</th>
+                    <th>Pedido de Compra</th>
                     <th>Fornecedor</th>
                     <th>Tipo de Produto</th>
                     <th>Produto</th>
@@ -360,7 +360,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 <script type="module">
     import { db, auth } from "./firebase-config.js";
     import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc, runTransaction, query, where, getDocs, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebase/10.12.2/auth";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const form = document.getElementById('agendamentoForm');
     const editRascunhoIdInput = document.getElementById('editRascunhoId');
@@ -508,10 +508,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 dadosParaTabela.push([
                     `<input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}">`,
                     rascunho.senha || "Não Definida",
-                    rascunho.cargas || "Não definido",
-                    rascunho.pedidoCompra || "Não definido",
                     rascunho.data || "Não definida",
                     rascunho.central || "Não definido",
+                    rascunho.cargas || "Não definido",
+                    rascunho.pedidoCompra || "Não definido",
                     rascunho.fornecedor || "Não definido",
                     rascunho.tipoDeProduto || "Não definido",
                     rascunho.produto || "Não definido"
@@ -523,10 +523,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 columns: [
                     { title: "<input type='checkbox' id='selectAllRascunhoCheckbox'>" },
                     { title: "Senha" },
-                    { title: "Cargas" },
-                    { title: "Pedido de Compra" },
                     { title: "Data" },
                     { title: "Central" },
+                    { title: "Cargas" },
+                    { title: "Pedido de Compra" },
                     { title: "Fornecedor" },
                     { title: "Tipo de Produto" },
                     { title: "Produto" }
@@ -603,7 +603,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             return;
         }
 
-        const headers = ["Senha", "Cargas", "Pedido de Compra", "Data", "Central", "Fornecedor", "Tipo de Produto", "Produto"];
+        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
         let plainTextContent = headers.join('\t') + '\n';
         
         let htmlContent = '<table style="width:100%; border-collapse: collapse; margin-top: 20px;">';
@@ -617,10 +617,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
             const rowData = rascunhosDataTable.row(this).data();
             const values = [
                 rowData[1], // Senha
-                rowData[2], // Cargas
-                rowData[3], // Pedido de Compra
-                rowData[4], // Data
-                rowData[5], // Central
+                rowData[2], // Data
+                rowData[3], // Central
+                rowData[4], // Cargas
+                rowData[5], // Pedido de Compra
                 rowData[6], // Fornecedor
                 rowData[7], // Tipo de Produto
                 rowData[8], // Produto
