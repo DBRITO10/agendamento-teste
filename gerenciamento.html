@@ -658,14 +658,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
         checkedRows.each(function() {
             const rowData = rascunhosDataTable.row(this).data();
             const values = [
-                rowData[1],
-                rowData[2],
-                rowData[3],
+                $(rowData[1]).text().trim(),
+                $(rowData[2]).text().trim(),
+                $(rowData[3]).text().trim(),
                 $(rowData[4]).text().trim(),
                 $(rowData[5]).text().trim(),
-                rowData[6],
-                rowData[7],
-                rowData[8],
+                $(rowData[6]).text().trim(),
+                $(rowData[7]).text().trim(),
+                $(rowData[8]).text().trim(),
             ];
             plainTextContent += values.join('\t') + '\n';
             
@@ -1070,16 +1070,55 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
     window.exportarPDF = () => {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        const doc = new jsPDF('p', 'pt', 'a4');
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8));
-        doc.autoTable({ head: [headers], body: data });
+        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
+            return [
+                $(row[1]).text().trim(),
+                $(row[2]).text().trim(),
+                $(row[3]).text().trim(),
+                $(row[4]).text().trim(),
+                $(row[5]).text().trim(),
+                $(row[6]).text().trim(),
+                $(row[7]).text().trim(),
+                $(row[8]).text().trim(),
+            ];
+        });
+        
+        doc.autoTable({
+            head: [headers],
+            body: data,
+            tableWidth: 'wrap',
+            styles: {
+                cellPadding: 4,
+                fontSize: 10,
+                valign: 'top',
+            },
+            headStyles: {
+                fillColor: [204, 0, 0],
+                textColor: 255,
+                fontStyle: 'bold',
+                halign: 'center'
+            }
+        });
+
         doc.save('agendamentos.pdf');
     };
 
     window.exportarExcel = () => {
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8));
+        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
+            return [
+                $(row[1]).text().trim(),
+                $(row[2]).text().trim(),
+                $(row[3]).text().trim(),
+                $(row[4]).text().trim(),
+                $(row[5]).text().trim(),
+                $(row[6]).text().trim(),
+                $(row[7]).text().trim(),
+                $(row[8]).text().trim(),
+            ];
+        });
         const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Agendamentos");
@@ -1157,14 +1196,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
         checkedRows.each(function() {
             const rowData = dataTable.row(this).data();
             const values = [
-                rowData[1],
-                rowData[2],
-                rowData[3],
+                $(rowData[1]).text().trim(),
+                $(rowData[2]).text().trim(),
+                $(rowData[3]).text().trim(),
                 $(rowData[4]).text().trim(),
                 $(rowData[5]).text().trim(),
-                rowData[6],
-                rowData[7],
-                rowData[8],
+                $(rowData[6]).text().trim(),
+                $(rowData[7]).text().trim(),
+                $(rowData[8]).text().trim(),
             ];
             plainTextContent += values.join('\t') + '\n';
             
