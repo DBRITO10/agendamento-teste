@@ -4,19 +4,17 @@
     <meta charset="UTF-8">
     <title>Histórico de Ações</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background-color: #fafafa; }
         header { text-align: center; margin-bottom: 20px; }
         h1 { color: #cc0000; font-size: 28px; margin: 10px 0 20px 0; font-weight: bold; }
-        .table-container { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
-        thead th { background-color: #cc0000; color: white; }
         #userBar {
             background: #E6E6E6;
             padding: 10px;
@@ -25,50 +23,49 @@
             align-items: center;
             border-radius: 6px;
             margin-bottom: 12px;
-            flex-wrap: nowrap;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
-        #userBar span {
-            flex-shrink: 1;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+        #userBar span { font-weight: bold; color: #333; }
         #userBar button {
-            width: auto;
-            flex-shrink: 0;
-            margin-left: 10px;
-        }
-        .action-buttons-container {
-            margin-bottom: 15px;
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-        .action-buttons-container button {
-            background-color: #d32f2f;
+            background: #CC0000;
             color: white;
             border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
+            padding: 6px 12px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
-            display: none;
         }
-        .action-buttons-container button.visible {
-            display: inline-block;
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ff9999;
+            border-radius: 6px;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
-        .action-buttons-container button:hover {
-            background-color: #b71c1c;
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        thead th { background: #cc0000; color: white; }
+        #exportButtons { margin-bottom: 15px; }
+        #exportButtons button { display: inline-block; width: auto; margin-right: 10px; padding: 10px 20px; }
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            border-top: 1px solid #ccc;
+            font-size: 14px;
+            color: #666;
+        }
+        /* Estilo para quebra de linha em colunas específicas */
+        .wrap-text {
+            white-space: normal;
         }
     </style>
 </head>
 <body>
 
 <div id="userBar">
-    <button onclick="window.location.href = 'gerenciamento.html'" style="
+    <button onclick="history.back()" style="
         background: transparent; 
         border: none; 
         color: #333; 
@@ -76,59 +73,64 @@
         cursor: pointer;
         margin-right: 10px;
     ">←</button>
-    <span id="welcomeUser" style="font-weight:bold; color:#333; flex-grow: 1;"></span>
-    <button onclick="logout()" style="background:#CC0000; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Sair</button>
+    <span id="welcomeUser"></span>
+    <button onclick="logout()">Sair</button>
 </div>
-<script>
-const username = localStorage.getItem("username") || "Usuário";
-document.addEventListener("DOMContentLoaded", ()=>{
-    document.getElementById("welcomeUser").textContent = "Bem-vindo, " + username;
-});
-</script>
 
 <header>
     <h1>Histórico de Ações</h1>
 </header>
 
-<div class="action-buttons-container">
-    <button id="restoreSelectedBtn">Restaurar Selecionados</button>
-    <button id="deleteSelectedBtn">Excluir Selecionados</button>
-</div>
-
 <div class="table-container">
+    <div id="exportButtons">
+        <button onclick="exportarExcel()">Exportar Excel</button>
+        <button onclick="exportarPDF()">Exportar PDF</button>
+    </div>
     <table id="historicoTabela" class="display" style="width:100%">
         <thead>
             <tr>
-                <th><input type="checkbox" id="selectAllCheckbox"></th>
-                <th>Data</th>
+                <th>Data/Hora</th>
                 <th>Usuário</th>
                 <th>Ação</th>
-                <th>Detalhes</th>
+                <th>Senha</th>
+                <th>Data da Carga</th>
+                <th>Central</th>
+                <th>Cargas</th>
+                <th>Pedido de Compra</th>
+                <th>Fornecedor</th>
+                <th>Tipo de Produto</th>
+                <th>Produto</th>
+                <th>Volumes</th>
             </tr>
         </thead>
         <tbody>
         </tbody>
     </table>
-    <p id="carregando" style="text-align: center;">Carregando...</p>
 </div>
+
+<footer>
+    <p>Total de Registros: <span id="totalHistorico">0</span></p>
+</footer>
 
 <script type="module">
     import { db, auth } from "./firebase-config.js";
-    import { collection, query, where, getDocs, orderBy, doc, deleteDoc, addDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    let historicoDataTable = null;
-    const carregandoEl = document.getElementById('carregando');
-    let currentUserName = null;
-    let currentUserUid = null;
+    let dataTable = null;
+
+    function formatarDataHora(timestamp) {
+        if (!timestamp) return "Não definida";
+        const date = timestamp.toDate();
+        return date.toLocaleString('pt-BR');
+    }
 
     onAuthStateChanged(auth, user => {
         if (user) {
-            currentUserUid = user.uid;
-            currentUserName = localStorage.getItem("username") || user.email;
-            carregarHistorico(currentUserUid);
+            const username = localStorage.getItem("username") || user.email;
+            document.getElementById("welcomeUser").textContent = "Bem-vindo, " + username;
+            carregarHistorico();
         } else {
-            carregandoEl.textContent = "Você precisa estar logado para ver o histórico.";
             window.location.href = "index.html";
         }
     });
@@ -141,258 +143,146 @@ document.addEventListener("DOMContentLoaded", ()=>{
         });
     };
 
-    async function carregarHistorico(currentUserUid) {
-        carregandoEl.textContent = 'Carregando...';
-        const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
-        try {
-            const snapshot = await getDocs(q);
-            const dadosParaTabela = [];
-            
-            if (snapshot.empty) {
-                carregandoEl.textContent = 'Nenhuma ação registrada.';
-            } else {
-                carregandoEl.style.display = 'none';
-                snapshot.forEach(doc => {
-                    const acao = doc.data();
-                    const dataFormatada = new Date(acao.timestamp.seconds * 1000).toLocaleString('pt-BR');
-                    
-                    let acaoDisplay = acao.acao;
-                    let isRestorable = false;
-                    
-                    const detalhes = acao.detalhes || {};
-
-                    if (acao.acao.includes("excluiu")) {
-                        acaoDisplay = "Excluiu";
-                        if (detalhes.senha || (detalhes.agendamentos && detalhes.agendamentos.length > 0)) {
-                             isRestorable = true;
-                        }
-                    } else if (acao.acao.includes("moveu um agendamento para rascunho")) {
-                        acaoDisplay = "Moveu para Rascunho";
-                        if (detalhes.senha) {
-                            isRestorable = true;
-                        }
-                    } else if (acao.acao.includes("agendou")) {
-                        acaoDisplay = "Agendou";
-                    } else if (acao.acao.includes("restaurou")) {
-                         acaoDisplay = "Restaurou";
-                    } else if (acao.acao.includes("atualizou")) {
-                        acaoDisplay = "Atualizou";
-                    }
-
-                    let detalhesHTML = '';
-                    if (Array.isArray(detalhes.agendamentos)) {
-                        detalhesHTML = "<ul>";
-                        detalhes.agendamentos.forEach(item => {
-                            detalhesHTML += `<li>
-                                <strong>Senha:</strong> ${item.senha || 'Vazio'}<br>
-                                <strong>Data:</strong> ${item.data || 'Vazio'}<br>
-                                <strong>Central:</strong> ${item.central || 'Vazio'}<br>
-                                <strong>Cargas:</strong> ${item.cargas || 'Vazio'}<br>
-                                <strong>Pedido de Compra:</strong> ${item.pedidoCompra || 'Vazio'}<br>
-                                <strong>Fornecedor:</strong> ${item.fornecedor || 'Vazio'}<br>
-                                <strong>Tipo de Produto:</strong> ${item.tipoDeProduto || 'Vazio'}<br>
-                                <strong>Produto:</strong> ${item.produto || 'Vazio'}
-                            </li>`;
-                        });
-                        detalhesHTML += "</ul>";
-                    } else {
-                         detalhesHTML = `
-                            <strong>Senha:</strong> ${detalhes.senha || 'Vazio'}<br>
-                            <strong>Data:</strong> ${detalhes.data || 'Vazio'}<br>
-                            <strong>Central:</strong> ${detalhes.central || 'Vazio'}<br>
-                            <strong>Cargas:</strong> ${detalhes.cargas || 'Vazio'}<br>
-                            <strong>Pedido de Compra:</strong> ${detalhes.pedidoCompra || 'Vazio'}<br>
-                            <strong>Fornecedor:</strong> ${detalhes.fornecedor || 'Vazio'}<br>
-                            <strong>Tipo de Produto:</strong> ${detalhes.tipoDeProduto || 'Vazio'}<br>
-                            <strong>Produto:</strong> ${detalhes.produto || 'Vazio'}
-                        `;
-                    }
-
-                    dadosParaTabela.push([
-                        `<input type="checkbox" class="historico-checkbox" data-id="${doc.id}" data-restorable="${isRestorable}" data-details='${JSON.stringify(detalhes)}'>`,
-                        dataFormatada,
-                        acao.username || "Desconhecido",
-                        acaoDisplay,
-                        detalhesHTML
-                    ]);
-                });
+    function carregarHistorico() {
+        const q = query(collection(db, "historico-acoes"), orderBy("timestamp", "desc"));
+        onSnapshot(q, (snapshot) => {
+            if (dataTable) {
+                dataTable.destroy();
             }
 
-            if (historicoDataTable) {
-                historicoDataTable.destroy();
-            }
+            const dadosParaTabela = snapshot.docs.map(doc => {
+                const acao = doc.data();
+                let detalhes = acao.detalhes;
+                let senha = "N/A";
+                let dataCarga = "N/A";
+                let central = "N/A";
+                let cargas = "N/A";
+                let pedidoCompra = "N/A";
+                let fornecedor = "N/A";
+                let tipoDeProduto = "N/A";
+                let produto = "N/A";
+                // NOVO: Variável para Volumes
+                let volumes = "N/A";
 
-            historicoDataTable = $('#historicoTabela').DataTable({
+                if (acao.acao.includes("agendou uma nova carga") || acao.acao.includes("atualizou um agendamento") || acao.acao.includes("atualizou um rascunho")) {
+                    senha = detalhes.senha || "N/A";
+                    dataCarga = detalhes.data || "N/A";
+                    central = detalhes.central || "N/A";
+                    cargas = detalhes.cargas || "N/A";
+                    pedidoCompra = detalhes.pedidoCompra || "N/A";
+                    fornecedor = detalhes.fornecedor || "N/A";
+                    tipoDeProduto = detalhes.tipoDeProduto || "N/A";
+                    produto = detalhes.produto || "N/A";
+                    // NOVO: Atribuição do valor de Volumes
+                    volumes = detalhes.volumes || "N/A";
+                } else if (acao.acao.includes("excluiu múltiplos")) {
+                    const agendamentos = detalhes.agendamentos || [];
+                    const primeiraExclusao = agendamentos[0] || {};
+                    senha = agendamentos.length > 1 ? `${agendamentos.length} exclusões` : primeiraExclusao.senha || "N/A";
+                    dataCarga = primeiraExclusao.data || "N/A";
+                    central = primeiraExclusao.central || "N/A";
+                    cargas = primeiraExclusao.cargas || "N/A";
+                    pedidoCompra = primeiraExclusao.pedidoCompra || "N/A";
+                    fornecedor = primeiraExclusao.fornecedor || "N/A";
+                    tipoDeProduto = primeiraExclusao.tipoDeProduto || "N/A";
+                    produto = primeiraExclusao.produto || "N/A";
+                    // NOVO: Atribuição do valor de Volumes
+                    volumes = primeiraExclusao.volumes || "N/A";
+                }
+                
+                return [
+                    formatarDataHora(acao.timestamp),
+                    acao.username || "Desconhecido",
+                    acao.acao,
+                    senha,
+                    dataCarga,
+                    central,
+                    cargas,
+                    pedidoCompra,
+                    fornecedor,
+                    tipoDeProduto,
+                    produto,
+                    // NOVO: Adicionado o valor de Volumes
+                    volumes
+                ];
+            });
+
+            dataTable = $('#historicoTabela').DataTable({
                 data: dadosParaTabela,
                 columns: [
-                    { title: "<input type='checkbox' id='selectAllCheckbox'>" },
-                    { title: "Data" },
+                    { title: "Data/Hora" },
                     { title: "Usuário" },
                     { title: "Ação" },
-                    { title: "Detalhes" }
+                    { title: "Senha" },
+                    { title: "Data da Carga" },
+                    { title: "Central" },
+                    { title: "Cargas", className: "wrap-text" },
+                    { title: "Pedido de Compra", className: "wrap-text" },
+                    { title: "Fornecedor" },
+                    { title: "Tipo de Produto" },
+                    { title: "Produto" },
+                    // NOVO: Adicionado a coluna Volumes
+                    { title: "Volumes" }
                 ],
+                order: [[0, 'desc']],
                 paging: true,
+                pageLength: 20,
+                lengthMenu: [10, 20, 50, 100],
                 info: true,
-                order: [[1, 'desc']],
                 oLanguage: {
                     sEmptyTable: "Nenhuma ação registrada.",
                     sSearch: "Buscar:",
-                    sInfo: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                    sInfoEmpty: "Mostrando 0 a 0 de 0 registros"
-                }
-            });
-
-            $('#selectAllCheckbox').on('click', function() {
-                const isChecked = $(this).prop('checked');
-                $('.historico-checkbox').prop('checked', isChecked);
-                toggleButtons();
-            });
-
-            $(document).on('change', '.historico-checkbox', function() {
-                toggleButtons();
-            });
-
-        } catch (e) {
-            console.error("Erro ao carregar histórico: ", e);
-            carregandoEl.textContent = 'Ocorreu um erro ao carregar o histórico. Tente novamente mais tarde.';
-        }
-    }
-
-    function toggleButtons() {
-        const checkedCount = $('.historico-checkbox:checked').length;
-        const restoreButton = $('#restoreSelectedBtn');
-        const deleteButton = $('#deleteSelectedBtn');
-
-        if (checkedCount > 0) {
-            let hasRestorableItem = false;
-            $('.historico-checkbox:checked').each(function() {
-                if ($(this).data('restorable')) {
-                    hasRestorableItem = true;
-                }
-            });
-            restoreButton.toggleClass('visible', hasRestorableItem);
-            deleteButton.addClass('visible');
-        } else {
-            restoreButton.removeClass('visible');
-            deleteButton.removeClass('visible');
-        }
-    }
-
-    $('#restoreSelectedBtn').on('click', async () => {
-        const checkedItems = $('.historico-checkbox:checked');
-        if (checkedItems.length === 0) {
-            alert('Por favor, selecione pelo menos um item para restaurar.');
-            return;
-        }
-
-        const batch = writeBatch(db);
-        let restoredCount = 0;
-        let restoredDetails = [];
-        let canRestore = false;
-
-        for (const item of checkedItems) {
-            const isRestorable = $(item).data('restorable');
-            if (isRestorable) {
-                canRestore = true;
-                const details = $(item).data('details');
-                
-                let itemsToRestore = [];
-                if (Array.isArray(details.agendamentos)) {
-                    itemsToRestore = details.agendamentos;
-                } else if (typeof details === 'object' && details !== null && details.senha) {
-                    itemsToRestore.push(details);
-                }
-
-                for (const singleDetail of itemsToRestore) {
-                    if (singleDetail && singleDetail.senha) {
-                        const newRascunhoRef = doc(collection(db, "agendamentos-rascunho"));
-                        
-                        const newRascunhoData = {
-                            userId: currentUserUid,
-                            senha: singleDetail.senha || null,
-                            data: singleDetail.data || null,
-                            central: singleDetail.central || null,
-                            cargas: singleDetail.cargas || null,
-                            pedidoCompra: singleDetail.pedidoCompra || null,
-                            fornecedor: singleDetail.fornecedor || null,
-                            tipoDeProduto: singleDetail.tipoDeProduto || null,
-                            produto: singleDetail.produto || null,
-                            timestamp: new Date()
-                        };
-                        batch.set(newRascunhoRef, newRascunhoData);
-                        restoredDetails.push(newRascunhoData);
-                        restoredCount++;
+                    sInfo: "Mostrando _START_ até _END_ de _TOTAL_ registros",
+                    sLengthMenu: "Mostrar _MENU_ registros",
+                    sInfoEmpty: "Mostrando 0 até 0 de 0 registros",
+                    sInfoFiltered: "(filtrado de _MAX_ registros totais)",
+                    sZeroRecords: "Nenhum registro encontrado",
+                    oPaginate: {
+                        sFirst: "Primeiro",
+                        sLast: "Último",
+                        sNext: "Próximo",
+                        sPrevious: "Anterior"
                     }
                 }
-            }
-        }
-        
-        if (!canRestore) {
-             alert('Nenhum item selecionado pode ser restaurado. Apenas exclusões podem ser restauradas.');
-             return;
-        }
-
-        if (confirm(`Tem certeza que deseja restaurar ${restoredCount} agendamento(s) para os rascunhos?`)) {
-            try {
-                await batch.commit();
-                await adicionarHistorico(`restaurou ${restoredCount} agendamento(s) do histórico`, { agendamentos: restoredDetails });
-                alert(`${restoredCount} agendamento(s) restaurado(s) para os rascunhos com sucesso!`);
-            } catch (e) {
-                console.error("Erro ao restaurar agendamentos: ", e);
-                alert("Ocorreu um erro ao restaurar os agendamentos. Tente novamente.");
-            } finally {
-                carregarHistorico(currentUserUid);
-            }
-        }
-    });
-
-    $('#deleteSelectedBtn').on('click', async () => {
-        const checkedItems = $('.historico-checkbox:checked');
-        if (checkedItems.length === 0) {
-            alert('Por favor, selecione pelo menos um item para excluir.');
-            return;
-        }
-
-        if (confirm(`Tem certeza que deseja excluir permanentemente ${checkedItems.length} registro(s) do histórico?`)) {
-            const batch = writeBatch(db);
-            const deletedIds = [];
-            
-            checkedItems.each(function() {
-                const id = $(this).data('id');
-                const docRef = doc(db, "historico-acoes", id);
-                batch.delete(docRef);
-                deletedIds.push(id);
             });
-
-            try {
-                await batch.commit();
-                alert(`${deletedIds.length} registro(s) excluído(s) permanentemente do histórico.`);
-            } catch (e) {
-                console.error("Erro ao excluir registros do histórico: ", e);
-                alert("Ocorreu um erro ao excluir os registros. Tente novamente.");
-            } finally {
-                carregarHistorico(currentUserUid);
-            }
-        }
-    });
-
-    async function adicionarHistorico(acao, detalhes) {
-        if (!currentUserUid) {
-            console.error("Não foi possível adicionar ao histórico. Usuário não logado.");
-            return;
-        }
-        try {
-            await addDoc(collection(db, "historico-acoes"), {
-                userId: currentUserUid,
-                username: currentUserName,
-                acao: acao,
-                detalhes: detalhes,
-                timestamp: new Date()
-            });
-        } catch (e) {
-            console.error("Erro ao adicionar histórico: ", e);
-        }
+            document.getElementById("totalHistorico").textContent = snapshot.size;
+        });
     }
+
+    window.exportarPDF = () => {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('l', 'pt', 'a4');
+        // NOVO: Adicionado "Volumes" ao array de cabeçalhos
+        const headers = ["Data/Hora", "Usuário", "Ação", "Senha", "Data da Carga", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
+        const data = dataTable.rows({ search: 'applied' }).data().toArray();
+        doc.autoTable({
+            head: [headers],
+            body: data,
+            tableWidth: 'wrap',
+            styles: {
+                cellPadding: 4,
+                fontSize: 10,
+                valign: 'top',
+            },
+            headStyles: {
+                fillColor: [204, 0, 0],
+                textColor: 255,
+                fontStyle: 'bold',
+                halign: 'center'
+            }
+        });
+        doc.save('historico.pdf');
+    };
+
+    window.exportarExcel = () => {
+        // NOVO: Adicionado "Volumes" ao array de cabeçalhos
+        const headers = ["Data/Hora", "Usuário", "Ação", "Senha", "Data da Carga", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
+        const data = dataTable.rows({ search: 'applied' }).data().toArray();
+        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Histórico");
+        XLSX.writeFile(workbook, "historico.xlsx");
+    };
 </script>
 
 </body>
