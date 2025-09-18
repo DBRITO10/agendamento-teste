@@ -1000,8 +1000,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
             await navigator.clipboard.write([item]);
             alert('Dados copiados para a área de transferência com sucesso!');
         } catch (err) {
-            console.error('Erro ao copiar os dados:', err);
-            alert('Erro ao copiar os dados. Por favor, tente novamente.');
+                console.error('Erro ao copiar os dados:', err);
+                alert('Erro ao copiar os dados. Por favor, tente novamente.');
         }
     });
 
