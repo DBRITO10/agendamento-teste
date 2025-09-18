@@ -17,7 +17,6 @@
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
         thead th { background-color: #cc0000; color: white; }
-        /* Estilos da nova userBar */
         #userBar {
             background: #E6E6E6;
             padding: 10px;
@@ -41,6 +40,28 @@
             width: auto;
             flex-shrink: 0;
             margin-left: 10px;
+        }
+        .action-buttons-container {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .action-buttons-container button {
+            background-color: #d32f2f;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            display: none; /* Inicia oculto */
+        }
+        .action-buttons-container button.visible {
+            display: inline-block;
+        }
+        .action-buttons-container button:hover {
+            background-color: #b71c1c;
         }
     </style>
 </head>
@@ -69,10 +90,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
     <h1>Histórico de Ações</h1>
 </header>
 
+<div class="action-buttons-container">
+    <button id="restoreSelectedBtn">Restaurar Selecionados</button>
+    <button id="deleteSelectedBtn">Excluir Selecionados</button>
+</div>
+
 <div class="table-container">
     <table id="historicoTabela" class="display" style="width:100%">
         <thead>
             <tr>
+                <th><input type="checkbox" id="selectAllCheckbox"></th>
                 <th>Data</th>
                 <th>Usuário</th>
                 <th>Ação</th>
@@ -87,19 +114,22 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
 <script type="module">
     import { db, auth } from "./firebase-config.js";
-    import { collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { collection, query, where, getDocs, orderBy, doc, deleteDoc, addDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     let historicoDataTable = null;
     const carregandoEl = document.getElementById('carregando');
     let currentUserName = null;
+    let currentUserUid = null;
 
     onAuthStateChanged(auth, user => {
         if (user) {
+            currentUserUid = user.uid;
             currentUserName = localStorage.getItem("username") || user.email;
-            carregarHistorico(user.uid);
+            carregarHistorico(currentUserUid);
         } else {
             carregandoEl.textContent = "Você precisa estar logado para ver o histórico.";
+            window.location.href = "index.html";
         }
     });
 
@@ -116,7 +146,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
         try {
             const snapshot = await getDocs(q);
-            console.log("Documentos encontrados:", snapshot.docs.length); // Adicionado para depuração
             const dadosParaTabela = [];
             
             if (snapshot.empty) {
@@ -126,14 +155,25 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 snapshot.forEach(doc => {
                     const acao = doc.data();
                     const dataFormatada = new Date(acao.timestamp.seconds * 1000).toLocaleString('pt-BR');
-                    let detalhesHTML = '';
                     
-                    if (acao.acao.includes("excluiu um")) {
-                        detalhesHTML = `
-                            <strong>Senha:</strong> ${acao.detalhes.senha}<br>
-                            <strong>Central:</strong> ${acao.detalhes.central}<br>
-                            <strong>Cargas:</strong> ${acao.detalhes.cargas}<br>
-                            <strong>Fornecedor:</strong> ${acao.detalhes.fornecedor}
+                    let detalhesHTML = '';
+                    let isRestorable = false;
+                    
+                    // Verifica se a ação é uma exclusão para determinar se pode ser restaurada
+                    if (acao.acao.includes("excluiu um") || acao.acao.includes("excluiu múltiplos") || acao.acao.includes("moveu um agendamento para rascunho")) {
+                        isRestorable = true;
+                    }
+
+                    if (acao.acao.includes("excluiu um") || acao.acao.includes("moveu um")) {
+                         detalhesHTML = `
+                            <strong>Data:</strong> ${acao.detalhes.data || 'N/A'}<br>
+                            <strong>Senha:</strong> ${acao.detalhes.senha || 'N/A'}<br>
+                            <strong>Central:</strong> ${acao.detalhes.central || 'N/A'}<br>
+                            <strong>Cargas:</strong> ${acao.detalhes.cargas || 'N/A'}<br>
+                            <strong>Pedido de Compra:</strong> ${acao.detalhes.pedidoCompra || 'N/A'}<br>
+                            <strong>Fornecedor:</strong> ${acao.detalhes.fornecedor || 'N/A'}<br>
+                            <strong>Tipo de Produto:</strong> ${acao.detalhes.tipoDeProduto || 'N/A'}<br>
+                            <strong>Produto:</strong> ${acao.detalhes.produto || 'N/A'}
                         `;
                     } else if (acao.acao.includes("excluiu múltiplos")) {
                         detalhesHTML = "<ul>";
@@ -141,17 +181,26 @@ document.addEventListener("DOMContentLoaded", ()=>{
                             detalhesHTML += `<li>Senha: ${item.senha}, Central: ${item.central}, Fornecedor: ${item.fornecedor}</li>`;
                         });
                         detalhesHTML += "</ul>";
-                    } else if (acao.acao.includes("agendou")) {
-                         detalhesHTML = `
-                            <strong>Senha:</strong> ${acao.detalhes.senha}<br>
-                            <strong>Central:</strong> ${acao.detalhes.central}<br>
-                            <strong>Fornecedor:</strong> ${acao.detalhes.fornecedor}
+                    } else if (acao.acao.includes("agendou") && acao.acao !== "agendou uma nova carga (a partir de rascunho)") {
+                        detalhesHTML = `
+                            <strong>Data:</strong> ${acao.detalhes.data || 'N/A'}<br>
+                            <strong>Senha:</strong> ${acao.detalhes.senha || 'N/A'}<br>
+                            <strong>Central:</strong> ${acao.detalhes.central || 'N/A'}<br>
+                            <strong>Fornecedor:</strong> ${acao.detalhes.fornecedor || 'N/A'}
+                        `;
+                    } else if (acao.acao.includes("atualizou")) {
+                        detalhesHTML = `
+                            <strong>Data:</strong> ${acao.detalhes.data || 'N/A'}<br>
+                            <strong>Central:</strong> ${acao.detalhes.central || 'N/A'}<br>
+                            <strong>Fornecedor:</strong> ${acao.detalhes.fornecedor || 'N/A'}<br>
+                            <strong>Cargas:</strong> ${acao.detalhes.cargas || 'N/A'}
                         `;
                     } else {
                         detalhesHTML = `<span>N/A</span>`;
                     }
 
                     dadosParaTabela.push([
+                        `<input type="checkbox" class="historico-checkbox" data-id="${doc.id}" data-restorable="${isRestorable}" data-details='${JSON.stringify(acao.detalhes)}'>`,
                         dataFormatada,
                         acao.username || "Desconhecido",
                         acao.acao,
@@ -167,6 +216,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             historicoDataTable = $('#historicoTabela').DataTable({
                 data: dadosParaTabela,
                 columns: [
+                    { title: "<input type='checkbox' id='selectAllCheckbox'>" },
                     { title: "Data" },
                     { title: "Usuário" },
                     { title: "Ação" },
@@ -174,7 +224,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 ],
                 paging: true,
                 info: true,
-                order: [[0, 'desc']],
+                order: [[1, 'desc']],
                 oLanguage: {
                     sEmptyTable: "Nenhuma ação registrada.",
                     sSearch: "Buscar:",
@@ -182,9 +232,159 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     sInfoEmpty: "Mostrando 0 a 0 de 0 registros"
                 }
             });
+
+            // Adiciona evento de clique para o "Selecionar Todos"
+            $('#selectAllCheckbox').on('click', function() {
+                const isChecked = $(this).prop('checked');
+                $('.historico-checkbox').prop('checked', isChecked);
+                toggleButtons();
+            });
+
+            // Adiciona evento de mudança para os checkboxes individuais
+            $(document).on('change', '.historico-checkbox', function() {
+                toggleButtons();
+            });
+
         } catch (e) {
             console.error("Erro ao carregar histórico: ", e);
             carregandoEl.textContent = 'Ocorreu um erro ao carregar o histórico. Tente novamente mais tarde.';
+        }
+    }
+
+    // Função para mostrar ou esconder os botões de ação
+    function toggleButtons() {
+        const checkedCount = $('.historico-checkbox:checked').length;
+        const restoreButton = $('#restoreSelectedBtn');
+        const deleteButton = $('#deleteSelectedBtn');
+
+        if (checkedCount > 0) {
+            let hasRestorableItem = false;
+            $('.historico-checkbox:checked').each(function() {
+                if ($(this).data('restorable')) {
+                    hasRestorableItem = true;
+                }
+            });
+            restoreButton.toggleClass('visible', hasRestorableItem);
+            deleteButton.addClass('visible');
+        } else {
+            restoreButton.removeClass('visible');
+            deleteButton.removeClass('visible');
+        }
+    }
+
+    // Handler para o botão "Restaurar Selecionados"
+    $('#restoreSelectedBtn').on('click', async () => {
+        const checkedItems = $('.historico-checkbox:checked');
+        if (checkedItems.length === 0) {
+            alert('Por favor, selecione pelo menos um item para restaurar.');
+            return;
+        }
+
+        const batch = writeBatch(db);
+        let restoredCount = 0;
+        let restoredDetails = [];
+
+        for (const item of checkedItems) {
+            const details = $(item).data('details');
+            const id = $(item).data('id');
+            const isRestorable = $(item).data('restorable');
+
+            if (isRestorable) {
+                let itemsToRestore = [];
+                // Se for exclusão múltipla, os detalhes são um array
+                if (Array.isArray(details.agendamentos)) {
+                    itemsToRestore = details.agendamentos;
+                } else {
+                    // Senão, é um único item
+                    itemsToRestore.push(details);
+                }
+
+                for (const singleDetail of itemsToRestore) {
+                    const newRascunhoRef = doc(collection(db, "agendamentos-rascunho"));
+                    const newRascunhoData = {
+                        userId: currentUserUid,
+                        senha: singleDetail.senha,
+                        data: singleDetail.data || null,
+                        central: singleDetail.central,
+                        cargas: singleDetail.cargas,
+                        pedidoCompra: singleDetail.pedidoCompra,
+                        fornecedor: singleDetail.fornecedor,
+                        tipoDeProduto: singleDetail.tipoDeProduto,
+                        produto: singleDetail.produto,
+                        timestamp: new Date()
+                    };
+                    batch.set(newRascunhoRef, newRascunhoData);
+                    restoredDetails.push(newRascunhoData);
+                    restoredCount++;
+                }
+            }
+        }
+        
+        if (restoredCount === 0) {
+             alert('Nenhum item selecionado pode ser restaurado. Apenas exclusões podem ser restauradas.');
+             return;
+        }
+
+        if (confirm(`Tem certeza que deseja restaurar ${restoredCount} agendamento(s) para os rascunhos?`)) {
+            try {
+                await batch.commit();
+                await adicionarHistorico(`restaurou ${restoredCount} agendamento(s) do histórico`, { agendamentos: restoredDetails });
+                alert(`${restoredCount} agendamento(s) restaurado(s) para os rascunhos com sucesso!`);
+            } catch (e) {
+                console.error("Erro ao restaurar agendamentos: ", e);
+                alert("Ocorreu um erro ao restaurar os agendamentos. Tente novamente.");
+            } finally {
+                carregarHistorico(currentUserUid);
+            }
+        }
+    });
+
+    // Handler para o botão "Excluir Selecionados"
+    $('#deleteSelectedBtn').on('click', async () => {
+        const checkedItems = $('.historico-checkbox:checked');
+        if (checkedItems.length === 0) {
+            alert('Por favor, selecione pelo menos um item para excluir.');
+            return;
+        }
+
+        if (confirm(`Tem certeza que deseja excluir permanentemente ${checkedItems.length} registro(s) do histórico?`)) {
+            const batch = writeBatch(db);
+            const deletedIds = [];
+            
+            checkedItems.each(function() {
+                const id = $(this).data('id');
+                const docRef = doc(db, "historico-acoes", id);
+                batch.delete(docRef);
+                deletedIds.push(id);
+            });
+
+            try {
+                await batch.commit();
+                alert(`${deletedIds.length} registro(s) excluído(s) permanentemente do histórico.`);
+            } catch (e) {
+                console.error("Erro ao excluir registros do histórico: ", e);
+                alert("Ocorreu um erro ao excluir os registros. Tente novamente.");
+            } finally {
+                carregarHistorico(currentUserUid);
+            }
+        }
+    });
+
+    async function adicionarHistorico(acao, detalhes) {
+        if (!currentUserUid) {
+            console.error("Não foi possível adicionar ao histórico. Usuário não logado.");
+            return;
+        }
+        try {
+            await addDoc(collection(db, "historico-acoes"), {
+                userId: currentUserUid,
+                username: currentUserName,
+                acao: acao,
+                detalhes: detalhes,
+                timestamp: new Date()
+            });
+        } catch (e) {
+            console.error("Erro ao adicionar histórico: ", e);
         }
     }
 </script>
