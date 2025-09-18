@@ -54,21 +54,17 @@
         #exportButtons { margin-bottom: 15px; }
         #exportButtons button { display: inline-block; width: auto; margin-right: 10px; padding: 10px 20px; }
         #agendamentosTabela_filter { display: none; }
-        /* Estilos do filtro flutuante */
+        /* Estilos do filtro */
         .filter-button-text {
+            display: block;
             background: none;
             border: none;
             color: white;
             cursor: pointer;
             font-size: 14px;
             font-weight: bold;
-            margin-left: 5px;
             padding: 0;
-            position: absolute;
-            right: 5px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: auto;
+            margin-top: 5px; /* Adiciona um pequeno espaço entre o título e o filtro */
         }
         .filter-popup {
             position: absolute;
@@ -200,7 +196,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 <input type="date" class="data" required>
                 <input type="text" class="central" placeholder="Central" required>
                 <input type="text" class="cargas" placeholder="Cargas" required>
-                <input type="text" class="pedidoDeCompra" placeholder="Pedido de Compra" required>
+                <input type="text" class="pedidoCompra" placeholder="Pedido de Compra" required>
                 <input type="text" class="fornecedor" placeholder="Fornecedor" required>
                 <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
                 <input type="text" class="produto" placeholder="Produto" required>
@@ -249,14 +245,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
         <thead>
             <tr>
                 <th><input type="checkbox" id="selectAllCheckbox"></th>
-                <th>Senha <span class="filter-button-text">Filtrar</span></th>
-                <th>Data <span class="filter-button-text">Filtrar</span></th>
-                <th>Central <span class="filter-button-text">Filtrar</span></th>
-                <th>Cargas <span class="filter-button-text">Filtrar</span></th>
-                <th>Pedido de Compra <span class="filter-button-text">Filtrar</span></th>
-                <th>Fornecedor <span class="filter-button-text">Filtrar</span></th>
-                <th>Tipo de Produto <span class="filter-button-text">Filtrar</span></th>
-                <th>Produto <span class="filter-button-text">Filtrar</span></th>
+                <th>Senha <br><span class="filter-button-text">Filtrar</span></th>
+                <th>Data <br><span class="filter-button-text">Filtrar</span></th>
+                <th>Central <br><span class="filter-button-text">Filtrar</span></th>
+                <th>Cargas <br><span class="filter-button-text">Filtrar</span></th>
+                <th>Pedido de Compra <br><span class="filter-button-text">Filtrar</span></th>
+                <th>Fornecedor <br><span class="filter-button-text">Filtrar</span></th>
+                <th>Tipo de Produto <br><span class="filter-button-text">Filtrar</span></th>
+                <th>Produto <br><span class="filter-button-text">Filtrar</span></th>
                 <th>Ações</th>
             </tr>
         </thead>
@@ -324,7 +320,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     <input type="date" class="data" required>
                     <input type="text" class="central" placeholder="Central" required>
                     <input type="text" class="cargas" placeholder="Cargas" required>
-                    <input type="text" class="pedidoDeCompra" placeholder="Pedido de Compra" required>
+                    <input type="text" class="pedidoCompra" placeholder="Pedido de Compra" required>
                     <input type="text" class="fornecedor" placeholder="Fornecedor" required>
                     <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
                     <input type="text" class="produto" placeholder="Produto" required>
@@ -353,6 +349,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 data: item.querySelector('.data').value || null,
                 central: central,
                 cargas: carga,
+                pedidoCompra: item.querySelector('.pedidoCompra').value,
                 fornecedor: item.querySelector('.fornecedor').value,
                 tipoDeProduto: item.querySelector('.tipoDeProduto').value,
                 produto: item.querySelector('.produto').value
@@ -381,6 +378,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         data: carga.data,
                         central: carga.central,
                         cargas: carga.cargas,
+                        pedidoCompra: carga.pedidoCompra,
                         fornecedor: carga.fornecedor,
                         tipoDeProduto: carga.tipoDeProduto,
                         produto: carga.produto,
@@ -420,7 +418,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     `<input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}">`,
                     rascunho.senha || "Não Definida",
                     rascunho.cargas || "Não definido",
-                    rascunho.pedidoDeCompra || "Não definido",
+                    rascunho.pedidoCompra || "Não definido",
                     rascunho.data || "Não definida",
                     rascunho.central || "Não definido",
                     rascunho.fornecedor || "Não definido",
@@ -496,6 +494,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 cargaItems[0].querySelector('.data').value = dados.data;
                 cargaItems[0].querySelector('.central').value = dados.central;
                 cargaItems[0].querySelector('.cargas').value = dados.cargas;
+                cargaItems[0].querySelector('.pedidoCompra').value = dados.pedidoCompra;
                 cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
                 cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
                 cargaItems[0].querySelector('.produto').value = dados.produto;
@@ -528,13 +527,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
             const values = [
                 rowData[1], // Senha
                 rowData[2], // Cargas
-                rowData[3], // Data
-                rowData[4], // Central
-                rowData[5], // Fornecedor
-                rowData[6], // Tipo de Produto
-                rowData[7], // Produto
-                rowData[8], // Pedido de Compra 
-                ];
+                rowData[3], // Pedido de Compra
+                rowData[4], // Data
+                rowData[5], // Central
+                rowData[6], // Fornecedor
+                rowData[7], // Tipo de Produto
+                rowData[8], // Produto
+            ];
             plainTextContent += values.join('\t') + '\n';
             
             htmlContent += '<tr>';
@@ -620,6 +619,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         senha: data.senha || "N/A",
                         central: data.central || "N/A",
                         cargas: data.cargas || "N/A",
+                        pedidoCompra: data.pedidoCompra || "N/A",
                         fornecedor: data.fornecedor || "N/A"
                     });
                     batch.delete(docRef);
@@ -657,6 +657,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     agendamento.data,
                     agendamento.central,
                     agendamento.cargas,
+                    agendamento.pedidoCompra,
                     agendamento.fornecedor,
                     agendamento.tipoDeProduto,
                     agendamento.produto,
@@ -672,6 +673,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     { title: "Data" },
                     { title: "Central" },
                     { title: "Cargas" },
+                    { title: "Pedido de Compra" },
                     { title: "Fornecedor" },
                     { title: "Tipo de Produto" },
                     { title: "Produto" },
@@ -703,9 +705,18 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const columnIndex = dataTable.column($(this).closest('th')).index();
         const columnData = dataTable.column(columnIndex, { search: 'applied' }).data().unique().sort();
         
-        let popupHtml = '<div><label><input type="radio" name="filter-radio" value="" checked> Todos</label></div>';
+        let popupHtml = `
+            <div style="padding: 10px; border-bottom: 1px solid #ddd;">
+                <label><input type="checkbox" id="selectAllFilter"> Todos</label>
+            </div>
+        `;
         columnData.each(value => {
-            popupHtml += `<div><label><input type="radio" name="filter-radio" value="${value}"> ${value}</label></div>`;
+            const isChecked = dataTable.column(columnIndex).search().includes(value);
+            popupHtml += `
+                <div style="padding: 5px;">
+                    <label><input type="checkbox" class="filter-checkbox" value="${value}" ${isChecked ? 'checked' : ''}> ${value}</label>
+                </div>
+            `;
         });
         
         filterPopupContainer.innerHTML = popupHtml;
@@ -717,15 +728,30 @@ document.addEventListener("DOMContentLoaded", ()=>{
         activeColumnIndex = columnIndex;
     });
 
-    $(document).on('change', '.filter-popup input', function () {
-        const value = $(this).val();
-        dataTable.column(activeColumnIndex).search(value).draw();
-        if (activeFilterButton) {
-            activeFilterButton.text(value ? 'APLICADO' : 'Filtrar');
-        }
-        filterPopupContainer.classList.remove('filter-popup');
-        filterPopupContainer.innerHTML = '';
+    $(document).on('change', '#selectAllFilter', function () {
+        const isChecked = $(this).prop('checked');
+        $('.filter-checkbox').prop('checked', isChecked);
+        applyFilter();
     });
+
+    $(document).on('change', '.filter-checkbox', function () {
+        const allChecked = $('.filter-checkbox:checked').length === $('.filter-checkbox').length;
+        $('#selectAllFilter').prop('checked', allChecked);
+        applyFilter();
+    });
+
+    function applyFilter() {
+        const selectedValues = $('.filter-checkbox:checked').map(function() {
+            return $.fn.dataTable.util.escapeRegex(this.value);
+        }).get();
+        
+        const filterRegex = selectedValues.join('|');
+        dataTable.column(activeColumnIndex).search(filterRegex, true, false).draw();
+        
+        if (activeFilterButton) {
+            activeFilterButton.text(selectedValues.length > 0 ? 'APLICADO' : 'Filtrar');
+        }
+    }
 
     $(document).on('click', function (e) {
         if (!$(e.target).closest('.filter-popup').length && !$(e.target).hasClass('filter-button-text')) {
@@ -753,6 +779,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 data: data,
                 central: central,
                 cargas: carga,
+                pedidoCompra: item.querySelector('.pedidoCompra').value,
                 fornecedor: item.querySelector('.fornecedor').value,
                 tipoDeProduto: item.querySelector('.tipoDeProduto').value,
                 produto: item.querySelector('.produto').value
@@ -773,6 +800,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     data: cargas[0].data,
                     central: cargas[0].central,
                     cargas: cargas[0].cargas,
+                    pedidoCompra: cargas[0].pedidoCompra,
                     fornecedor: cargas[0].fornecedor,
                     tipoDeProduto: cargas[0].tipoDeProduto,
                     produto: cargas[0].produto,
@@ -841,6 +869,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 cargaItems[0].querySelector('.data').value = dados.data;
                 cargaItems[0].querySelector('.central').value = dados.central;
                 cargaItems[0].querySelector('.cargas').value = dados.cargas;
+                cargaItems[0].querySelector('.pedidoCompra').value = dados.pedidoCompra;
                 cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
                 cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
                 cargaItems[0].querySelector('.produto').value = dados.produto;
@@ -862,6 +891,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         senha: data.senha || "N/A",
                         central: data.central || "N/A",
                         cargas: data.cargas || "N/A",
+                        pedidoCompra: data.pedidoCompra || "N/A",
                         fornecedor: data.fornecedor || "N/A"
                     });
                     alert("Agendamento excluído com sucesso.");
@@ -876,15 +906,15 @@ document.addEventListener("DOMContentLoaded", ()=>{
     window.exportarPDF = () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8)); // Exclude checkbox and actions columns
+        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
+        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 9)); // Exclude checkbox and actions columns
         doc.autoTable({ head: [headers], body: data });
         doc.save('agendamentos.pdf');
     };
 
     window.exportarExcel = () => {
-        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8)); // Exclude checkbox and actions columns
+        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
+        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 9)); // Exclude checkbox and actions columns
         const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Agendamentos");
@@ -946,7 +976,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             return;
         }
         
-        const headers = ["Senha", "Data", "Central", "Cargas", "Fornecedor", "Tipo de Produto", "Produto"];
+        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
         let plainTextContent = headers.join('\t') + '\n';
 
         let htmlContent = '<table style="width:100%; border-collapse: collapse; margin-top: 20px;">';
@@ -963,9 +993,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 rowData[2], // Data
                 rowData[3], // Central
                 rowData[4], // Cargas
-                rowData[5], // Fornecedor
-                rowData[6], // Tipo de Produto
-                rowData[7], // Produto
+                rowData[5], // Pedido de Compra
+                rowData[6], // Fornecedor
+                rowData[7], // Tipo de Produto
+                rowData[8], // Produto
             ];
             plainTextContent += values.join('\t') + '\n';
             
@@ -988,8 +1019,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
             await navigator.clipboard.write([item]);
             alert('Dados copiados para a área de transferência com sucesso!');
         } catch (err) {
-            console.error('Erro ao copiar os dados:', err);
-            alert('Erro ao copiar os dados. Por favor, tente novamente.');
+                console.error('Erro ao copiar os dados:', err);
+                alert('Erro ao copiar os dados. Por favor, tente novamente.');
         }
     });
 
@@ -1015,6 +1046,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         senha: data.senha || "N/A",
                         central: data.central || "N/A",
                         cargas: data.cargas || "N/A",
+                        pedidoCompra: data.pedidoCompra || "N/A",
                         fornecedor: data.fornecedor || "N/A"
                     });
                     batch.delete(docRef);
