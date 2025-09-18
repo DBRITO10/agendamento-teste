@@ -55,8 +55,8 @@
         #exportButtons button { display: inline-block; width: auto; margin-right: 10px; padding: 10px 20px; }
         
         /* Estilos do filtro */
-        .filter-button-text {
-            display: block; /* Garante que o botão ocupe sua própria linha */
+        table.dataTable thead .filter-button-text {
+            display: block !important;
             background: none;
             border: none;
             color: white;
@@ -149,6 +149,26 @@
         #rascunhos-buttons button {
             width: auto;
             margin-bottom: 0;
+            display: inline-block;
+        }
+        
+        /* Novas regras para o layout da lista de agendamentos */
+        div.dataTables_wrapper {
+            max-width: 100%;
+            overflow-x: auto; /* Garante que a tabela role se for muito larga */
+        }
+        div.dataTables_wrapper div.dataTables_filter {
+            text-align: right;
+            margin-bottom: 10px;
+        }
+        div.dataTables_wrapper div.dataTables_filter label {
+            width: 100%;
+            max-width: 250px;
+            text-align: left;
+            display: inline-block;
+        }
+        div.dataTables_wrapper div.dataTables_filter input {
+            width: calc(100% - 60px); /* Ajusta a largura para caber no container */
             display: inline-block;
         }
     </style>
