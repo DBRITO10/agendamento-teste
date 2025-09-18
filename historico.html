@@ -156,13 +156,33 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     const acao = doc.data();
                     const dataFormatada = new Date(acao.timestamp.seconds * 1000).toLocaleString('pt-BR');
                     
-                    let detalhesHTML = '';
+                    let acaoDisplay = acao.acao;
                     let isRestorable = false;
                     
                     const detalhes = acao.detalhes || {};
 
-                    if (acao.acao.includes("excluiu um") || acao.acao.includes("moveu um agendamento para rascunho")) {
-                         isRestorable = true;
+                    if (acao.acao.includes("excluiu")) {
+                        acaoDisplay = "Excluiu";
+                        isRestorable = true;
+                    } else if (acao.acao.includes("moveu um agendamento para rascunho")) {
+                        acaoDisplay = "Moveu para Rascunho";
+                        isRestorable = true;
+                    } else if (acao.acao.includes("agendou")) {
+                        acaoDisplay = "Agendou";
+                    } else if (acao.acao.includes("restaurou")) {
+                         acaoDisplay = "Restaurou";
+                    } else if (acao.acao.includes("atualizou")) {
+                        acaoDisplay = "Atualizou";
+                    }
+
+                    let detalhesHTML = '';
+                    if (isRestorable && Array.isArray(detalhes.agendamentos)) {
+                        detalhesHTML = "<ul>";
+                        detalhes.agendamentos.forEach(item => {
+                            detalhesHTML += `<li>Senha: ${item.senha}, Central: ${item.central}, Fornecedor: ${item.fornecedor}</li>`;
+                        });
+                        detalhesHTML += "</ul>";
+                    } else if (isRestorable) {
                          detalhesHTML = `
                             <strong>Data:</strong> ${detalhes.data || 'N/A'}<br>
                             <strong>Senha:</strong> ${detalhes.senha || 'N/A'}<br>
@@ -173,19 +193,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
                             <strong>Tipo de Produto:</strong> ${detalhes.tipoDeProduto || 'N/A'}<br>
                             <strong>Produto:</strong> ${detalhes.produto || 'N/A'}
                         `;
-                    } else if (acao.acao.includes("excluiu múltiplos") && Array.isArray(detalhes.agendamentos)) {
-                        isRestorable = true;
-                        detalhesHTML = "<ul>";
-                        detalhes.agendamentos.forEach(item => {
-                            detalhesHTML += `<li>Senha: ${item.senha}, Central: ${item.central}, Fornecedor: ${item.fornecedor}</li>`;
-                        });
-                        detalhesHTML += "</ul>";
-                    } else if (acao.acao.includes("agendou") || acao.acao.includes("atualizou")) {
+                    } else if (detalhes.senha) {
                         detalhesHTML = `
                             <strong>Data:</strong> ${detalhes.data || 'N/A'}<br>
+                            <strong>Senha:</strong> ${detalhes.senha || 'N/A'}<br>
                             <strong>Central:</strong> ${detalhes.central || 'N/A'}<br>
-                            <strong>Fornecedor:</strong> ${detalhes.fornecedor || 'N/A'}<br>
-                            <strong>Senha:</strong> ${detalhes.senha || 'N/A'}
+                            <strong>Fornecedor:</strong> ${detalhes.fornecedor || 'N/A'}
                         `;
                     } else {
                         detalhesHTML = `<span>N/A</span>`;
@@ -195,7 +208,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         `<input type="checkbox" class="historico-checkbox" data-id="${doc.id}" data-restorable="${isRestorable}" data-details='${JSON.stringify(detalhes)}'>`,
                         dataFormatada,
                         acao.username || "Desconhecido",
-                        acao.acao,
+                        acaoDisplay,
                         detalhesHTML
                     ]);
                 });
