@@ -657,16 +657,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         checkedRows.each(function() {
             const rowData = rascunhosDataTable.row(this).data();
-            const values = [
-                rowData[1],
-                rowData[2],
-                rowData[3],
-                $(rowData[4]).text().trim(),
-                $(rowData[5]).text().trim(),
-                rowData[6],
-                rowData[7],
-                rowData[8],
-            ];
+            const values = [];
+            for (let i = 1; i < rowData.length; i++) {
+                values.push($('<div>').html(rowData[i]).text().trim());
+            }
+            
             plainTextContent += values.join('\t') + '\n';
             
             htmlContent += '<tr>';
@@ -1195,16 +1190,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         checkedRows.each(function() {
             const rowData = dataTable.row(this).data();
-            const values = [
-                rowData[1],
-                rowData[2],
-                rowData[3],
-                $(rowData[4]).text().trim(),
-                $(rowData[5]).text().trim(),
-                rowData[6],
-                rowData[7],
-                rowData[8],
-            ];
+            const values = [];
+            for (let i = 1; i < rowData.length; i++) {
+                values.push($('<div>').html(rowData[i]).text().trim());
+            }
+
             plainTextContent += values.join('\t') + '\n';
             
             htmlContent += '<tr>';
