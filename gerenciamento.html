@@ -1219,6 +1219,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
             }
         }
     });
+
+    // Garante que o modal esteja sempre oculto ao carregar a página
+    $(document).ready(function() {
+        $('#filter-modal').hide();
+    });
 </script>
 
 </body>
