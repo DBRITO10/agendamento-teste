@@ -56,14 +56,24 @@
         
         /* Estilos do filtro */
         .filter-button {
-            background: none;
-            border: none;
+            background: #d32f2f; /* Cor de fundo para o botão de filtro */
             color: white;
-            cursor: pointer;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
             font-size: 14px;
             font-weight: bold;
-            padding: 0;
-            margin-top: 5px; 
+            cursor: pointer;
+            margin-top: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Sombra para indicar clicável */
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        .filter-button:hover {
+            background-color: #b71c1c; /* Escurece no hover */
+        }
+        .filter-button.filtered {
+            background-color: #007bff; /* Azul para indicar que o filtro está aplicado */
+            box-shadow: 0 2px 6px rgba(0, 123, 255, 0.4);
         }
 
         .filter-popup {
@@ -837,6 +847,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
         
         if (activeFilterButton) {
             activeFilterButton.text(selectedValues.length > 0 ? 'APLICADO' : 'Filtrar');
+            if (selectedValues.length > 0) {
+                 activeFilterButton.addClass('filtered');
+            } else {
+                 activeFilterButton.removeClass('filtered');
+            }
         }
 
         $('#filter-modal').hide();
@@ -848,6 +863,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         
         if (activeFilterButton) {
             activeFilterButton.text('Filtrar');
+            activeFilterButton.removeClass('filtered');
         }
         
         $('#filter-modal').hide();
