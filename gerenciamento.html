@@ -645,61 +645,39 @@ document.addEventListener("DOMContentLoaded", ()=>{
             return;
         }
 
-        // Crie uma tabela HTML completa com estilos inline
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
-        const headerHtml = headers.map(h => `<th style="border: 1px solid #ddd; padding: 8px; text-align: left; background: #cc0000; color: white;">${h}</th>`).join('');
+        let plainTextContent = headers.join('\t') + '\n';
         
-        const plainTextContent = [
-            headers.join('\t'),
-            ...checkedRows.map(function() {
-                const rowData = rascunhosDataTable.row(this).data();
-                return [
-                    String(rowData[1]).replace(/<br>/g, ' ').trim(),
-                    String(rowData[2]).replace(/<br>/g, ' ').trim(),
-                    String(rowData[3]).replace(/<br>/g, ' ').trim(),
-                    String(rowData[4]).replace(/<br>/g, ' ').trim(),
-                    String(rowData[5]).replace(/<br>/g, ' ').trim(),
-                    String(rowData[6]).replace(/<br>/g, ' ').trim(),
-                    String(rowData[7]).replace(/<br>/g, ' ').trim(),
-                    String(rowData[8]).replace(/<br>/g, ' ').trim(),
-                ].join('\t');
-            }).get()
-        ].join('\n');
-        
-        const bodyHtml = checkedRows.map(function() {
+        let htmlContent = '<table style="width:100%; border-collapse: collapse; margin-top: 20px;">';
+        htmlContent += '<thead><tr style="background: #cc0000; color: white;">';
+        headers.forEach(header => {
+            htmlContent += `<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${header}</th>`;
+        });
+        htmlContent += '</tr></thead><tbody>';
+
+        checkedRows.each(function() {
             const rowData = rascunhosDataTable.row(this).data();
             const values = [
-                String(rowData[1]).trim(),
-                String(rowData[2]).trim(),
-                String(rowData[3]).trim(),
-                String(rowData[4]).trim(),
-                String(rowData[5]).trim(),
-                String(rowData[6]).trim(),
-                String(rowData[7]).trim(),
-                String(rowData[8]).trim(),
+                rowData[1],
+                rowData[2],
+                rowData[3],
+                $(rowData[4]).text().trim(),
+                $(rowData[5]).text().trim(),
+                rowData[6],
+                rowData[7],
+                rowData[8],
             ];
-            const cellsHtml = values.map(v => `<td style="border: 1px solid #ddd; padding: 8px; text-align: left; white-space: normal;">${v}</td>`).join('');
-            return `<tr>${cellsHtml}</tr>`;
-        }).get().join('');
+            plainTextContent += values.join('\t') + '\n';
+            
+            htmlContent += '<tr>';
+            values.forEach(value => {
+                htmlContent += `<td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${value}</td>`;
+            });
+            htmlContent += '</tr>';
+        });
 
-        const htmlContent = `
-            <style>
-                body { font-family: Arial, sans-serif; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                thead th { background: #cc0000; color: white; font-weight: bold; }
-                .wrap-text { white-space: normal; }
-            </style>
-            <table>
-                <thead>
-                    <tr>${headerHtml}</tr>
-                </thead>
-                <tbody>
-                    ${bodyHtml}
-                </tbody>
-            </table>
-        `;
-        
+        htmlContent += '</tbody></table>';
+
         try {
             const blobHtml = new Blob([htmlContent], { type: 'text/html' });
             const blobPlain = new Blob([plainTextContent], { type: 'text/plain' });
@@ -1092,55 +1070,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
     window.exportarPDF = () => {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('p', 'pt', 'a4');
+        const doc = new jsPDF();
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
-            return [
-                String(row[1]).replace(/<br>/g, ' ').trim(),
-                String(row[2]).replace(/<br>/g, ' ').trim(),
-                String(row[3]).replace(/<br>/g, ' ').trim(),
-                String(row[4]).replace(/<br>/g, ' ').trim(),
-                String(row[5]).replace(/<br>/g, ' ').trim(),
-                String(row[6]).replace(/<br>/g, ' ').trim(),
-                String(row[7]).replace(/<br>/g, ' ').trim(),
-                String(row[8]).replace(/<br>/g, ' ').trim(),
-            ];
-        });
-        
-        doc.autoTable({
-            head: [headers],
-            body: data,
-            tableWidth: 'wrap',
-            styles: {
-                cellPadding: 4,
-                fontSize: 10,
-                valign: 'top',
-            },
-            headStyles: {
-                fillColor: [204, 0, 0],
-                textColor: 255,
-                fontStyle: 'bold',
-                halign: 'center'
-            }
-        });
-
+        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8));
+        doc.autoTable({ head: [headers], body: data });
         doc.save('agendamentos.pdf');
     };
 
     window.exportarExcel = () => {
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
-            return [
-                String(row[1]).replace(/<br>/g, ' ').trim(),
-                String(row[2]).replace(/<br>/g, ' ').trim(),
-                String(row[3]).replace(/<br>/g, ' ').trim(),
-                String(row[4]).replace(/<br>/g, ' ').trim(),
-                String(row[5]).replace(/<br>/g, ' ').trim(),
-                String(row[6]).replace(/<br>/g, ' ').trim(),
-                String(row[7]).replace(/<br>/g, ' ').trim(),
-                String(row[8]).replace(/<br>/g, ' ').trim(),
-            ];
-        });
+        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8));
         const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Agendamentos");
@@ -1205,52 +1144,39 @@ document.addEventListener("DOMContentLoaded", ()=>{
             return;
         }
         
-        // Obtenha os cabeçalhos da tabela e prepare o texto plano
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
-        const plainTextContent = [
-            headers.join('\t'),
-            ...checkedRows.map(function() {
-                const rowData = dataTable.row(this).data();
-                return [
-                    String(rowData[1]).replace(/<br>/g, ' ').trim(),
-                    String(rowData[2]).replace(/<br>/g, ' ').trim(),
-                    String(rowData[3]).replace(/<br>/g, ' ').trim(),
-                    String(rowData[4]).replace(/<br>/g, ' ').trim(),
-                    String(rowData[5]).replace(/<br>/g, ' ').trim(),
-                    String(rowData[6]).replace(/<br>/g, ' ').trim(),
-                    String(rowData[7]).replace(/<br>/g, ' ').trim(),
-                    String(rowData[8]).replace(/<br>/g, ' ').trim(),
-                ].join('\t');
-            }).get()
-        ].join('\n');
+        let plainTextContent = headers.join('\t') + '\n';
 
-        // Crie uma tabela HTML com estilos inline para copiar
-        const headerHtml = headers.map(h => `<th style="border: 1px solid #ddd; padding: 8px; text-align: left; background: #cc0000; color: white;">${h}</th>`).join('');
-        const bodyHtml = checkedRows.map(function() {
-            const cellsHtml = $(this).find('td').map(function() {
-                return `<td style="border: 1px solid #ddd; padding: 8px; text-align: left; white-space: normal;">${$(this).html()}</td>`;
-            }).get().slice(1).join(''); // Pula o primeiro TD que é o checkbox
-            return `<tr>${cellsHtml}</tr>`;
-        }).get().join('');
+        let htmlContent = '<table style="width:100%; border-collapse: collapse; margin-top: 20px;">';
+        htmlContent += '<thead><tr style="background: #cc0000; color: white;">';
+        headers.forEach(header => {
+            htmlContent += `<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">${header}</th>`;
+        });
+        htmlContent += '</tr></thead><tbody>';
 
-        const htmlContent = `
-            <style>
-                body { font-family: Arial, sans-serif; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                thead th { background: #cc0000; color: white; font-weight: bold; }
-                .wrap-text { white-space: normal; }
-            </style>
-            <table>
-                <thead>
-                    <tr>${headerHtml}</tr>
-                </thead>
-                <tbody>
-                    ${bodyHtml}
-                </tbody>
-            </table>
-        `;
-        
+        checkedRows.each(function() {
+            const rowData = dataTable.row(this).data();
+            const values = [
+                rowData[1],
+                rowData[2],
+                rowData[3],
+                $(rowData[4]).text().trim(),
+                $(rowData[5]).text().trim(),
+                rowData[6],
+                rowData[7],
+                rowData[8],
+            ];
+            plainTextContent += values.join('\t') + '\n';
+            
+            htmlContent += '<tr>';
+            values.forEach(value => {
+                htmlContent += `<td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${value}</td>`;
+            });
+            htmlContent += '</tr>';
+        });
+
+        htmlContent += '</tbody></table>';
+
         try {
             const blobHtml = new Blob([htmlContent], { type: 'text/html' });
             const blobPlain = new Blob([plainTextContent], { type: 'text/plain' });
