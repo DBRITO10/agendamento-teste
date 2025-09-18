@@ -192,11 +192,13 @@
             height: 100%; 
             overflow: auto; 
             background-color: rgba(0,0,0,0.4); 
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .modal-content {
             background-color: #fefefe;
-            margin: 15% auto;
             padding: 20px;
             border: 1px solid #888;
             width: 80%;
@@ -209,12 +211,20 @@
             max-height: 250px;
             overflow-y: auto;
             margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
         }
 
         #filter-modal-content label {
-            display: block;
+            display: flex;
+            align-items: center;
             margin: 5px 0;
             cursor: pointer;
+        }
+
+        #filter-modal-content label input {
+            margin-right: 10px; /* Espaço entre o checkbox e o texto */
+            width: auto;
         }
 
         #filter-modal-buttons {
@@ -270,6 +280,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
     <h2>Adicionar/Editar Agendamento</h2>
     <form id="agendamentoForm">
         <input type="hidden" id="editRascunhoId">
+        <input type="hidden" id="editAgendamentoId">
+        <input type="hidden" id="originalSenha">
         <input type="number" id="numCargas" placeholder="Número de cargas" min="1" value="1" required>
         <div id="cargasHeader">
             <span>Data</span>
@@ -374,6 +386,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
     const form = document.getElementById('agendamentoForm');
     const editRascunhoIdInput = document.getElementById('editRascunhoId');
+    const editAgendamentoIdInput = document.getElementById('editAgendamentoId');
+    const originalSenhaInput = document.getElementById('originalSenha');
     const numCargasInput = document.getElementById('numCargas');
     const cargasContainer = document.getElementById('cargasContainer');
     const rascunhosTabela = document.getElementById('rascunhosTabela');
@@ -390,6 +404,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
     let rascunhosDataTable = null;
     let currentUserUid = null;
     let currentUserName = null;
+
+    function resetFormState() {
+        form.reset();
+        numCargasInput.value = 1;
+        numCargasInput.dispatchEvent(new Event('input'));
+        editRascunhoIdInput.value = '';
+        editAgendamentoIdInput.value = '';
+        originalSenhaInput.value = '';
+        salvarBtn.textContent = "Salvar Agendamento";
+    }
 
     onAuthStateChanged(auth, user => {
         if (user) {
@@ -437,9 +461,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
             alert("Sua sessão expirou. Por favor, faça login novamente.");
             return;
         }
+
+        const editAgendamentoId = editAgendamentoIdInput.value;
         const cargas = [];
         const cargaItems = document.querySelectorAll('.carga-item');
         let formIncomplete = false;
+
         cargaItems.forEach(item => {
             const central = item.querySelector('.central').value;
             const carga = item.querySelector('.cargas').value;
@@ -461,41 +488,56 @@ document.addEventListener("DOMContentLoaded", ()=>{
             alert("Por favor, preencha pelo menos os campos Central e Cargas.");
             return;
         }
-        const contadorRef = doc(db, "metadados", "contador");
+
         try {
-            await runTransaction(db, async (transaction) => {
-                const contadorDoc = await transaction.get(contadorRef);
-                let ultimaSenha = 0;
-                if (contadorDoc.exists()) {
-                    ultimaSenha = contadorDoc.data().ultima_senha;
-                }
-                
-                const rascunhoRefs = [];
-                for (const carga of cargas) {
-                    ultimaSenha++;
-                    const newRascunho = {
+            if (editAgendamentoId) {
+                // Scenario: move definitive appointment to draft
+                if (confirm("Você está editando um agendamento definitivo. Deseja movê-lo para a lista de rascunhos?")) {
+                    const batch = writeBatch(db);
+                    const agendamentoRef = doc(db, "agendamentos", editAgendamentoId);
+                    const originalSenha = originalSenhaInput.value;
+                    const rascunhoData = {
                         userId: currentUserUid,
-                        senha: ultimaSenha,
-                        data: carga.data,
-                        central: carga.central,
-                        cargas: carga.cargas,
-                        pedidoCompra: carga.pedidoCompra,
-                        fornecedor: carga.fornecedor,
-                        tipoDeProduto: carga.tipoDeProduto,
-                        produto: carga.produto,
+                        senha: originalSenha,
+                        ...cargas[0],
                         timestamp: new Date()
                     };
-                    const newDocRef = doc(collection(db, "agendamentos-rascunho"));
-                    transaction.set(newDocRef, newRascunho);
-                    rascunhoRefs.push(newDocRef.id);
+                    
+                    const newRascunhoRef = doc(collection(db, "agendamentos-rascunho"));
+                    batch.delete(agendamentoRef);
+                    batch.set(newRascunhoRef, rascunhoData);
+                    
+                    await batch.commit();
+                    await adicionarHistorico("moveu um agendamento para rascunho", { senha: originalSenha });
+                    alert('Agendamento movido para rascunho com sucesso!');
+                    resetFormState();
                 }
-                transaction.update(contadorRef, { ultima_senha: ultimaSenha });
-
-            });
-            alert('Agendamento(s) salvo(s) como rascunho!');
-            form.reset();
-            numCargasInput.value = 1;
-            numCargasInput.dispatchEvent(new Event('input'));
+            } else {
+                // Scenario: save new form data as draft
+                const contadorRef = doc(db, "metadados", "contador");
+                await runTransaction(db, async (transaction) => {
+                    const contadorDoc = await transaction.get(contadorRef);
+                    let ultimaSenha = 0;
+                    if (contadorDoc.exists()) {
+                        ultimaSenha = contadorDoc.data().ultima_senha;
+                    }
+                    
+                    for (const carga of cargas) {
+                        ultimaSenha++;
+                        const newRascunho = {
+                            userId: currentUserUid,
+                            senha: ultimaSenha,
+                            ...carga,
+                            timestamp: new Date()
+                        };
+                        const newDocRef = doc(collection(db, "agendamentos-rascunho"));
+                        transaction.set(newDocRef, newRascunho);
+                    }
+                    transaction.update(contadorRef, { ultima_senha: ultimaSenha });
+                });
+                alert('Agendamento(s) salvo(s) como rascunho!');
+                resetFormState();
+            }
         } catch (e) {
             console.error("Erro ao salvar rascunho: ", e);
             alert('Erro ao salvar rascunho. Tente novamente.');
@@ -600,9 +642,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
                 cargaItems[0].querySelector('.produto').value = dados.produto;
             }
-
-            salvarBtn.textContent = "Atualizar Rascunho";
+            
             editRascunhoIdInput.value = rascunhoId;
+            editAgendamentoIdInput.value = '';
+            salvarBtn.textContent = "Atualizar Rascunho";
         }
     });
 
@@ -879,9 +922,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
+        const rascunhoId = editRascunhoIdInput.value;
+        const agendamentoId = editAgendamentoIdInput.value;
+
         const cargaItems = document.querySelectorAll('.carga-item');
-        let formIncomplete = false;
         const cargas = [];
+        let formIncomplete = false;
         
         cargaItems.forEach(item => {
             const data = item.querySelector('.data').value;
@@ -901,29 +947,41 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 produto: item.querySelector('.produto').value
             });
         });
-        
-        const rascunhoId = editRascunhoIdInput.value;
+
+        if (formIncomplete) {
+            alert("Por favor, preencha pelo menos os campos Data, Central e Cargas.");
+            return;
+        }
+
         if (rascunhoId) {
             // Editando um rascunho existente
             const rascunhoRef = doc(db, "agendamentos-rascunho", rascunhoId);
             try {
                 await updateDoc(rascunhoRef, { 
-                    data: cargas[0].data,
-                    central: cargas[0].central,
-                    cargas: cargas[0].cargas,
-                    pedidoCompra: cargas[0].pedidoCompra,
-                    fornecedor: cargas[0].fornecedor,
-                    tipoDeProduto: cargas[0].tipoDeProduto,
-                    produto: cargas[0].produto,
+                    ...cargas[0],
                     timestamp: new Date() 
                 });
                 alert("Rascunho atualizado com sucesso!");
                 await adicionarHistorico("atualizou um rascunho", { ...cargas[0] });
-                editRascunhoIdInput.value = "";
-                salvarBtn.textContent = "Salvar Agendamento";
+                resetFormState();
             } catch (e) {
                 console.error("Erro ao atualizar rascunho: ", e);
                 alert("Ocorreu um erro ao atualizar o rascunho. Tente novamente.");
+            }
+        } else if (agendamentoId) {
+            // Atualizando um agendamento definitivo
+            const agendamentoRef = doc(db, "agendamentos", agendamentoId);
+            try {
+                await updateDoc(agendamentoRef, { 
+                    ...cargas[0],
+                    timestamp: new Date() 
+                });
+                alert("Agendamento atualizado com sucesso!");
+                await adicionarHistorico("atualizou um agendamento definitivo", { ...cargas[0] });
+                resetFormState();
+            } catch (e) {
+                console.error("Erro ao atualizar agendamento: ", e);
+                alert("Ocorreu um erro ao atualizar o agendamento. Tente novamente.");
             }
         } else {
             // Criando um novo agendamento definitivo
@@ -953,16 +1011,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     await adicionarHistorico("agendou uma nova carga", { ...carga });
                 }
                 alert("Agendamentos salvos com sucesso!");
+                resetFormState();
 
             } catch (e) {
                 console.error("Erro ao gerar senhas e salvar agendamentos: ", e);
                 alert("Ocorreu um erro ao salvar. Tente novamente.");
             }
         }
-        
-        form.reset();
-        numCargasInput.value = 1;
-        numCargasInput.dispatchEvent(new Event('input'));
     });
 
     $(document).on('click', '.edit', async function () {
@@ -985,6 +1040,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
                 cargaItems[0].querySelector('.produto').value = dados.produto;
             }
+            editAgendamentoIdInput.value = id;
+            originalSenhaInput.value = dados.senha;
+            editRascunhoIdInput.value = '';
             salvarBtn.textContent = "Atualizar Agendamento";
         }
     });
