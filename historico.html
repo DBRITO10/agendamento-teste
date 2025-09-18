@@ -46,8 +46,6 @@
         table { width: 100%; border-collapse: collapse; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
         thead th { background: #cc0000; color: white; }
-        #exportButtons { margin-bottom: 15px; }
-        #exportButtons button { display: inline-block; width: auto; margin-right: 10px; padding: 10px 20px; }
         footer {
             text-align: center;
             margin-top: 20px;
@@ -82,10 +80,6 @@
 </header>
 
 <div class="table-container">
-    <div id="exportButtons">
-        <button onclick="exportarExcel()">Exportar Excel</button>
-        <button onclick="exportarPDF()">Exportar PDF</button>
-    </div>
     <table id="historicoTabela" class="display" style="width:100%">
         <thead>
             <tr>
@@ -101,6 +95,7 @@
                 <th>Tipo de Produto</th>
                 <th>Produto</th>
                 <th>Volumes</th>
+                <th>Ações</th>
             </tr>
         </thead>
         <tbody>
@@ -114,7 +109,7 @@
 
 <script type="module">
     import { db, auth } from "./firebase-config.js";
-    import { collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { collection, onSnapshot, query, orderBy, doc, deleteDoc, runTransaction, getDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     let dataTable = null;
@@ -152,6 +147,7 @@
 
             const dadosParaTabela = snapshot.docs.map(doc => {
                 const acao = doc.data();
+                const acaoId = doc.id;
                 let detalhes = acao.detalhes;
                 let senha = "N/A";
                 let dataCarga = "N/A";
@@ -161,10 +157,12 @@
                 let fornecedor = "N/A";
                 let tipoDeProduto = "N/A";
                 let produto = "N/A";
-                // NOVO: Variável para Volumes
                 let volumes = "N/A";
+                
+                let originalDocId = detalhes.id || null;
+                let originalCollection = null;
 
-                if (acao.acao.includes("agendou uma nova carga") || acao.acao.includes("atualizou um agendamento") || acao.acao.includes("atualizou um rascunho")) {
+                if (acao.acao.includes("agendou uma nova carga")) {
                     senha = detalhes.senha || "N/A";
                     dataCarga = detalhes.data || "N/A";
                     central = detalhes.central || "N/A";
@@ -173,8 +171,21 @@
                     fornecedor = detalhes.fornecedor || "N/A";
                     tipoDeProduto = detalhes.tipoDeProduto || "N/A";
                     produto = detalhes.produto || "N/A";
-                    // NOVO: Atribuição do valor de Volumes
                     volumes = detalhes.volumes || "N/A";
+                    originalCollection = "agendamentos";
+
+                } else if (acao.acao.includes("atualizou um agendamento")) {
+                    senha = detalhes.senha || "N/A";
+                    dataCarga = detalhes.data || "N/A";
+                    central = detalhes.central || "N/A";
+                    cargas = detalhes.cargas || "N/A";
+                    pedidoCompra = detalhes.pedidoCompra || "N/A";
+                    fornecedor = detalhes.fornecedor || "N/A";
+                    tipoDeProduto = detalhes.tipoDeProduto || "N/A";
+                    produto = detalhes.produto || "N/A";
+                    volumes = detalhes.volumes || "N/A";
+                    originalCollection = "agendamentos";
+                
                 } else if (acao.acao.includes("excluiu múltiplos")) {
                     const agendamentos = detalhes.agendamentos || [];
                     const primeiraExclusao = agendamentos[0] || {};
@@ -186,10 +197,45 @@
                     fornecedor = primeiraExclusao.fornecedor || "N/A";
                     tipoDeProduto = primeiraExclusao.tipoDeProduto || "N/A";
                     produto = primeiraExclusao.produto || "N/A";
-                    // NOVO: Atribuição do valor de Volumes
                     volumes = primeiraExclusao.volumes || "N/A";
-                }
+                    originalDocId = null; // Ação de exclusão não tem um ID único para restaurar
+                    
+                } else if (acao.acao.includes("salvou um agendamento")) {
+                    senha = detalhes.senha || "N/A";
+                    dataCarga = detalhes.data || "N/A";
+                    central = detalhes.central || "N/A";
+                    cargas = detalhes.cargas || "N/A";
+                    pedidoCompra = detalhes.pedidoCompra || "N/A";
+                    fornecedor = detalhes.fornecedor || "N/A";
+                    tipoDeProduto = detalhes.tipoDeProduto || "N/A";
+                    produto = detalhes.produto || "N/A";
+                    volumes = detalhes.volumes || "N/A";
+                    originalCollection = "agendamentos-rascunho";
                 
+                } else if (acao.acao.includes("atualizou um rascunho")) {
+                    senha = detalhes.senha || "N/A";
+                    dataCarga = detalhes.data || "N/A";
+                    central = detalhes.central || "N/A";
+                    cargas = detalhes.cargas || "N/A";
+                    pedidoCompra = detalhes.pedidoCompra || "N/A";
+                    fornecedor = detalhes.fornecedor || "N/A";
+                    tipoDeProduto = detalhes.tipoDeProduto || "N/A";
+                    produto = detalhes.produto || "N/A";
+                    volumes = detalhes.volumes || "N/A";
+                    originalCollection = "agendamentos-rascunho";
+                }
+
+                let acoes = `
+                    <div style="display: flex; gap: 5px; justify-content: center;">
+                        <button onclick="restaurarRascunho('${acaoId}')" style="background-color:#ff9933; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer;">Restaurar</button>
+                        <button onclick="excluirPermanentemente('${acaoId}')" style="background-color:#d32f2f; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer;">Excluir</button>
+                    </div>
+                `;
+
+                if (acao.acao.includes("excluiu")) {
+                    acoes = "Ações não disponíveis";
+                }
+
                 return [
                     formatarDataHora(acao.timestamp),
                     acao.username || "Desconhecido",
@@ -202,8 +248,8 @@
                     fornecedor,
                     tipoDeProduto,
                     produto,
-                    // NOVO: Adicionado o valor de Volumes
-                    volumes
+                    volumes,
+                    acoes
                 ];
             });
 
@@ -221,8 +267,8 @@
                     { title: "Fornecedor" },
                     { title: "Tipo de Produto" },
                     { title: "Produto" },
-                    // NOVO: Adicionado a coluna Volumes
-                    { title: "Volumes" }
+                    { title: "Volumes" },
+                    { title: "Ações" }
                 ],
                 order: [[0, 'desc']],
                 paging: true,
@@ -249,39 +295,124 @@
         });
     }
 
-    window.exportarPDF = () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('l', 'pt', 'a4');
-        // NOVO: Adicionado "Volumes" ao array de cabeçalhos
-        const headers = ["Data/Hora", "Usuário", "Ação", "Senha", "Data da Carga", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray();
-        doc.autoTable({
-            head: [headers],
-            body: data,
-            tableWidth: 'wrap',
-            styles: {
-                cellPadding: 4,
-                fontSize: 10,
-                valign: 'top',
-            },
-            headStyles: {
-                fillColor: [204, 0, 0],
-                textColor: 255,
-                fontStyle: 'bold',
-                halign: 'center'
-            }
-        });
-        doc.save('historico.pdf');
-    };
+    async function buscarDocumentoOriginal(dadosHistorico) {
+        const { senha, data, central, cargas, pedidoCompra } = dadosHistorico;
+        const agendamentosRef = collection(db, "agendamentos");
+        const rascunhosRef = collection(db, "agendamentos-rascunho");
 
-    window.exportarExcel = () => {
-        // NOVO: Adicionado "Volumes" ao array de cabeçalhos
-        const headers = ["Data/Hora", "Usuário", "Ação", "Senha", "Data da Carga", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray();
-        const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Histórico");
-        XLSX.writeFile(workbook, "historico.xlsx");
+        // Tentar encontrar na coleção de agendamentos
+        const qAgendamentos = query(agendamentosRef, 
+            where("senha", "==", senha),
+            where("data", "==", data),
+            where("central", "==", central),
+            where("cargas", "==", cargas),
+            where("pedidoCompra", "==", pedidoCompra));
+        
+        const snapshotAgendamentos = await getDocs(qAgendamentos);
+        if (!snapshotAgendamentos.empty) {
+            return { id: snapshotAgendamentos.docs[0].id, data: snapshotAgendamentos.docs[0].data(), collection: "agendamentos" };
+        }
+
+        // Se não encontrar, tentar na coleção de rascunhos
+        const qRascunhos = query(rascunhosRef, 
+            where("senha", "==", senha),
+            where("data", "==", data),
+            where("central", "==", central),
+            where("cargas", "==", cargas),
+            where("pedidoCompra", "==", pedidoCompra));
+        
+        const snapshotRascunhos = await getDocs(qRascunhos);
+        if (!snapshotRascunhos.empty) {
+            return { id: snapshotRascunhos.docs[0].id, data: snapshotRascunhos.docs[0].data(), collection: "agendamentos-rascunho" };
+        }
+
+        return null; // Não encontrou o documento original
+    }
+
+    window.excluirPermanentemente = async (acaoId) => {
+        if (!confirm("Tem certeza que deseja excluir este registro? Esta ação é irreversível.")) {
+            return;
+        }
+
+        const acaoRef = doc(db, "historico-acoes", acaoId);
+        const acaoSnap = await getDoc(acaoRef);
+        if (!acaoSnap.exists()) {
+            alert("Registro de histórico não encontrado.");
+            return;
+        }
+        
+        const acaoData = acaoSnap.data();
+        const detalhes = acaoData.detalhes;
+        
+        try {
+            const docOriginal = await buscarDocumentoOriginal(detalhes);
+            if (!docOriginal) {
+                alert("O agendamento original não foi encontrado para ser excluído. Apenas o registro do histórico será removido.");
+            } else {
+                await deleteDoc(doc(db, docOriginal.collection, docOriginal.id));
+                alert("Agendamento original e registro de histórico excluídos com sucesso!");
+            }
+            await deleteDoc(acaoRef);
+        } catch (e) {
+            console.error("Erro ao excluir permanentemente: ", e);
+            alert("Ocorreu um erro ao excluir o registro. Tente novamente.");
+        }
+    };
+    
+    window.restaurarRascunho = async (acaoId) => {
+        if (!confirm("Tem certeza que deseja restaurar este registro para a lista de rascunhos?")) {
+            return;
+        }
+
+        const acaoRef = doc(db, "historico-acoes", acaoId);
+        const acaoSnap = await getDoc(acaoRef);
+        if (!acaoSnap.exists()) {
+            alert("Registro de histórico não encontrado.");
+            return;
+        }
+
+        const acaoData = acaoSnap.data();
+        const detalhes = acaoData.detalhes;
+        
+        try {
+            const docOriginal = await buscarDocumentoOriginal(detalhes);
+            if (docOriginal && docOriginal.collection === "agendamentos") {
+                const batch = writeBatch(db);
+                batch.set(doc(collection(db, "agendamentos-rascunho")), docOriginal.data);
+                batch.delete(doc(db, "agendamentos", docOriginal.id));
+                await batch.commit();
+                alert("Agendamento restaurado para a lista de rascunhos com sucesso!");
+            } else if (docOriginal && docOriginal.collection === "agendamentos-rascunho") {
+                alert("Este agendamento já está na lista de rascunhos. Nenhuma ação necessária.");
+            } else {
+                // Se não encontrou o original, cria um novo rascunho a partir dos dados do histórico
+                await runTransaction(db, async (transaction) => {
+                    const contadorRef = doc(db, "metadados", "contador");
+                    const contadorDoc = await transaction.get(contadorRef);
+                    let ultimaSenha = 0;
+                    if (contadorDoc.exists()) {
+                        ultimaSenha = contadorDoc.data().ultima_senha;
+                    }
+                    ultimaSenha++;
+                    
+                    const newRascunho = {
+                        userId: acaoData.userId,
+                        senha: ultimaSenha,
+                        ...detalhes,
+                        timestamp: new Date()
+                    };
+                    delete newRascunho.id;
+                    
+                    const newDocRef = doc(collection(db, "agendamentos-rascunho"));
+                    transaction.set(newDocRef, newRascunho);
+                    transaction.update(contadorRef, { ultima_senha: ultimaSenha });
+                });
+                alert("Agendamento restaurado para a lista de rascunhos com sucesso! Uma nova senha foi gerada.");
+            }
+        } catch (e) {
+            console.error("Erro ao restaurar para rascunho: ", e);
+            alert("Ocorreu um erro ao restaurar o registro. Tente novamente.");
+        }
     };
 </script>
 
