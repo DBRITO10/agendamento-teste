@@ -495,20 +495,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 if (confirm("Você está editando um agendamento definitivo. Deseja movê-lo para a lista de rascunhos?")) {
                     const batch = writeBatch(db);
                     const agendamentoRef = doc(db, "agendamentos", editAgendamentoId);
-                    const originalSenha = originalSenhaInput.value;
-                    const rascunhoData = {
-                        userId: currentUserUid,
-                        senha: originalSenha,
-                        ...cargas[0],
-                        timestamp: new Date()
-                    };
+                    const docSnap = await getDoc(agendamentoRef);
+                    
+                    const agendamentoData = docSnap.exists() ? docSnap.data() : {};
                     
                     const newRascunhoRef = doc(collection(db, "agendamentos-rascunho"));
                     batch.delete(agendamentoRef);
-                    batch.set(newRascunhoRef, rascunhoData);
+                    batch.set(newRascunhoRef, { ...agendamentoData, timestamp: new Date() });
                     
                     await batch.commit();
-                    await adicionarHistorico("moveu um agendamento para rascunho", { senha: originalSenha });
+                    await adicionarHistorico("moveu um agendamento para rascunho", agendamentoData);
                     alert('Agendamento movido para rascunho com sucesso!');
                     resetFormState();
                 }
