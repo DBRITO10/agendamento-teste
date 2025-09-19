@@ -85,6 +85,7 @@
             height: 100%; 
             overflow: auto; 
             background-color: rgba(0,0,0,0.4); 
+            display: flex;
             align-items: center;
             justify-content: center;
         }
@@ -645,6 +646,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             }
             
             editRascunhoIdInput.value = rascunhoId;
+            originalSenhaInput.value = dados.senha || '';
             editAgendamentoIdInput.value = '';
             salvarBtn.textContent = "Atualizar Rascunho";
         }
@@ -1027,12 +1029,20 @@ document.addEventListener("DOMContentLoaded", ()=>{
         if (rascunhoId) {
             const rascunhoRef = doc(db, "agendamentos-rascunho", rascunhoId);
             try {
+                const rascunhoSnap = await getDoc(rascunhoRef);
+                const rascunhoData = rascunhoSnap.exists() ? rascunhoSnap.data() : null;
+
+                const rascunhoParaHistorico = {
+                    senha: rascunhoData ? rascunhoData.senha : null,
+                    ...cargas[0]
+                };
+
                 await updateDoc(rascunhoRef, { 
                     ...cargas[0],
                     timestamp: new Date() 
                 });
                 alert("Rascunho atualizado com sucesso!");
-                await adicionarHistorico("atualizou um rascunho", { ...cargas[0] });
+                await adicionarHistorico("atualizou um rascunho", rascunhoParaHistorico);
                 resetFormState();
             } catch (e) {
                 console.error("Erro ao atualizar rascunho: ", e);
@@ -1098,10 +1108,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const doc = new jsPDF();
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
         const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
-            const newRow = [...row];
-            const volumes = newRow.splice(5, 1)[0]; // Remove Volumes da posição original
-            newRow.push(volumes); // Adiciona no final
-            return newRow.slice(1);
+            const rowData = [...row];
+            const volumes = rowData.splice(9, 1)[0];
+            return [...rowData.slice(1), volumes];
         });
         doc.autoTable({ head: [headers], body: data });
         doc.save('agendamentos.pdf');
@@ -1110,10 +1119,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
     window.exportarExcel = () => {
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
         const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
-            const newRow = [...row];
-            const volumes = newRow.splice(5, 1)[0];
-            newRow.push(volumes);
-            return newRow.slice(1);
+            const rowData = [...row];
+            const volumes = rowData.splice(9, 1)[0];
+            return [...rowData.slice(1), volumes];
         });
         const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
         const workbook = XLSX.utils.book_new();
@@ -1271,7 +1279,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     });
 
+    $(document).ready(function() {
+        $('#filter-modal').hide();
+    });
+
 </script>
 
 </body>
-    </html>
+</html>
