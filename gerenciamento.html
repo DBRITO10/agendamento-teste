@@ -753,14 +753,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     deletedDetails.push({
-                        senha: data.senha || "N/A",
-                        data: data.data || "N/A", // Adicionado para enviar para o histórico
-                        central: data.central || "N/A",
-                        cargas: data.cargas || "N/A",
-                        pedidoCompra: data.pedidoCompra || "N/A",
-                        fornecedor: data.fornecedor || "N/A",
-                        tipoDeProduto: data.tipoDeProduto || "N/A", // Adicionado
-                        produto: data.produto || "N/A" // Adicionado
+                        senha: data.senha || null,
+                        data: data.data || null,
+                        central: data.central || null,
+                        cargas: data.cargas || null,
+                        pedidoCompra: data.pedidoCompra || null,
+                        fornecedor: data.fornecedor || null,
+                        tipoDeProduto: data.tipoDeProduto || null,
+                        produto: data.produto || null
                     });
                     batch.delete(docRef);
                 }
@@ -876,7 +876,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         }
                     });
 
-                    // Load saved filter from local storage
                     const savedFilter = localStorage.getItem('datatableFilter');
                     if (savedFilter) {
                         try {
@@ -924,7 +923,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const currentSearchArray = currentSearch ? currentSearch.substring(0, currentSearch.length - 1).split('|') : [];
 
         columnData.each(value => {
-            const cleanedValue = $('<div>').html(value).text().trim(); // Limpa o HTML da quebra de linha
+            const cleanedValue = $('<div>').html(value).text().trim();
             const isChecked = currentSearchArray.includes($.fn.dataTable.util.escapeRegex(cleanedValue));
             filterModalContent.append(`<div><label><input type="checkbox" class="filter-checkbox" value="${cleanedValue}" ${isChecked ? 'checked' : ''}> ${cleanedValue}</label></div>`);
         });
@@ -1028,12 +1027,17 @@ document.addEventListener("DOMContentLoaded", ()=>{
         } else if (agendamentoId) {
             const agendamentoRef = doc(db, "agendamentos", agendamentoId);
             try {
+                const agendamentoParaHistorico = {
+                    senha: originalSenhaInput.value,
+                    ...cargas[0]
+                };
+                
                 await updateDoc(agendamentoRef, { 
                     ...cargas[0],
                     timestamp: new Date() 
                 });
                 alert("Agendamento atualizado com sucesso!");
-                await adicionarHistorico("atualizou um agendamento definitivo", { ...cargas[0] });
+                await adicionarHistorico("atualizou um agendamento definitivo", agendamentoParaHistorico);
                 resetFormState();
             } catch (e) {
                 console.error("Erro ao atualizar agendamento: ", e);
@@ -1195,7 +1199,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             alert('Dados copiados para a área de transferência com sucesso!');
         } catch (err) {
                 console.error('Erro ao copiar os dados:', err);
-                alert('Erro ao copiar os dados. Por favor, tente novamente.');
+                alert('Erro ao copiar os dados. Tente novamente.');
         }
     });
 
@@ -1241,11 +1245,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     });
 
-    // Garante que o modal esteja sempre oculto ao carregar a página
-    $(document).ready(function() {
-        $('#filter-modal').hide();
-    });
 </script>
 
 </body>
-</html>
+    </html>
