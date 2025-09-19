@@ -238,6 +238,55 @@
         .wrap-text {
             white-space: normal;
         }
+
+        /* Novo estilo para o modal de texto */
+        #text-modal {
+            display: none;
+            position: fixed;
+            z-index: 1002;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+
+        #text-modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        #text-modal-content p {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .truncate-cell {
+            cursor: pointer;
+            color: #007bff;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -369,6 +418,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
             <button id="apply-filter-btn">Aplicar Filtro</button>
             <button id="clear-filter-btn">Desfazer Filtro</button>
         </div>
+    </div>
+</div>
+
+<div id="text-modal" class="modal">
+    <div class="modal-content" id="text-modal-content">
+        <span class="close-modal">&times;</span>
+        <p id="full-text"></p>
     </div>
 </div>
 
@@ -547,6 +603,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     });
 
+    function truncateText(text, maxLength = 100) {
+        if (!text || text.length <= maxLength) {
+            return text;
+        }
+        return text.substring(0, maxLength) + '...';
+    }
+
     function carregarRascunhos() {
         if (!currentUserUid) {
             return;
@@ -560,15 +623,19 @@ document.addEventListener("DOMContentLoaded", ()=>{
             const dadosParaTabela = [];
             snapshot.forEach(doc => {
                 const rascunho = doc.data();
-                const formattedCargas = rascunho.cargas ? rascunho.cargas.replace(/ /g, '<br>') : "Não definido";
-                const formattedPedidoCompra = rascunho.pedidoCompra ? rascunho.pedidoCompra.replace(/ /g, '<br>') : "Não definido";
+                const cargasFull = rascunho.cargas || "Não definido";
+                const pedidoCompraFull = rascunho.pedidoCompra || "Não definido";
+
+                const cargasTruncated = truncateText(cargasFull, 20);
+                const pedidoCompraTruncated = truncateText(pedidoCompraFull, 20);
+
                 dadosParaTabela.push([
                     `<input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}">`,
                     rascunho.senha || "Não Definida",
                     formatDateToDDMMYYYY(rascunho.data),
                     rascunho.central || "Não definido",
-                    formattedCargas,
-                    formattedPedidoCompra,
+                    `<span class="truncate-cell" data-full-text="${cargasFull}">${cargasTruncated}</span>`,
+                    `<span class="truncate-cell" data-full-text="${pedidoCompraFull}">${pedidoCompraTruncated}</span>`,
                     rascunho.fornecedor || "Não definido",
                     rascunho.tipoDeProduto || "Não definido",
                     rascunho.produto || "Não definido",
@@ -600,6 +667,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
             });
         });
     }
+
+    $(document).on('click', '.truncate-cell', function() {
+        const fullText = $(this).data('full-text');
+        $('#full-text').text(fullText);
+        $('#text-modal').css('display', 'flex');
+    });
+
+    $('.close-modal').on('click', function() {
+        $('#text-modal').hide();
+    });
     
     $(document).on('change', '.rascunho-checkbox', function() {
         toggleRascunhoButtons();
@@ -679,14 +756,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
             const rowData = rascunhosDataTable.row(this).data();
             const values = [
                 rowData[1],
-                $('<div>').html(rowData[2]).text().trim(),
-                $('<div>').html(rowData[3]).text().trim(),
-                $('<div>').html(rowData[4]).text().trim(),
-                $('<div>').html(rowData[5]).text().trim(),
-                $('<div>').html(rowData[6]).text().trim(),
-                $('<div>').html(rowData[7]).text().trim(),
-                $('<div>').html(rowData[8]).text().trim(),
-                $('<div>').html(rowData[9]).text().trim(),
+                $(rowData[2]).text().trim(),
+                $(rowData[3]).text().trim(),
+                $(rowData[4]).data('full-text'), 
+                $(rowData[5]).data('full-text'),
+                $(rowData[6]).text().trim(),
+                $(rowData[7]).text().trim(),
+                $(rowData[8]).text().trim(),
+                $(rowData[9]).text().trim()
             ];
             plainTextContent += values.join('\t') + '\n';
             
@@ -739,7 +816,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         const newDocRef = doc(collection(db, "agendamentos"));
                         batch.set(newDocRef, { ...rascunhoData, timestamp: new Date() });
                         batch.delete(docRef);
-                        await adicionarHistorico("agendou uma nova carga (a partir de rascunho)", { id: newDocRef.id, ...rascunhoData });
                     }
                 }
                 
@@ -849,16 +925,19 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
             const dadosParaTabela = [];
             agendamentos.forEach(agendamento => {
-                const formattedCargas = agendamento.cargas ? agendamento.cargas.replace(/ /g, '<br>') : "Não definido";
-                const formattedPedidoCompra = agendamento.pedidoCompra ? agendamento.pedidoCompra.replace(/ /g, '<br>') : "Não definido";
+                const cargasFull = agendamento.cargas || "Não definido";
+                const pedidoCompraFull = agendamento.pedidoCompra || "Não definido";
+
+                const cargasTruncated = truncateText(cargasFull, 20);
+                const pedidoCompraTruncated = truncateText(pedidoCompraFull, 20);
                 
                 dadosParaTabela.push([
                     `<input type="checkbox" class="row-checkbox" data-id="${agendamento.id}">`,
                     agendamento.senha,
                     formatDateToDDMMYYYY(agendamento.data),
                     agendamento.central,
-                    formattedCargas,
-                    formattedPedidoCompra,
+                    `<span class="truncate-cell" data-full-text="${cargasFull}">${cargasTruncated}</span>`,
+                    `<span class="truncate-cell" data-full-text="${pedidoCompraFull}">${pedidoCompraTruncated}</span>`,
                     agendamento.fornecedor,
                     agendamento.tipoDeProduto,
                     agendamento.produto,
@@ -1095,10 +1174,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     transaction.update(contadorRef, { ultima_senha: ultimaSenha });
                     return savedCargas;
                 });
-
-                for (const carga of result) {
-                    await adicionarHistorico("agendou uma nova carga", { ...carga });
-                }
                 alert("Agendamentos salvos com sucesso!");
                 resetFormState();
 
@@ -1113,26 +1188,47 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('landscape');
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
-            const rowData = [...row];
-            const plainTextData = rowData.slice(1, 10).map(cell => {
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = cell;
-                return tempDiv.textContent || tempDiv.innerText || "";
-            });
+        const data = dataTable.rows({ search: 'applied' }).nodes().to$().map(row => {
+            const rowData = dataTable.row(row).data();
+            const fullCargas = $(rowData[4]).data('full-text') || $(rowData[4]).text();
+            const fullPedidoCompra = $(rowData[5]).data('full-text') || $(rowData[5]).text();
+            
+            const plainTextData = [
+                $(rowData[1]).text(),
+                $(rowData[2]).text(),
+                $(rowData[3]).text(),
+                fullCargas,
+                fullPedidoCompra,
+                $(rowData[6]).text(),
+                $(rowData[7]).text(),
+                $(rowData[8]).text(),
+                $(rowData[9]).text()
+            ];
             return plainTextData;
-        });
+        }).get();
         doc.autoTable({ head: [headers], body: data });
         doc.save('agendamentos.pdf');
     };
 
     window.exportarExcel = () => {
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
-            const rowData = [...row];
-            const volumes = rowData.splice(9, 1)[0];
-            return [...rowData.slice(1), volumes];
-        });
+        const data = dataTable.rows({ search: 'applied' }).nodes().to$().map(row => {
+            const rowData = dataTable.row(row).data();
+            const fullCargas = $(rowData[4]).data('full-text') || $(rowData[4]).text();
+            const fullPedidoCompra = $(rowData[5]).data('full-text') || $(rowData[5]).text();
+
+            return [
+                $(rowData[1]).text(),
+                $(rowData[2]).text(),
+                $(rowData[3]).text(),
+                fullCargas,
+                fullPedidoCompra,
+                $(rowData[6]).text(),
+                $(rowData[7]).text(),
+                $(rowData[8]).text(),
+                $(rowData[9]).text()
+            ];
+        }).get();
         const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Agendamentos");
@@ -1209,16 +1305,19 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         checkedRows.each(function() {
             const rowData = dataTable.row(this).data();
+            const fullCargas = $(rowData[4]).data('full-text') || $(rowData[4]).text();
+            const fullPedidoCompra = $(rowData[5]).data('full-text') || $(rowData[5]).text();
+
             const values = [
-                rowData[1],
-                $('<div>').html(rowData[2]).text().trim(),
-                $('<div>').html(rowData[3]).text().trim(),
-                $('<div>').html(rowData[4]).text().trim(),
-                $('<div>').html(rowData[5]).text().trim(),
-                $('<div>').html(rowData[6]).text().trim(),
-                $('<div>').html(rowData[7]).text().trim(),
-                $('<div>').html(rowData[8]).text().trim(),
-                $('<div>').html(rowData[9]).text().trim(),
+                $(rowData[1]).text(),
+                $(rowData[2]).text(),
+                $(rowData[3]).text(),
+                fullCargas,
+                fullPedidoCompra,
+                $(rowData[6]).text(),
+                $(rowData[7]).text(),
+                $(rowData[8]).text(),
+                $(rowData[9]).text()
             ];
             plainTextContent += values.join('\t') + '\n';
             
@@ -1291,6 +1390,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
     $(document).ready(function() {
         $('#filter-modal').hide();
+        $('#text-modal').hide();
     });
 
 </script>
