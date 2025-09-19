@@ -85,7 +85,6 @@
             height: 100%; 
             overflow: auto; 
             background-color: rgba(0,0,0,0.4); 
-            display: flex;
             align-items: center;
             justify-content: center;
         }
@@ -280,6 +279,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             <span>Fornecedor</span>
             <span>Tipo de Produto</span>
             <span>Produto</span>
+            <span>Volumes</span>
         </div>
         <div id="cargasContainer">
             <div class="carga-item">
@@ -290,6 +290,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 <input type="text" class="fornecedor" placeholder="Fornecedor" required>
                 <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
                 <input type="text" class="produto" placeholder="Produto" required>
+                <input type="text" class="volumes" placeholder="Volumes">
             </div>
         </div>
         <button type="submit" id="salvarBtn">Salvar Agendamento</button>
@@ -316,6 +317,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     <th>Fornecedor</th>
                     <th>Tipo de Produto</th>
                     <th>Produto</th>
+                    <th>Volumes</th>
                 </tr>
             </thead>
             <tbody>
@@ -345,6 +347,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     <th>Fornecedor</th>
                     <th>Tipo de Produto</th>
                     <th>Produto</th>
+                    <th>Volumes</th>
                 </tr>
             </thead>
             <tbody>
@@ -438,6 +441,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     <input type="text" class="fornecedor" placeholder="Fornecedor" required>
                     <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
                     <input type="text" class="produto" placeholder="Produto" required>
+                    <input type="text" class="volumes" placeholder="Volumes">
                 </div>
             `;
         }
@@ -469,7 +473,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 pedidoCompra: item.querySelector('.pedidoCompra').value,
                 fornecedor: item.querySelector('.fornecedor').value,
                 tipoDeProduto: item.querySelector('.tipoDeProduto').value,
-                produto: item.querySelector('.produto').value
+                produto: item.querySelector('.produto').value,
+                volumes: item.querySelector('.volumes').value
             });
         });
 
@@ -559,7 +564,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     formattedPedidoCompra,
                     rascunho.fornecedor || "Não definido",
                     rascunho.tipoDeProduto || "Não definido",
-                    rascunho.produto || "Não definido"
+                    rascunho.produto || "Não definido",
+                    rascunho.volumes || "Não definido",
                 ]);
             });
 
@@ -574,7 +580,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     { title: "Pedido de Compra" },
                     { title: "Fornecedor" },
                     { title: "Tipo de Produto" },
-                    { title: "Produto" }
+                    { title: "Produto" },
+                    { title: "Volumes" }
                 ],
                 paging: false,
                 info: false,
@@ -634,6 +641,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
                 cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
                 cargaItems[0].querySelector('.produto').value = dados.produto;
+                cargaItems[0].querySelector('.volumes').value = dados.volumes;
             }
             
             editRascunhoIdInput.value = rascunhoId;
@@ -649,7 +657,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             return;
         }
 
-        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
+        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
         let plainTextContent = headers.join('\t') + '\n';
         
         let htmlContent = '<table style="width:100%; border-collapse: collapse; margin-top: 20px;">';
@@ -670,6 +678,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 rowData[6],
                 rowData[7],
                 rowData[8],
+                rowData[9],
             ];
             plainTextContent += values.join('\t') + '\n';
             
@@ -760,7 +769,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         pedidoCompra: data.pedidoCompra || null,
                         fornecedor: data.fornecedor || null,
                         tipoDeProduto: data.tipoDeProduto || null,
-                        produto: data.produto || null
+                        produto: data.produto || null,
+                        volumes: data.volumes || null
                     });
                     batch.delete(docRef);
                 }
@@ -796,6 +806,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
                 cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
                 cargaItems[0].querySelector('.produto').value = dados.produto;
+                cargaItems[0].querySelector('.volumes').value = dados.volumes;
             }
             editAgendamentoIdInput.value = id;
             originalSenhaInput.value = dados.senha;
@@ -843,6 +854,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     agendamento.fornecedor,
                     agendamento.tipoDeProduto,
                     agendamento.produto,
+                    agendamento.volumes || "Não definido",
                 ]);
             });
 
@@ -858,6 +870,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     { title: "Fornecedor" },
                     { title: "Tipo de Produto" },
                     { title: "Produto" },
+                    { title: "Volumes" },
                 ],
                 paging: false,
                 info: false,
@@ -928,7 +941,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             filterModalContent.append(`<div><label><input type="checkbox" class="filter-checkbox" value="${cleanedValue}" ${isChecked ? 'checked' : ''}> ${cleanedValue}</label></div>`);
         });
 
-        $('#filter-modal').show();
+        $('#filter-modal').css('display', 'flex');
     });
     
     $('#apply-filter-btn').on('click', function() {
@@ -1001,7 +1014,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 pedidoCompra: item.querySelector('.pedidoCompra').value,
                 fornecedor: item.querySelector('.fornecedor').value,
                 tipoDeProduto: item.querySelector('.tipoDeProduto').value,
-                produto: item.querySelector('.produto').value
+                produto: item.querySelector('.produto').value,
+                volumes: item.querySelector('.volumes').value
             });
         });
 
@@ -1082,15 +1096,25 @@ document.addEventListener("DOMContentLoaded", ()=>{
     window.exportarPDF = () => {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8));
+        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
+        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
+            const newRow = [...row];
+            const volumes = newRow.splice(5, 1)[0]; // Remove Volumes da posição original
+            newRow.push(volumes); // Adiciona no final
+            return newRow.slice(1);
+        });
         doc.autoTable({ head: [headers], body: data });
         doc.save('agendamentos.pdf');
     };
 
     window.exportarExcel = () => {
-        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8));
+        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
+        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
+            const newRow = [...row];
+            const volumes = newRow.splice(5, 1)[0];
+            newRow.push(volumes);
+            return newRow.slice(1);
+        });
         const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Agendamentos");
@@ -1155,7 +1179,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             return;
         }
         
-        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
+        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
         let plainTextContent = headers.join('\t') + '\n';
 
         let htmlContent = '<table style="width:100%; border-collapse: collapse; margin-top: 20px;">';
@@ -1176,6 +1200,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 rowData[6],
                 rowData[7],
                 rowData[8],
+                rowData[9],
             ];
             plainTextContent += values.join('\t') + '\n';
             
@@ -1228,7 +1253,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         pedidoCompra: data.pedidoCompra || null,
                         fornecedor: data.fornecedor || null,
                         tipoDeProduto: data.tipoDeProduto || null,
-                        produto: data.produto || null
+                        produto: data.produto || null,
+                        volumes: data.volumes || null
                     });
                     batch.delete(docRef);
                 }
