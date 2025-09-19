@@ -141,10 +141,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
         });
     };
 
-    async function carregarHistorico() {
+async function carregarHistorico(currentUserUid) {
         carregandoEl.textContent = 'Carregando...';
-        // A linha abaixo foi modificada para remover o filtro de usuário
-        const q = query(collection(db, "historico-acoes"), orderBy("timestamp", "desc"));
+        const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
         try {
             const snapshot = await getDocs(q);
             const dadosParaTabela = [];
@@ -172,6 +171,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         if (detalhes.senha) {
                             isRestorable = true;
                         }
+                    } else if (acao.acao.includes("agendou a partir de rascunho")) { // NOVA CONDIÇÃO
+                        acaoDisplay = "Agendou a partir de rascunho";
                     } else if (acao.acao.includes("agendou")) {
                         acaoDisplay = "Agendou";
                     } else if (acao.acao.includes("restaurou")) {
