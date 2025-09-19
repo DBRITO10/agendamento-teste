@@ -114,7 +114,7 @@
     let dataTable = null;
 
     function formatarDataHora(timestamp) {
-        if (!timestamp) return "Não definida";
+        if (!timestamp) return "vazio";
         const date = timestamp.toDate();
         return date.toLocaleString('pt-BR');
     }
@@ -148,50 +148,81 @@
                 const acao = doc.data();
                 const acaoId = doc.id;
                 let detalhes = acao.detalhes;
-                let senha = "N/A";
-                let dataCarga = "N/A";
-                let central = "N/A";
-                let cargas = "N/A";
-                let pedidoCompra = "N/A";
-                let fornecedor = "N/A";
-                let tipoDeProduto = "N/A";
-                let produto = "N/A";
-                let volumes = "N/A";
-                let acoes = "";
+                let senha = "vazio";
+                let dataCarga = "vazio";
+                let central = "vazio";
+                let cargas = "vazio";
+                let pedidoCompra = "vazio";
+                let fornecedor = "vazio";
+                let tipoDeProduto = "vazio";
+                let produto = "vazio";
+                let volumes = "vazio";
+                let acoesHtml = "";
+                let nomeAcao = acao.acao;
+
+                // Função auxiliar para obter valor, substituindo por "vazio" se necessário
+                const getValue = (value) => {
+                    return value || "vazio";
+                };
 
                 if (acao.acao.includes("excluiu")) {
                     const agendamentos = detalhes.agendamentos || [];
                     const primeiraExclusao = agendamentos[0] || {};
-                    senha = agendamentos.length > 1 ? `${agendamentos.length} exclusões` : primeiraExclusao.senha || "N/A";
-                    dataCarga = primeiraExclusao.data || "N/A";
-                    central = primeiraExclusao.central || "N/A";
-                    cargas = primeiraExclusao.cargas || "N/A";
-                    pedidoCompra = primeiraExclusao.pedidoCompra || "N/A";
-                    fornecedor = primeiraExclusao.fornecedor || "N/A";
-                    tipoDeProduto = primeiraExclusao.tipoDeProduto || "N/A";
-                    produto = primeiraExclusao.produto || "N/A";
-                    volumes = primeiraExclusao.volumes || "N/A";
+                    senha = agendamentos.length > 1 ? `${agendamentos.length} exclusões` : getValue(primeiraExclusao.senha);
+                    dataCarga = getValue(primeiraExclusao.data);
+                    central = getValue(primeiraExclusao.central);
+                    cargas = getValue(primeiraExclusao.cargas);
+                    pedidoCompra = getValue(primeiraExclusao.pedidoCompra);
+                    fornecedor = getValue(primeiraExclusao.fornecedor);
+                    tipoDeProduto = getValue(primeiraExclusao.tipoDeProduto);
+                    produto = getValue(primeiraExclusao.produto);
+                    volumes = getValue(primeiraExclusao.volumes);
                     
-                    acoes = `
+                    nomeAcao = `Excluiu ${agendamentos.length > 1 ? 'múltiplos agendamentos' : 'um agendamento'}`;
+                    
+                    acoesHtml = `
                         <div style="display: flex; gap: 5px; justify-content: center;">
                             <button onclick="restaurarRascunho('${acaoId}')" style="background-color:#ff9933; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer;">Restaurar</button>
-                            <button onclick="excluirPermanentemente('${acaoId}')" style="background-color:#d32f2f; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer;">Excluir</button>
+                            <button onclick="excluirRegistro('${acaoId}')" style="background-color:#d32f2f; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer;">Excluir</button>
                         </div>
                     `;
-                } else {
-                    senha = detalhes.senha || "N/A";
-                    dataCarga = detalhes.data || "N/A";
-                    central = detalhes.central || "N/A";
-                    cargas = detalhes.cargas || "N/A";
-                    pedidoCompra = detalhes.pedidoCompra || "N/A";
-                    fornecedor = detalhes.fornecedor || "N/A";
-                    tipoDeProduto = detalhes.tipoDeProduto || "N/A";
-                    produto = detalhes.produto || "N/A";
-                    volumes = detalhes.volumes || "N/A";
+                } else if (acao.acao.includes("atualizou") || acao.acao.includes("salvou")) {
+                    senha = getValue(detalhes.senha);
+                    dataCarga = getValue(detalhes.data);
+                    central = getValue(detalhes.central);
+                    cargas = getValue(detalhes.cargas);
+                    pedidoCompra = getValue(detalhes.pedidoCompra);
+                    fornecedor = getValue(detalhes.fornecedor);
+                    tipoDeProduto = getValue(detalhes.tipoDeProduto);
+                    produto = getValue(detalhes.produto);
+                    volumes = getValue(detalhes.volumes);
                     
-                    acoes = `
+                    if (acao.acao.includes("atualizou")) {
+                         nomeAcao = `Atualizou um rascunho`;
+                    } else if (acao.acao.includes("salvou um agendamento")) {
+                        nomeAcao = `Salvou um agendamento`;
+                    }
+                    
+                    acoesHtml = `
                         <div style="display: flex; justify-content: center;">
-                            <button onclick="excluirPermanentemente('${acaoId}')" style="background-color:#d32f2f; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer;">Excluir</button>
+                            <button onclick="excluirRegistro('${acaoId}')" style="background-color:#d32f2f; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer;">Excluir</button>
+                        </div>
+                    `;
+                } else if (acao.acao.includes("restaurou")) {
+                     senha = getValue(detalhes.senha);
+                     dataCarga = getValue(detalhes.data);
+                     central = getValue(detalhes.central);
+                     cargas = getValue(detalhes.cargas);
+                     pedidoCompra = getValue(detalhes.pedidoCompra);
+                     fornecedor = getValue(detalhes.fornecedor);
+                     tipoDeProduto = getValue(detalhes.tipoDeProduto);
+                     produto = getValue(detalhes.produto);
+                     volumes = getValue(detalhes.volumes);
+
+                     nomeAcao = "Restaurou agendamento";
+                     acoesHtml = `
+                        <div style="display: flex; justify-content: center;">
+                            <button onclick="excluirRegistro('${acaoId}')" style="background-color:#d32f2f; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer;">Excluir</button>
                         </div>
                     `;
                 }
@@ -199,7 +230,7 @@
                 return [
                     formatarDataHora(acao.timestamp),
                     acao.username || "Desconhecido",
-                    acao.acao,
+                    nomeAcao,
                     senha,
                     dataCarga,
                     central,
@@ -209,7 +240,7 @@
                     tipoDeProduto,
                     produto,
                     volumes,
-                    acoes
+                    acoesHtml
                 ];
             });
 
@@ -255,8 +286,8 @@
         });
     }
 
-    window.excluirPermanentemente = async (acaoId) => {
-        if (!confirm("Tem certeza que deseja excluir este registro? Esta ação é irreversível.")) {
+    window.excluirRegistro = async (acaoId) => {
+        if (!confirm("Tem certeza que deseja excluir este registro do histórico? Esta ação é irreversível.")) {
             return;
         }
 
@@ -292,27 +323,24 @@
         }
         
         try {
-            await runTransaction(db, async (transaction) => {
-                const contadorRef = doc(db, "metadados", "contador");
-                const contadorDoc = await transaction.get(contadorRef);
-                let ultimaSenha = 0;
-                if (contadorDoc.exists()) {
-                    ultimaSenha = contadorDoc.data().ultima_senha;
-                }
-                ultimaSenha++;
-                
-                const newRascunho = {
-                    userId: acaoData.userId,
-                    senha: ultimaSenha,
-                    ...agendamentoParaRestaurar,
-                    timestamp: new Date()
-                };
-                
-                const newDocRef = doc(collection(db, "agendamentos-rascunho"));
-                transaction.set(newDocRef, newRascunho);
-                transaction.update(contadorRef, { ultima_senha: ultimaSenha });
+            const newRascunho = {
+                userId: acaoData.userId,
+                senha: agendamentoParaRestaurar.senha,
+                ...agendamentoParaRestaurar,
+                timestamp: new Date()
+            };
+            
+            const docRef = await addDoc(collection(db, "agendamentos-rascunho"), newRascunho);
+
+            await addDoc(collection(db, "historico-acoes"), {
+                userId: acaoData.userId,
+                username: acaoData.username,
+                acao: "restaurou um agendamento",
+                detalhes: { ...agendamentoParaRestaurar, id: docRef.id },
+                timestamp: new Date()
             });
-            alert("Agendamento restaurado para a lista de rascunhos com sucesso! Uma nova senha foi gerada.");
+
+            alert("Agendamento restaurado para a lista de rascunhos com sucesso!");
         } catch (e) {
             console.error("Erro ao restaurar para rascunho: ", e);
             alert("Ocorreu um erro ao restaurar o registro. Tente novamente.");
