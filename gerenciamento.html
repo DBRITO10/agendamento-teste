@@ -17,7 +17,7 @@
         header { text-align: center; margin-bottom: 20px; }
         h1 { color: #cc0000; font-size: 28px; margin: 10px 0 20px 0; font-weight: bold; }
         form { margin-bottom: 20px; padding: 20px; border: 1px solid #ff9999; border-radius: 6px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
-        input, button { display: block; width: 100%; margin-bottom: 10px; padding: 8px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
+        input, button, select { display: block; width: 100%; margin-bottom: 10px; padding: 8px; border-radius: 4px; border: 1px solid #ccc; box-sizing: border-box; }
         button { background: #d32f2f; color: white; font-weight: bold; cursor: pointer; }
         button.rascunho { background: #ff9933; }
         button.rascunho:hover { background: #e68a00; }
@@ -95,9 +95,17 @@
             padding: 20px;
             border: 1px solid #888;
             width: 80%;
-            max-width: 400px;
+            max-width: 500px;
             border-radius: 8px;
             box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+        }
+        .modal-content-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
         }
 
         #filter-modal-content {
@@ -181,7 +189,7 @@
             border-radius: 4px;
             overflow-x: auto;
         }
-        .carga-item input {
+        .carga-item input, .carga-item select {
             flex: 1;
             min-width: 120px;
             margin-bottom: 0;
@@ -238,6 +246,65 @@
         .wrap-text {
             white-space: normal;
         }
+        
+        /* Estilos para colorir as linhas da tabela */
+        .table-mesa {
+            background-color: #d1e7dd !important; /* Verde escuro */
+        }
+        .table-roupeiro {
+            background-color: #fff3cd !important; /* Amarelo */
+        }
+        .table-celular, .table-tablet {
+            background-color: #cce5ff !important; /* Azul */
+        }
+        .table-armario, .table-cozinha {
+            background-color: #fff3cd !important; /* Amarelo */
+        }
+        
+        /* Altera a cor de fundo da célula em vez da linha inteira */
+        .tipo-produto-cell {
+            background-color: inherit;
+        }
+        .tipo-produto-cell.table-mesa {
+            background-color: #d1e7dd !important;
+        }
+        .tipo-produto-cell.table-roupeiro {
+            background-color: #fff3cd !important;
+        }
+        .tipo-produto-cell.table-celular, .tipo-produto-cell.table-tablet {
+            background-color: #cce5ff !important;
+        }
+        .tipo-produto-cell.table-armario, .tipo-produto-cell.table-cozinha {
+            background-color: #fff3cd !important;
+        }
+
+        #cadastro-modal .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        #cadastro-modal .list-item:last-child {
+            border-bottom: none;
+        }
+        #cadastro-modal .list-item-name {
+            flex-grow: 1;
+            font-size: 14px;
+        }
+        #cadastro-modal .list-item-actions button {
+            width: auto;
+            margin-left: 5px;
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        #cadastro-modal #save-item-btn, #cadastro-modal #cancel-item-btn {
+            width: auto;
+            margin-top: 10px;
+        }
+        #edit-form-container {
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -285,12 +352,24 @@ document.addEventListener("DOMContentLoaded", ()=>{
         <div id="cargasContainer">
             <div class="carga-item">
                 <input type="date" class="data" required>
-                <input type="text" class="central" placeholder="Central" required>
+                <select class="central" required>
+                    <option value="">Selecione a Central</option>
+                    <option value="novo">Novo...</option>
+                </select>
                 <input type="text" class="cargas" placeholder="Cargas" required>
                 <input type="text" class="pedidoCompra" placeholder="Pedido de Compra" required>
-                <input type="text" class="fornecedor" placeholder="Fornecedor" required>
-                <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
-                <input type="text" class="produto" placeholder="Produto" required>
+                <select class="fornecedor" required>
+                    <option value="">Selecione o Fornecedor</option>
+                    <option value="novo">Novo...</option>
+                </select>
+                <select class="tipoDeProduto" required>
+                    <option value="">Selecione o Tipo</option>
+                    <option value="novo">Novo...</option>
+                </select>
+                <select class="produto" required>
+                    <option value="">Selecione o Produto</option>
+                    <option value="novo">Novo...</option>
+                </select>
                 <input type="text" class="volumes" placeholder="Volumes">
             </div>
         </div>
@@ -372,6 +451,24 @@ document.addEventListener("DOMContentLoaded", ()=>{
     </div>
 </div>
 
+<div id="cadastro-modal" class="modal">
+    <div class="modal-content">
+        <h2 id="cadastro-modal-title"></h2>
+        <div id="edit-form-container">
+            <input type="text" id="novo-item-input" placeholder="Digite o nome do novo item" required>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+                <button id="salvar-novo-item-btn" style="background-color: #4CAF50;">Salvar</button>
+                <button id="cancelar-novo-item-btn" style="background-color: #f44336;">Cancelar</button>
+            </div>
+        </div>
+        <div class="modal-content-list">
+            <p style="font-weight: bold;">Itens Cadastrados:</p>
+            <div id="item-list-container"></div>
+        </div>
+        
+    </div>
+</div>
+
 <script type="module">
     import { db, auth } from "./firebase-config.js";
     import { collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, getDoc, runTransaction, query, where, getDocs, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -393,10 +490,172 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const excluirSelecionadosRascunhoBtn = document.getElementById('excluirSelecionadosRascunhoBtn');
     const editarRascunhoBtn = document.getElementById('editarRascunhoBtn');
     
+    // Elementos do novo modal
+    const cadastroModal = document.getElementById('cadastro-modal');
+    const cadastroModalTitle = document.getElementById('cadastro-modal-title');
+    const novoItemInput = document.getElementById('novo-item-input');
+    const salvarNovoItemBtn = document.getElementById('salvar-novo-item-btn');
+    const cancelarNovoItemBtn = document.getElementById('cancelar-novo-item-btn');
+    const itemListContainer = document.getElementById('item-list-container');
+    const editFormContainer = document.getElementById('edit-form-container');
+    let categoriaAtual = '';
+    let itemIdToEdit = null;
+
     let dataTable = null;
     let rascunhosDataTable = null;
     let currentUserUid = null;
     let currentUserName = null;
+
+    function getClassForTipoProduto(tipo) {
+        if (!tipo) return '';
+        const tipoLimpo = tipo.toLowerCase().trim();
+        switch (tipoLimpo) {
+            case 'mesa':
+                return 'table-mesa';
+            case 'roupeiro':
+                return 'table-roupeiro';
+            case 'celular':
+            case 'tablet':
+                return 'table-celular';
+            case 'armário':
+            case 'cozinha':
+                return 'table-armario';
+            default:
+                return '';
+        }
+    }
+
+    async function carregarOpcoes(colecao, dropdownClass) {
+        const q = query(collection(db, colecao), orderBy("nome"));
+        onSnapshot(q, (snapshot) => {
+            const dropdowns = document.querySelectorAll(`select.${dropdownClass}`);
+            const opcoes = snapshot.docs.map(doc => doc.data().nome);
+
+            dropdowns.forEach(dropdown => {
+                const valorSelecionado = dropdown.value;
+                let optionTitle = '';
+                switch (dropdownClass) {
+                    case 'central': optionTitle = 'a Central'; break;
+                    case 'fornecedor': optionTitle = 'o Fornecedor'; break;
+                    case 'tipoDeProduto': optionTitle = 'o Tipo'; break;
+                    case 'produto': optionTitle = 'o Produto'; break;
+                }
+                dropdown.innerHTML = `<option value="">Selecione ${optionTitle}</option><option value="novo">Novo...</option>`;
+                opcoes.forEach(opcao => {
+                    const option = document.createElement('option');
+                    option.value = opcao;
+                    option.textContent = opcao;
+                    dropdown.appendChild(option);
+                });
+                // Manter o valor selecionado após a atualização
+                if (valorSelecionado && valorSelecionado !== 'novo') {
+                    dropdown.value = valorSelecionado;
+                }
+            });
+        });
+    }
+
+    // Função para carregar itens no modal de gerenciamento
+    function carregarItensDoModal(colecao) {
+        const q = query(collection(db, colecao), orderBy("nome"));
+        onSnapshot(q, (snapshot) => {
+            itemListContainer.innerHTML = '';
+            snapshot.forEach(docItem => {
+                const itemData = docItem.data();
+                const listItem = document.createElement('div');
+                listItem.classList.add('list-item');
+                listItem.innerHTML = `
+                    <span class="list-item-name">${itemData.nome}</span>
+                    <div class="list-item-actions">
+                        <button class="edit-item-btn" data-id="${docItem.id}" data-name="${itemData.nome}" style="background-color: #007bff;">Editar</button>
+                        <button class="delete-item-btn" data-id="${docItem.id}" style="background-color: #f44336;">Excluir</button>
+                    </div>
+                `;
+                itemListContainer.appendChild(listItem);
+            });
+        });
+    }
+
+    function abrirModalCadastro(categoria, titulo) {
+        categoriaAtual = categoria;
+        itemIdToEdit = null;
+        cadastroModalTitle.textContent = `Gerenciar ${titulo}s`;
+        novoItemInput.value = '';
+        salvarNovoItemBtn.textContent = 'Salvar';
+        carregarItensDoModal(categoria);
+        cadastroModal.style.display = 'flex';
+    }
+
+    salvarNovoItemBtn.addEventListener('click', async () => {
+        const novoItem = novoItemInput.value.trim();
+        if (!novoItem) {
+            alert('Por favor, digite o nome do item.');
+            return;
+        }
+
+        try {
+            if (itemIdToEdit) {
+                const itemRef = doc(db, categoriaAtual, itemIdToEdit);
+                await updateDoc(itemRef, {
+                    nome: novoItem,
+                    timestamp: new Date()
+                });
+                alert('Item atualizado com sucesso!');
+                await adicionarHistorico("atualizou um item de dropdown", { categoria: categoriaAtual, id: itemIdToEdit, nome: novoItem });
+            } else {
+                await addDoc(collection(db, categoriaAtual), {
+                    nome: novoItem,
+                    timestamp: new Date()
+                });
+                alert('Item cadastrado com sucesso!');
+                await adicionarHistorico("adicionou um item de dropdown", { categoria: categoriaAtual, nome: novoItem });
+            }
+            novoItemInput.value = '';
+            salvarNovoItemBtn.textContent = 'Salvar';
+            itemIdToEdit = null;
+        } catch (e) {
+            console.error("Erro ao salvar item: ", e);
+            alert('Ocorreu um erro ao salvar. Tente novamente.');
+        }
+    });
+
+    cancelarNovoItemBtn.addEventListener('click', () => {
+        novoItemInput.value = '';
+        salvarNovoItemBtn.textContent = 'Salvar';
+        itemIdToEdit = null;
+        cadastroModal.style.display = 'none';
+    });
+    
+    window.addEventListener('click', (event) => {
+        if (event.target === cadastroModal) {
+            cadastroModal.style.display = 'none';
+        }
+    });
+
+    $(document).on('click', '.edit-item-btn', function() {
+        const id = $(this).data('id');
+        const name = $(this).data('name');
+        
+        itemIdToEdit = id;
+        novoItemInput.value = name;
+        salvarNovoItemBtn.textContent = 'Atualizar';
+        novoItemInput.focus();
+    });
+
+    $(document).on('click', '.delete-item-btn', async function() {
+        const id = $(this).data('id');
+        const itemName = $(this).closest('.list-item').find('.list-item-name').text();
+        if (confirm(`Tem certeza que deseja excluir "${itemName}"?`)) {
+            try {
+                const itemRef = doc(db, categoriaAtual, id);
+                await deleteDoc(itemRef);
+                alert('Item excluído com sucesso!');
+            } catch (e) {
+                console.error("Erro ao excluir item: ", e);
+                alert('Ocorreu um erro ao excluir. Tente novamente.');
+            }
+        }
+    });
 
     function formatarData(data) {
         if (!data) return "Não definida";
@@ -421,6 +680,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
             console.log("Usuário autenticado. UID:", currentUserUid);
             carregarAgendamentos();
             carregarRascunhos();
+            carregarOpcoes('centrais', 'central');
+            carregarOpcoes('fornecedores', 'fornecedor');
+            carregarOpcoes('tipos-de-produto', 'tipoDeProduto');
+            carregarOpcoes('produtos', 'produto');
         } else {
             console.log("Nenhum usuário logado. Redirecionando...");
             window.location.href = "index.html";
@@ -442,19 +705,48 @@ document.addEventListener("DOMContentLoaded", ()=>{
             cargasContainer.innerHTML += `
                 <div class="carga-item">
                     <input type="date" class="data" required>
-                    <input type="text" class="central" placeholder="Central" required>
+                    <select class="central" required>
+                        <option value="">Selecione a Central</option>
+                        <option value="novo">Novo...</option>
+                    </select>
                     <input type="text" class="cargas" placeholder="Cargas" required>
                     <input type="text" class="pedidoCompra" placeholder="Pedido de Compra" required>
-                    <input type="text" class="fornecedor" placeholder="Fornecedor" required>
-                    <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
-                    <input type="text" class="produto" placeholder="Produto" required>
+                    <select class="fornecedor" required>
+                        <option value="">Selecione o Fornecedor</option>
+                        <option value="novo">Novo...</option>
+                    </select>
+                    <select class="tipoDeProduto" required>
+                        <option value="">Selecione o Tipo</option>
+                        <option value="novo">Novo...</option>
+                    </select>
+                    <select class="produto" required>
+                        <option value="">Selecione o Produto</option>
+                        <option value="novo">Novo...</option>
+                    </select>
                     <input type="text" class="volumes" placeholder="Volumes">
                 </div>
             `;
         }
+        carregarOpcoes('centrais', 'central');
+        carregarOpcoes('fornecedores', 'fornecedor');
+        carregarOpcoes('tipos-de-produto', 'tipoDeProduto');
+        carregarOpcoes('produtos', 'produto');
     });
     
     numCargasInput.dispatchEvent(new Event('input'));
+
+    $(document).on('change', '.central, .fornecedor, .tipoDeProduto, .produto', function() {
+        if (this.value === 'novo') {
+            const categoria = this.classList.contains('central') ? 'centrais' :
+                              this.classList.contains('fornecedor') ? 'fornecedores' : 
+                              this.classList.contains('tipoDeProduto') ? 'tipos-de-produto' : 'produtos';
+            const titulo = this.classList.contains('central') ? 'Central' :
+                           this.classList.contains('fornecedor') ? 'Fornecedor' : 
+                           this.classList.contains('tipoDeProduto') ? 'Tipo de Produto' : 'Produto';
+            abrirModalCadastro(categoria, titulo);
+            this.value = ''; 
+        }
+    });
 
     document.getElementById('rascunhoBtn').addEventListener('click', async () => {
         if (!currentUserUid) {
@@ -543,7 +835,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         if (!currentUserUid) {
             return;
         }
-        // MODIFICADO: Removido o filtro 'where("userId", "==", currentUserUid)' para mostrar todos os rascunhos
         const q = query(collection(db, "agendamentos-rascunho"));
         onSnapshot(q, (snapshot) => {
             if (rascunhosDataTable) {
@@ -565,7 +856,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     rascunho.fornecedor || "Não definido",
                     rascunho.tipoDeProduto || "Não definido",
                     rascunho.produto || "Não definido",
-                    // NOVO: Adicionado valor da coluna Volumes
                     rascunho.volumes || "Não definido"
                 ]);
             });
@@ -582,7 +872,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     { title: "Fornecedor" },
                     { title: "Tipo de Produto" },
                     { title: "Produto" },
-                    // NOVO: Adicionada a coluna Volumes
                     { title: "Volumes" }
                 ],
                 paging: false,
@@ -633,19 +922,21 @@ document.addEventListener("DOMContentLoaded", ()=>{
             const dados = docSnap.data();
             numCargasInput.value = 1;
             numCargasInput.dispatchEvent(new Event('input'));
-
-            const cargaItems = document.querySelectorAll('.carga-item');
-            if (cargaItems[0]) {
-                cargaItems[0].querySelector('.data').value = dados.data;
-                cargaItems[0].querySelector('.central').value = dados.central;
-                cargaItems[0].querySelector('.cargas').value = dados.cargas;
-                cargaItems[0].querySelector('.pedidoCompra').value = dados.pedidoCompra;
-                cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
-                cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
-                cargaItems[0].querySelector('.produto').value = dados.produto;
-                // NOVO: Adicionado campo Volumes
-                cargaItems[0].querySelector('.volumes').value = dados.volumes;
-            }
+            
+            // Set values after options have been loaded
+            setTimeout(() => {
+                const cargaItems = document.querySelectorAll('.carga-item');
+                if (cargaItems[0]) {
+                    cargaItems[0].querySelector('.data').value = dados.data;
+                    cargaItems[0].querySelector('.central').value = dados.central;
+                    cargaItems[0].querySelector('.cargas').value = dados.cargas;
+                    cargaItems[0].querySelector('.pedidoCompra').value = dados.pedidoCompra;
+                    cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
+                    cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
+                    cargaItems[0].querySelector('.produto').value = dados.produto;
+                    cargaItems[0].querySelector('.volumes').value = dados.volumes;
+                }
+            }, 500); // Small delay to allow options to load
             
             editRascunhoIdInput.value = rascunhoId;
             editAgendamentoIdInput.value = '';
@@ -660,7 +951,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
             return;
         }
 
-        // NOVO: Adicionado "Volumes" ao array de cabeçalhos
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
         let plainTextContent = headers.join('\t') + '\n';
         
@@ -674,7 +964,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         checkedRows.each(function() {
             const rowData = rascunhosDataTable.row(this).data();
             const values = [];
-            // MODIFICADO: Loop atualizado para pegar todos os dados, incluindo a nova coluna
             for (let i = 1; i < rowData.length; i++) {
                 values.push($('<div>').html(rowData[i]).text().trim());
             }
@@ -760,7 +1049,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    // NOVO: Adicionado volumes a deletedDetails
                     deletedDetails.push({
                         senha: data.senha || "N/A",
                         central: data.central || "N/A",
@@ -784,7 +1072,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     });
     
-    // Função para carregar um agendamento para edição
     async function editarAgendamento(id) {
         document.getElementById('agendamentoForm').scrollIntoView({ behavior: 'smooth' });
         const docRef = doc(db, "agendamentos", id);
@@ -794,18 +1081,21 @@ document.addEventListener("DOMContentLoaded", ()=>{
             numCargasInput.value = 1;
             numCargasInput.dispatchEvent(new Event('input'));
             
-            const cargaItems = document.querySelectorAll('.carga-item');
-            if (cargaItems[0]) {
-                cargaItems[0].querySelector('.data').value = dados.data;
-                cargaItems[0].querySelector('.central').value = dados.central;
-                cargaItems[0].querySelector('.cargas').value = dados.cargas;
-                cargaItems[0].querySelector('.pedidoCompra').value = dados.pedidoCompra;
-                cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
-                cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
-                cargaItems[0].querySelector('.produto').value = dados.produto;
-                // NOVO: Adicionado campo Volumes
-                cargaItems[0].querySelector('.volumes').value = dados.volumes;
-            }
+            // Set values after options have been loaded
+            setTimeout(() => {
+                const cargaItems = document.querySelectorAll('.carga-item');
+                if (cargaItems[0]) {
+                    cargaItems[0].querySelector('.data').value = dados.data;
+                    cargaItems[0].querySelector('.central').value = dados.central;
+                    cargaItems[0].querySelector('.cargas').value = dados.cargas;
+                    cargaItems[0].querySelector('.pedidoCompra').value = dados.pedidoCompra;
+                    cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
+                    cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
+                    cargaItems[0].querySelector('.produto').value = dados.produto;
+                    cargaItems[0].querySelector('.volumes').value = dados.volumes;
+                }
+            }, 500); // Small delay to allow options to load
+            
             editAgendamentoIdInput.value = id;
             originalSenhaInput.value = dados.senha;
             editRascunhoIdInput.value = '';
@@ -813,7 +1103,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     }
 
-    // Listener para o novo botão de edição
     $('#editarSelecionadosBtn').click(() => {
         const checkedRows = $('.row-checkbox:checked');
         if (checkedRows.length !== 1) {
@@ -823,7 +1112,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const id = checkedRows.data('id');
         editarAgendamento(id);
     });
-
 
     function carregarAgendamentos() {
         if (!currentUserUid) {
@@ -850,9 +1138,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     formattedCargas,
                     formattedPedidoCompra,
                     agendamento.fornecedor,
-                    agendamento.tipoDeProduto,
+                    `<div class="tipo-produto-cell ${getClassForTipoProduto(agendamento.tipoDeProduto)}">${agendamento.tipoDeProduto}</div>`,
                     agendamento.produto,
-                    // NOVO: Adicionado valor da coluna Volumes
                     agendamento.volumes || "Não definido"
                 ]);
             });
@@ -869,7 +1156,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     { title: "Fornecedor" },
                     { title: "Tipo de Produto" },
                     { title: "Produto" },
-                    // NOVO: Adicionada a coluna Volumes
                     { title: "Volumes" }
                 ],
                 paging: false,
@@ -888,8 +1174,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                             header.html(`<div>${title}</div><button class="filter-button" data-column="${column.index()}">Filtrar</button>`);
                         }
                     });
-
-                    // Load saved filter from local storage
                     const savedFilter = localStorage.getItem('datatableFilter');
                     if (savedFilter) {
                         try {
@@ -910,7 +1194,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 }
             });
 
-            // Re-apply the filter after the table is redrawn by onSnapshot
             const savedFilter = localStorage.getItem('datatableFilter');
             if (savedFilter) {
                 try {
@@ -957,7 +1240,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const currentSearchArray = currentSearch ? currentSearch.substring(0, currentSearch.length - 1).split('|') : [];
 
         columnData.each(value => {
-            const cleanedValue = $('<div>').html(value).text().trim(); // Limpa o HTML da quebra de linha
+            const cleanedValue = $('<div>').html(value).text().trim();
             const isChecked = currentSearchArray.includes($.fn.dataTable.util.escapeRegex(cleanedValue));
             filterModalContent.append(`<div><label><input type="checkbox" class="filter-checkbox" value="${cleanedValue}" ${isChecked ? 'checked' : ''}> ${cleanedValue}</label></div>`);
         });
@@ -1036,7 +1319,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 fornecedor: item.querySelector('.fornecedor').value,
                 tipoDeProduto: item.querySelector('.tipoDeProduto').value,
                 produto: item.querySelector('.produto').value,
-                // NOVO: Adicionado valor de Volumes
                 volumes: item.querySelector('.volumes').value
             });
         });
@@ -1114,21 +1396,20 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
     window.exportarPDF = () => {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('l', 'pt', 'a4'); // Alterado para paisagem
-        // NOVO: Adicionado "Volumes" ao array de cabeçalhos
+        const doc = new jsPDF('l', 'pt', 'a4');
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
         const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
+            // Garante que os dados sejam extraídos em uma ordem consistente
             return [
-                String(row[1]).replace(/<br>/g, ' ').trim(),
-                String(row[2]).replace(/<br>/g, ' ').trim(),
-                String(row[3]).replace(/<br>/g, ' ').trim(),
-                String(row[4]).replace(/<br>/g, ' ').trim(),
-                String(row[5]).replace(/<br>/g, ' ').trim(),
-                String(row[6]).replace(/<br>/g, ' ').trim(),
-                String(row[7]).replace(/<br>/g, ' ').trim(),
-                String(row[8]).replace(/<br>/g, ' ').trim(),
-                // NOVO: Adicionado o valor da coluna Volumes
-                String(row[9]).replace(/<br>/g, ' ').trim()
+                String(row[1]).replace(/<br>/g, ' ').trim(), // Senha
+                String(row[2]).replace(/<br>/g, ' ').trim(), // Data
+                String(row[3]).replace(/<br>/g, ' ').trim(), // Central
+                String(row[4]).replace(/<br>/g, ' ').trim(), // Cargas
+                String(row[5]).replace(/<br>/g, ' ').trim(), // Pedido de Compra
+                String(row[6]).replace(/<br>/g, ' ').trim(), // Fornecedor
+                $(row[7]).text().trim(), // Tipo de Produto
+                String(row[8]).replace(/<br>/g, ' ').trim(), // Produto
+                String(row[9]).replace(/<br>/g, ' ').trim() // Volumes
             ];
         });
         
@@ -1140,12 +1421,29 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 cellPadding: 4,
                 fontSize: 10,
                 valign: 'top',
+                overflow: 'linebreak',
+                lineWidth: 0.5,
+                lineColor: [0, 0, 0]
             },
             headStyles: {
                 fillColor: [204, 0, 0],
                 textColor: 255,
                 fontStyle: 'bold',
-                halign: 'center'
+                halign: 'center',
+                lineWidth: 0.5,
+                lineColor: [0, 0, 0]
+            },
+            columnStyles: {
+                // Ajusta a largura das colunas para evitar desalinhamento
+                0: { cellWidth: 50 }, // Senha
+                1: { cellWidth: 70 }, // Data
+                2: { cellWidth: 80 }, // Central
+                3: { cellWidth: 80 }, // Cargas
+                4: { cellWidth: 90 }, // Pedido de Compra
+                5: { cellWidth: 80 }, // Fornecedor
+                6: { cellWidth: 70 }, // Tipo de Produto
+                7: { cellWidth: 70 }, // Produto
+                8: { cellWidth: 80 }  // Volumes
             }
         });
 
@@ -1153,7 +1451,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
     };
 
     window.exportarExcel = () => {
-        // NOVO: Adicionado "Volumes" ao array de cabeçalhos
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
         const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
             return [
@@ -1163,9 +1460,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 String(row[4]).replace(/<br>/g, ' ').trim(),
                 String(row[5]).replace(/<br>/g, ' ').trim(),
                 String(row[6]).replace(/<br>/g, ' ').trim(),
-                String(row[7]).replace(/<br>/g, ' ').trim(),
+                $(row[7]).text().trim(), // Pega o texto do HTML
                 String(row[8]).replace(/<br>/g, ' ').trim(),
-                // NOVO: Adicionado o valor da coluna Volumes
                 String(row[9]).replace(/<br>/g, ' ').trim()
             ];
         });
@@ -1233,7 +1529,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
             return;
         }
         
-        // NOVO: Adicionado "Volumes" ao array de cabeçalhos
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
         let plainTextContent = headers.join('\t') + '\n';
         
@@ -1247,7 +1542,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
         checkedRows.each(function() {
             const rowData = dataTable.row(this).data();
             const values = [];
-            // MODIFICADO: Loop atualizado para pegar todos os dados, incluindo a nova coluna
             for (let i = 1; i < rowData.length; i++) {
                 values.push($('<div>').html(rowData[i]).text().trim());
             }
@@ -1295,7 +1589,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    // NOVO: Adicionado volumes a deletedDetails
                     deletedDetails.push({
                         senha: data.senha || null,
                         data: data.data || null,
@@ -1322,9 +1615,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     });
 
-    // Garante que o modal esteja sempre oculto ao carregar a página
     $(document).ready(function() {
         $('#filter-modal').hide();
+        $('#cadastro-modal').hide();
     });
 </script>
 
