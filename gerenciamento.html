@@ -284,7 +284,7 @@
         }
         .truncate-cell {
             cursor: pointer;
-            color: #555;
+            color: #333; /* Cor alterada para um cinza escuro */
             text-decoration: none;
         }
         .truncate-cell:hover {
@@ -534,13 +534,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
             }
             cargas.push({
                 data: item.querySelector('.data').value || null,
-                central: central,
-                cargas: carga,
-                pedidoCompra: item.querySelector('.pedidoCompra').value,
-                fornecedor: item.querySelector('.fornecedor').value,
-                tipoDeProduto: item.querySelector('.tipoDeProduto').value,
-                produto: item.querySelector('.produto').value,
-                volumes: item.querySelector('.volumes').value
+                central: central || null,
+                cargas: carga || null,
+                pedidoCompra: item.querySelector('.pedidoCompra').value || null,
+                fornecedor: item.querySelector('.fornecedor').value || null,
+                tipoDeProduto: item.querySelector('.tipoDeProduto').value || null,
+                produto: item.querySelector('.produto').value || null,
+                volumes: item.querySelector('.volumes').value || null
             });
         });
 
@@ -721,14 +721,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
             const cargaItems = document.querySelectorAll('.carga-item');
             if (cargaItems[0]) {
-                cargaItems[0].querySelector('.data').value = dados.data;
-                cargaItems[0].querySelector('.central').value = dados.central;
-                cargaItems[0].querySelector('.cargas').value = dados.cargas;
-                cargaItems[0].querySelector('.pedidoCompra').value = dados.pedidoCompra;
-                cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
-                cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
-                cargaItems[0].querySelector('.produto').value = dados.produto;
-                cargaItems[0].querySelector('.volumes').value = dados.volumes;
+                cargaItems[0].querySelector('.data').value = dados.data || '';
+                cargaItems[0].querySelector('.central').value = dados.central || '';
+                cargaItems[0].querySelector('.cargas').value = dados.cargas || '';
+                cargaItems[0].querySelector('.pedidoCompra').value = dados.pedidoCompra || '';
+                cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor || '';
+                cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto || '';
+                cargaItems[0].querySelector('.produto').value = dados.produto || '';
+                cargaItems[0].querySelector('.volumes').value = dados.volumes || '';
             }
             
             editRascunhoIdInput.value = rascunhoId;
@@ -758,7 +758,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         checkedRows.each(function() {
             const rowData = rascunhosDataTable.row(this).data();
             const values = [
-                rowData[1],
+                $(rowData[1]).text().trim(),
                 $(rowData[2]).text().trim(),
                 $(rowData[3]).text().trim(),
                 $(rowData[4]).data('full-text'), 
@@ -804,6 +804,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         if (confirm(`Tem certeza que deseja salvar ${checkedRows.length} rascunho(s) selecionado(s) como agendamentos definitivos?`)) {
             const batch = writeBatch(db);
             const rascunhoIdsToMove = [];
+            const rascunhosToLog = [];
             
             checkedRows.each(function() {
                 rascunhoIdsToMove.push($(this).data('id'));
@@ -816,6 +817,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     
                     if (docSnap.exists()) {
                         const rascunhoData = docSnap.data();
+                        rascunhosToLog.push(rascunhoData);
                         const newDocRef = doc(collection(db, "agendamentos"));
                         batch.set(newDocRef, { ...rascunhoData, timestamp: new Date() });
                         batch.delete(docRef);
@@ -823,6 +825,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 }
                 
                 await batch.commit();
+                await adicionarHistorico("salvou múltiplos rascunhos", { rascunhos: rascunhosToLog });
                 alert(`${checkedRows.length} rascunho(s) salvo(s) com sucesso como agendamento(s).`);
             } catch (e) {
                 console.error("Erro ao salvar rascunhos selecionados:", e);
@@ -865,7 +868,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
             try {
                 await batch.commit();
-                await adicionarHistorico(`excluiu múltiplos rascunhos`, { agendamentos: deletedDetails });
+                await adicionarHistorico(`excluiu múltiplos rascunhos`, { rascunhos: deletedDetails });
                 alert(`${checkedRows.length} rascunho(s) excluído(s) com sucesso.`);
             } catch (e) {
                 console.error("Erro ao excluir rascunhos em lote:", e);
@@ -886,14 +889,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
             
             const cargaItems = document.querySelectorAll('.carga-item');
             if (cargaItems[0]) {
-                cargaItems[0].querySelector('.data').value = dados.data;
-                cargaItems[0].querySelector('.central').value = dados.central;
-                cargaItems[0].querySelector('.cargas').value = dados.cargas;
-                cargaItems[0].querySelector('.pedidoCompra').value = dados.pedidoCompra;
-                cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
-                cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
-                cargaItems[0].querySelector('.produto').value = dados.produto;
-                cargaItems[0].querySelector('.volumes').value = dados.volumes;
+                cargaItems[0].querySelector('.data').value = dados.data || '';
+                cargaItems[0].querySelector('.central').value = dados.central || '';
+                cargaItems[0].querySelector('.cargas').value = dados.cargas || '';
+                cargaItems[0].querySelector('.pedidoCompra').value = dados.pedidoCompra || '';
+                cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor || '';
+                cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto || '';
+                cargaItems[0].querySelector('.produto').value = dados.produto || '';
+                cargaItems[0].querySelector('.volumes').value = dados.volumes || '';
             }
             editAgendamentoIdInput.value = id;
             originalSenhaInput.value = dados.senha;
@@ -1098,14 +1101,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 formIncomplete = true;
             }
             cargas.push({
-                data: data,
-                central: central,
-                cargas: carga,
-                pedidoCompra: item.querySelector('.pedidoCompra').value,
-                fornecedor: item.querySelector('.fornecedor').value,
-                tipoDeProduto: item.querySelector('.tipoDeProduto').value,
-                produto: item.querySelector('.produto').value,
-                volumes: item.querySelector('.volumes').value
+                data: data || null,
+                central: central || null,
+                cargas: carga || null,
+                pedidoCompra: item.querySelector('.pedidoCompra').value || null,
+                fornecedor: item.querySelector('.fornecedor').value || null,
+                tipoDeProduto: item.querySelector('.tipoDeProduto').value || null,
+                produto: item.querySelector('.produto').value || null,
+                volumes: item.querySelector('.volumes').value || null
             });
         });
 
