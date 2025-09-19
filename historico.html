@@ -69,10 +69,10 @@
 
 <div id="userBar">
     <button onclick="window.location.href = 'gerenciamento.html'" style="
-        background: transparent; 
-        border: none; 
-        color: #333; 
-        font-size: 24px; 
+        background: transparent;
+        border: none;
+        color: #333;
+        font-size: 24px;
         cursor: pointer;
         margin-right: 10px;
     ">←</button>
@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
 <script type="module">
     import { db, auth } from "./firebase-config.js";
-    import { collection, query, where, getDocs, orderBy, doc, deleteDoc, addDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { collection, query, getDocs, orderBy, doc, deleteDoc, addDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     let historicoDataTable = null;
@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         if (user) {
             currentUserUid = user.uid;
             currentUserName = localStorage.getItem("username") || user.email;
-            carregarHistorico(currentUserUid);
+            carregarHistorico();
         } else {
             carregandoEl.textContent = "Você precisa estar logado para ver o histórico.";
             window.location.href = "index.html";
@@ -141,13 +141,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
         });
     };
 
-    async function carregarHistorico(currentUserUid) {
+    async function carregarHistorico() {
         carregandoEl.textContent = 'Carregando...';
-        const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
+        const q = query(collection(db, "historico-acoes"), orderBy("timestamp", "desc"));
         try {
             const snapshot = await getDocs(q);
             const dadosParaTabela = [];
-            
+
             if (snapshot.empty) {
                 carregandoEl.textContent = 'Nenhuma ação registrada.';
             } else {
@@ -155,10 +155,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 snapshot.forEach(doc => {
                     const acao = doc.data();
                     const dataFormatada = new Date(acao.timestamp.seconds * 1000).toLocaleString('pt-BR');
-                    
+
                     let acaoDisplay = acao.acao;
                     let isRestorable = false;
-                    
+
                     const detalhes = acao.detalhes || {};
 
                     if (acao.acao.includes("excluiu")) {
@@ -299,7 +299,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             if (isRestorable) {
                 canRestore = true;
                 const details = $(item).data('details');
-                
+
                 let itemsToRestore = [];
                 if (Array.isArray(details.agendamentos)) {
                     itemsToRestore = details.agendamentos;
@@ -310,7 +310,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 for (const singleDetail of itemsToRestore) {
                     if (singleDetail && singleDetail.senha) {
                         const newRascunhoRef = doc(collection(db, "agendamentos-rascunho"));
-                        
+
                         const newRascunhoData = {
                             userId: currentUserUid,
                             senha: singleDetail.senha || null,
@@ -331,7 +331,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 }
             }
         }
-        
+
         if (!canRestore) {
              alert('Nenhum item selecionado pode ser restaurado. Apenas exclusões podem ser restauradas.');
              return;
@@ -346,7 +346,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 console.error("Erro ao restaurar agendamentos: ", e);
                 alert("Ocorreu um erro ao restaurar os agendamentos. Tente novamente.");
             } finally {
-                carregarHistorico(currentUserUid);
+                carregarHistorico();
             }
         }
     });
@@ -361,7 +361,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         if (confirm(`Tem certeza que deseja excluir permanentemente ${checkedItems.length} registro(s) do histórico?`)) {
             const batch = writeBatch(db);
             const deletedIds = [];
-            
+
             checkedItems.each(function() {
                 const id = $(this).data('id');
                 const docRef = doc(db, "historico-acoes", id);
@@ -376,7 +376,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 console.error("Erro ao excluir registros do histórico: ", e);
                 alert("Ocorreu um erro ao excluir os registros. Tente novamente.");
             } finally {
-                carregarHistorico(currentUserUid);
+                carregarHistorico();
             }
         }
     });
