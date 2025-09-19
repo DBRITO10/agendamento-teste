@@ -1115,8 +1115,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
         const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
             const rowData = [...row];
-            const volumes = rowData.splice(9, 1)[0];
-            return [...rowData.slice(1), volumes];
+            const plainTextData = rowData.slice(1, 10).map(cell => {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = cell;
+                return tempDiv.textContent || tempDiv.innerText || "";
+            });
+            return plainTextData;
         });
         doc.autoTable({ head: [headers], body: data });
         doc.save('agendamentos.pdf');
