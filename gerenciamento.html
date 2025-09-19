@@ -723,26 +723,30 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         if (confirm(`Tem certeza que deseja salvar ${checkedRows.length} rascunho(s) selecionado(s) como agendamentos definitivos?`)) {
             const batch = writeBatch(db);
+            const rascunhoIdsToMove = [];
             
-            for (const el of checkedRows) {
-                const rascunhoId = $(el).data('id');
-                const docRef = doc(db, "agendamentos-rascunho", rascunhoId);
-                const docSnap = await getDoc(docRef);
-                
-                if (docSnap.exists()) {
-                    const rascunhoData = docSnap.data();
-                    const newDocRef = doc(collection(db, "agendamentos"));
-                    batch.set(newDocRef, { ...rascunhoData, timestamp: new Date() });
-                    batch.delete(docRef);
-                    await adicionarHistorico("agendou uma nova carga (a partir de rascunho)", { id: newDocRef.id, ...rascunhoData });
-                }
-            }
-            
+            checkedRows.each(function() {
+                rascunhoIdsToMove.push($(this).data('id'));
+            });
+
             try {
+                for (const rascunhoId of rascunhoIdsToMove) {
+                    const docRef = doc(db, "agendamentos-rascunho", rascunhoId);
+                    const docSnap = await getDoc(docRef);
+                    
+                    if (docSnap.exists()) {
+                        const rascunhoData = docSnap.data();
+                        const newDocRef = doc(collection(db, "agendamentos"));
+                        batch.set(newDocRef, { ...rascunhoData, timestamp: new Date() });
+                        batch.delete(docRef);
+                        await adicionarHistorico("agendou uma nova carga (a partir de rascunho)", { id: newDocRef.id, ...rascunhoData });
+                    }
+                }
+                
                 await batch.commit();
                 alert(`${checkedRows.length} rascunho(s) salvo(s) com sucesso como agendamento(s).`);
             } catch (e) {
-                 console.error("Erro ao salvar rascunhos selecionados:", e);
+                console.error("Erro ao salvar rascunhos selecionados:", e);
                 alert("Ocorreu um erro ao salvar os rascunhos. Tente novamente.");
             }
         }
@@ -1107,7 +1111,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
     window.exportarPDF = () => {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        const doc = new jsPDF('landscape');
         const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
         const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
             const rowData = [...row];
