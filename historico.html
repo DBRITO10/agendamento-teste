@@ -86,7 +86,7 @@
                 <th>Usuário</th>
                 <th>Ação</th>
                 <th>Senha</th>
-                <th>Data da Carga</th>
+                <th>Data</th>
                 <th>Central</th>
                 <th>Cargas</th>
                 <th>Pedido de Compra</th>
@@ -160,7 +160,6 @@
                 let acoesHtml = "";
                 let nomeAcao = acao.acao;
 
-                // Função auxiliar para obter valor, substituindo por "vazio" se necessário
                 const getValue = (value) => {
                     return value || "vazio";
                 };
@@ -251,7 +250,7 @@
                     { title: "Usuário" },
                     { title: "Ação" },
                     { title: "Senha" },
-                    { title: "Data da Carga" },
+                    { title: "Data" },
                     { title: "Central" },
                     { title: "Cargas", className: "wrap-text" },
                     { title: "Pedido de Compra", className: "wrap-text" },
