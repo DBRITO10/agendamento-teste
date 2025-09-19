@@ -191,7 +191,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                                 <strong>Pedido de Compra:</strong> ${item.pedidoCompra || 'Vazio'}<br>
                                 <strong>Fornecedor:</strong> ${item.fornecedor || 'Vazio'}<br>
                                 <strong>Tipo de Produto:</strong> ${item.tipoDeProduto || 'Vazio'}<br>
-                                <strong>Produto:</strong> ${item.produto || 'Vazio'}
+                                <strong>Produto:</strong> ${item.produto || 'Vazio'}<br>
+                                <strong>Volumes:</strong> ${item.volumes || 'Vazio'}
                             </li>`;
                         });
                         detalhesHTML += "</ul>";
@@ -204,7 +205,8 @@ document.addEventListener("DOMContentLoaded", ()=>{
                             <strong>Pedido de Compra:</strong> ${detalhes.pedidoCompra || 'Vazio'}<br>
                             <strong>Fornecedor:</strong> ${detalhes.fornecedor || 'Vazio'}<br>
                             <strong>Tipo de Produto:</strong> ${detalhes.tipoDeProduto || 'Vazio'}<br>
-                            <strong>Produto:</strong> ${detalhes.produto || 'Vazio'}
+                            <strong>Produto:</strong> ${detalhes.produto || 'Vazio'}<br>
+                            <strong>Volumes:</strong> ${detalhes.volumes || 'Vazio'}
                         `;
                     }
 
@@ -317,6 +319,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                             fornecedor: singleDetail.fornecedor || null,
                             tipoDeProduto: singleDetail.tipoDeProduto || null,
                             produto: singleDetail.produto || null,
+                            volumes: singleDetail.volumes || null,
                             timestamp: new Date()
                         };
                         batch.set(newRascunhoRef, newRascunhoData);
