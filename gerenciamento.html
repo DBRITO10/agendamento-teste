@@ -914,6 +914,26 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 }
             });
 
+            // Re-apply the filter after the table is redrawn by onSnapshot
+            const savedFilter = localStorage.getItem('datatableFilter');
+            if (savedFilter) {
+                try {
+                    const filterData = JSON.parse(savedFilter);
+                    const columnIndex = filterData.columnIndex;
+                    const filterRegex = filterData.filterRegex;
+                    dataTable.column(columnIndex).search(filterRegex, true, false).draw();
+                    const filterButton = $(`.filter-button[data-column='${columnIndex}']`);
+                    if (filterButton.length) {
+                        filterButton.text('APLICADO');
+                        filterButton.addClass('filtered');
+                    }
+                } catch (e) {
+                    console.error("Erro ao re-aplicar filtro do localStorage:", e);
+                    localStorage.removeItem('datatableFilter');
+                }
+            }
+
+
             dataTable.on('draw.dt', function () {
                 const filteredRowsCount = dataTable.rows({search: 'applied'}).count();
                 totalCargasSpan.textContent = filteredRowsCount;
@@ -1033,12 +1053,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
         if (rascunhoId) {
             const rascunhoRef = doc(db, "agendamentos-rascunho", rascunhoId);
             try {
+                const docSnap = await getDoc(rascunhoRef);
+                const originalData = docSnap.exists() ? docSnap.data() : {};
                 await updateDoc(rascunhoRef, { 
                     ...cargas[0],
                     timestamp: new Date() 
                 });
                 alert("Rascunho atualizado com sucesso!");
-                await adicionarHistorico("atualizou um rascunho", { ...cargas[0] });
+                await adicionarHistorico("atualizou um rascunho", { senha: originalData.senha, ...cargas[0] });
                 resetFormState();
             } catch (e) {
                 console.error("Erro ao atualizar rascunho: ", e);
@@ -1052,7 +1074,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     timestamp: new Date() 
                 });
                 alert("Agendamento atualizado com sucesso!");
-                await adicionarHistorico("atualizou um agendamento definitivo", { ...cargas[0] });
+                await adicionarHistorico("atualizou um agendamento definitivo", { senha: originalSenhaInput.value, ...cargas[0] });
                 resetFormState();
             } catch (e) {
                 console.error("Erro ao atualizar agendamento: ", e);
