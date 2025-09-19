@@ -398,6 +398,12 @@ document.addEventListener("DOMContentLoaded", ()=>{
     let currentUserUid = null;
     let currentUserName = null;
 
+    function formatDateToDDMMYYYY(dateString) {
+        if (!dateString) return "Não definida";
+        const [year, month, day] = dateString.split('-');
+        return `${day}/${month}/${year}`;
+    }
+
     function resetFormState() {
         form.reset();
         numCargasInput.value = 1;
@@ -559,7 +565,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 dadosParaTabela.push([
                     `<input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}">`,
                     rascunho.senha || "Não Definida",
-                    rascunho.data || "Não definida",
+                    formatDateToDDMMYYYY(rascunho.data),
                     rascunho.central || "Não definido",
                     formattedCargas,
                     formattedPedidoCompra,
@@ -673,14 +679,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
             const rowData = rascunhosDataTable.row(this).data();
             const values = [
                 rowData[1],
-                rowData[2],
-                rowData[3],
-                $(rowData[4]).text().trim(),
-                $(rowData[5]).text().trim(),
-                rowData[6],
-                rowData[7],
-                rowData[8],
-                rowData[9],
+                $('<div>').html(rowData[2]).text().trim(),
+                $('<div>').html(rowData[3]).text().trim(),
+                $('<div>').html(rowData[4]).text().trim(),
+                $('<div>').html(rowData[5]).text().trim(),
+                $('<div>').html(rowData[6]).text().trim(),
+                $('<div>').html(rowData[7]).text().trim(),
+                $('<div>').html(rowData[8]).text().trim(),
+                $('<div>').html(rowData[9]).text().trim(),
             ];
             plainTextContent += values.join('\t') + '\n';
             
@@ -717,30 +723,26 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         if (confirm(`Tem certeza que deseja salvar ${checkedRows.length} rascunho(s) selecionado(s) como agendamentos definitivos?`)) {
             const batch = writeBatch(db);
-            const rascunhoIdsToMove = [];
             
-            checkedRows.each(function() {
-                rascunhoIdsToMove.push($(this).data('id'));
-            });
-
-            try {
-                for (const rascunhoId of rascunhoIdsToMove) {
-                    const docRef = doc(db, "agendamentos-rascunho", rascunhoId);
-                    const docSnap = await getDoc(docRef);
-                    
-                    if (docSnap.exists()) {
-                        const rascunhoData = docSnap.data();
-                        const newDocRef = doc(collection(db, "agendamentos"));
-                        batch.set(newDocRef, { ...rascunhoData, timestamp: new Date() });
-                        batch.delete(docRef);
-                        await adicionarHistorico("agendou uma nova carga (a partir de rascunho)", { id: newDocRef.id, ...rascunhoData });
-                    }
-                }
+            for (const el of checkedRows) {
+                const rascunhoId = $(el).data('id');
+                const docRef = doc(db, "agendamentos-rascunho", rascunhoId);
+                const docSnap = await getDoc(docRef);
                 
+                if (docSnap.exists()) {
+                    const rascunhoData = docSnap.data();
+                    const newDocRef = doc(collection(db, "agendamentos"));
+                    batch.set(newDocRef, { ...rascunhoData, timestamp: new Date() });
+                    batch.delete(docRef);
+                    await adicionarHistorico("agendou uma nova carga (a partir de rascunho)", { id: newDocRef.id, ...rascunhoData });
+                }
+            }
+            
+            try {
                 await batch.commit();
                 alert(`${checkedRows.length} rascunho(s) salvo(s) com sucesso como agendamento(s).`);
             } catch (e) {
-                console.error("Erro ao salvar rascunhos selecionados:", e);
+                 console.error("Erro ao salvar rascunhos selecionados:", e);
                 alert("Ocorreu um erro ao salvar os rascunhos. Tente novamente.");
             }
         }
@@ -849,7 +851,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 dadosParaTabela.push([
                     `<input type="checkbox" class="row-checkbox" data-id="${agendamento.id}">`,
                     agendamento.senha,
-                    agendamento.data,
+                    formatDateToDDMMYYYY(agendamento.data),
                     agendamento.central,
                     formattedCargas,
                     formattedPedidoCompra,
@@ -1201,14 +1203,14 @@ document.addEventListener("DOMContentLoaded", ()=>{
             const rowData = dataTable.row(this).data();
             const values = [
                 rowData[1],
-                rowData[2],
-                rowData[3],
-                $(rowData[4]).text().trim(),
-                $(rowData[5]).text().trim(),
-                rowData[6],
-                rowData[7],
-                rowData[8],
-                rowData[9],
+                $('<div>').html(rowData[2]).text().trim(),
+                $('<div>').html(rowData[3]).text().trim(),
+                $('<div>').html(rowData[4]).text().trim(),
+                $('<div>').html(rowData[5]).text().trim(),
+                $('<div>').html(rowData[6]).text().trim(),
+                $('<div>').html(rowData[7]).text().trim(),
+                $('<div>').html(rowData[8]).text().trim(),
+                $('<div>').html(rowData[9]).text().trim(),
             ];
             plainTextContent += values.join('\t') + '\n';
             
