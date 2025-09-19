@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
 <script type="module">
     import { db, auth } from "./firebase-config.js";
-    import { collection, query, where, getDocs, orderBy, doc, deleteDoc, addDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { collection, query, getDocs, orderBy, doc, deleteDoc, addDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     let historicoDataTable = null;
@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         if (user) {
             currentUserUid = user.uid;
             currentUserName = localStorage.getItem("username") || user.email;
-            carregarHistorico(currentUserUid);
+            carregarHistorico(); // Chama a função sem o parâmetro do usuário
         } else {
             carregandoEl.textContent = "Você precisa estar logado para ver o histórico.";
             window.location.href = "index.html";
@@ -141,9 +141,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
         });
     };
 
-    async function carregarHistorico(currentUserUid) {
+    async function carregarHistorico() {
         carregandoEl.textContent = 'Carregando...';
-        const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
+        // A linha abaixo foi modificada para remover o filtro de usuário
+        const q = query(collection(db, "historico-acoes"), orderBy("timestamp", "desc"));
         try {
             const snapshot = await getDocs(q);
             const dadosParaTabela = [];
