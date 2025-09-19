@@ -280,7 +280,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
             <span>Fornecedor</span>
             <span>Tipo de Produto</span>
             <span>Produto</span>
-            <span>Volumes</span>
         </div>
         <div id="cargasContainer">
             <div class="carga-item">
@@ -291,7 +290,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 <input type="text" class="fornecedor" placeholder="Fornecedor" required>
                 <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
                 <input type="text" class="produto" placeholder="Produto" required>
-                <input type="text" class="volumes" placeholder="Volumes">
             </div>
         </div>
         <button type="submit" id="salvarBtn">Salvar Agendamento</button>
@@ -318,7 +316,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     <th>Fornecedor</th>
                     <th>Tipo de Produto</th>
                     <th>Produto</th>
-                    <th>Volumes</th>
                 </tr>
             </thead>
             <tbody>
@@ -348,7 +345,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     <th>Fornecedor</th>
                     <th>Tipo de Produto</th>
                     <th>Produto</th>
-                    <th>Volumes</th>
                 </tr>
             </thead>
             <tbody>
@@ -398,12 +394,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
     let currentUserUid = null;
     let currentUserName = null;
 
-    function formatarData(data) {
-        if (!data) return "Não definida";
-        const [ano, mes, dia] = data.split('-');
-        return `${dia}/${mes}/${ano}`;
-    }
-
     function resetFormState() {
         form.reset();
         numCargasInput.value = 1;
@@ -448,7 +438,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     <input type="text" class="fornecedor" placeholder="Fornecedor" required>
                     <input type="text" class="tipoDeProduto" placeholder="Tipo de Produto" required>
                     <input type="text" class="produto" placeholder="Produto" required>
-                    <input type="text" class="volumes" placeholder="Volumes">
                 </div>
             `;
         }
@@ -480,8 +469,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 pedidoCompra: item.querySelector('.pedidoCompra').value,
                 fornecedor: item.querySelector('.fornecedor').value,
                 tipoDeProduto: item.querySelector('.tipoDeProduto').value,
-                produto: item.querySelector('.produto').value,
-                volumes: item.querySelector('.volumes').value
+                produto: item.querySelector('.produto').value
             });
         });
 
@@ -493,24 +481,28 @@ document.addEventListener("DOMContentLoaded", ()=>{
         try {
             if (editAgendamentoId) {
                 if (confirm("Você está editando um agendamento definitivo. Deseja movê-lo para a lista de rascunhos?")) {
-                    const batch = writeBatch(db);
                     const agendamentoRef = doc(db, "agendamentos", editAgendamentoId);
-                    const originalSenha = originalSenhaInput.value;
-                    const rascunhoData = {
-                        userId: currentUserUid,
-                        senha: originalSenha,
-                        ...cargas[0],
-                        timestamp: new Date()
-                    };
-                    
-                    const newRascunhoRef = doc(collection(db, "agendamentos-rascunho"));
-                    batch.delete(agendamentoRef);
-                    batch.set(newRascunhoRef, rascunhoData);
-                    
-                    await batch.commit();
-                    await adicionarHistorico("moveu um agendamento para rascunho", { senha: originalSenha });
-                    alert('Agendamento movido para rascunho com sucesso!');
-                    resetFormState();
+                    const agendamentoSnap = await getDoc(agendamentoRef);
+                    if (agendamentoSnap.exists()) {
+                        const agendamentoData = agendamentoSnap.data();
+
+                        const batch = writeBatch(db);
+                        const newRascunhoRef = doc(collection(db, "agendamentos-rascunho"));
+                        
+                        batch.delete(agendamentoRef);
+                        batch.set(newRascunhoRef, {
+                            userId: currentUserUid,
+                            ...agendamentoData,
+                            timestamp: new Date()
+                        });
+                        
+                        await batch.commit();
+                        await adicionarHistorico("moveu um agendamento para rascunho", agendamentoData);
+                        alert('Agendamento movido para rascunho com sucesso!');
+                        resetFormState();
+                    } else {
+                        alert("O agendamento a ser movido não foi encontrado.");
+                    }
                 }
             } else {
                 const contadorRef = doc(db, "metadados", "contador");
@@ -547,8 +539,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         if (!currentUserUid) {
             return;
         }
-        // MODIFICADO: Removido o filtro 'where("userId", "==", currentUserUid)' para mostrar todos os rascunhos
-        const q = query(collection(db, "agendamentos-rascunho"));
+        const q = query(collection(db, "agendamentos-rascunho"), where("userId", "==", currentUserUid));
         onSnapshot(q, (snapshot) => {
             if (rascunhosDataTable) {
                 rascunhosDataTable.destroy();
@@ -562,15 +553,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 dadosParaTabela.push([
                     `<input type="checkbox" class="rascunho-checkbox" data-id="${doc.id}">`,
                     rascunho.senha || "Não Definida",
-                    formatarData(rascunho.data),
+                    rascunho.data || "Não definida",
                     rascunho.central || "Não definido",
                     formattedCargas,
                     formattedPedidoCompra,
                     rascunho.fornecedor || "Não definido",
                     rascunho.tipoDeProduto || "Não definido",
-                    rascunho.produto || "Não definido",
-                    // NOVO: Adicionado valor da coluna Volumes
-                    rascunho.volumes || "Não definido"
+                    rascunho.produto || "Não definido"
                 ]);
             });
 
@@ -585,9 +574,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     { title: "Pedido de Compra" },
                     { title: "Fornecedor" },
                     { title: "Tipo de Produto" },
-                    { title: "Produto" },
-                    // NOVO: Adicionada a coluna Volumes
-                    { title: "Volumes" }
+                    { title: "Produto" }
                 ],
                 paging: false,
                 info: false,
@@ -647,8 +634,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
                 cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
                 cargaItems[0].querySelector('.produto').value = dados.produto;
-                // NOVO: Adicionado campo Volumes
-                cargaItems[0].querySelector('.volumes').value = dados.volumes;
             }
             
             editRascunhoIdInput.value = rascunhoId;
@@ -664,8 +649,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             return;
         }
 
-        // NOVO: Adicionado "Volumes" ao array de cabeçalhos
-        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
+        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
         let plainTextContent = headers.join('\t') + '\n';
         
         let htmlContent = '<table style="width:100%; border-collapse: collapse; margin-top: 20px;">';
@@ -677,12 +661,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         checkedRows.each(function() {
             const rowData = rascunhosDataTable.row(this).data();
-            const values = [];
-            // MODIFICADO: Loop atualizado para pegar todos os dados, incluindo a nova coluna
-            for (let i = 1; i < rowData.length; i++) {
-                values.push($('<div>').html(rowData[i]).text().trim());
-            }
-            
+            const values = [
+                rowData[1],
+                rowData[2],
+                rowData[3],
+                $(rowData[4]).text().trim(),
+                $(rowData[5]).text().trim(),
+                rowData[6],
+                rowData[7],
+                rowData[8],
+            ];
             plainTextContent += values.join('\t') + '\n';
             
             htmlContent += '<tr>';
@@ -764,14 +752,15 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    // NOVO: Adicionado volumes a deletedDetails
                     deletedDetails.push({
                         senha: data.senha || "N/A",
+                        data: data.data || "N/A", // Adicionado para enviar para o histórico
                         central: data.central || "N/A",
                         cargas: data.cargas || "N/A",
                         pedidoCompra: data.pedidoCompra || "N/A",
                         fornecedor: data.fornecedor || "N/A",
-                        volumes: data.volumes || "N/A"
+                        tipoDeProduto: data.tipoDeProduto || "N/A", // Adicionado
+                        produto: data.produto || "N/A" // Adicionado
                     });
                     batch.delete(docRef);
                 }
@@ -807,8 +796,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 cargaItems[0].querySelector('.fornecedor').value = dados.fornecedor;
                 cargaItems[0].querySelector('.tipoDeProduto').value = dados.tipoDeProduto;
                 cargaItems[0].querySelector('.produto').value = dados.produto;
-                // NOVO: Adicionado campo Volumes
-                cargaItems[0].querySelector('.volumes').value = dados.volumes;
             }
             editAgendamentoIdInput.value = id;
             originalSenhaInput.value = dados.senha;
@@ -849,15 +836,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 dadosParaTabela.push([
                     `<input type="checkbox" class="row-checkbox" data-id="${agendamento.id}">`,
                     agendamento.senha,
-                    formatarData(agendamento.data),
+                    agendamento.data,
                     agendamento.central,
                     formattedCargas,
                     formattedPedidoCompra,
                     agendamento.fornecedor,
                     agendamento.tipoDeProduto,
                     agendamento.produto,
-                    // NOVO: Adicionado valor da coluna Volumes
-                    agendamento.volumes || "Não definido"
                 ]);
             });
 
@@ -873,8 +858,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                     { title: "Fornecedor" },
                     { title: "Tipo de Produto" },
                     { title: "Produto" },
-                    // NOVO: Adicionada a coluna Volumes
-                    { title: "Volumes" }
                 ],
                 paging: false,
                 info: false,
@@ -1019,9 +1002,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 pedidoCompra: item.querySelector('.pedidoCompra').value,
                 fornecedor: item.querySelector('.fornecedor').value,
                 tipoDeProduto: item.querySelector('.tipoDeProduto').value,
-                produto: item.querySelector('.produto').value,
-                // NOVO: Adicionado valor de Volumes
-                volumes: item.querySelector('.volumes').value
+                produto: item.querySelector('.produto').value
             });
         });
 
@@ -1096,61 +1077,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
     window.exportarPDF = () => {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('l', 'pt', 'a4'); // Alterado para paisagem
-        // NOVO: Adicionado "Volumes" ao array de cabeçalhos
-        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
-            return [
-                String(row[1]).replace(/<br>/g, ' ').trim(),
-                String(row[2]).replace(/<br>/g, ' ').trim(),
-                String(row[3]).replace(/<br>/g, ' ').trim(),
-                String(row[4]).replace(/<br>/g, ' ').trim(),
-                String(row[5]).replace(/<br>/g, ' ').trim(),
-                String(row[6]).replace(/<br>/g, ' ').trim(),
-                String(row[7]).replace(/<br>/g, ' ').trim(),
-                String(row[8]).replace(/<br>/g, ' ').trim(),
-                // NOVO: Adicionado o valor da coluna Volumes
-                String(row[9]).replace(/<br>/g, ' ').trim()
-            ];
-        });
-        
-        doc.autoTable({
-            head: [headers],
-            body: data,
-            tableWidth: 'wrap',
-            styles: {
-                cellPadding: 4,
-                fontSize: 10,
-                valign: 'top',
-            },
-            headStyles: {
-                fillColor: [204, 0, 0],
-                textColor: 255,
-                fontStyle: 'bold',
-                halign: 'center'
-            }
-        });
-
+        const doc = new jsPDF();
+        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
+        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8));
+        doc.autoTable({ head: [headers], body: data });
         doc.save('agendamentos.pdf');
     };
 
     window.exportarExcel = () => {
-        // NOVO: Adicionado "Volumes" ao array de cabeçalhos
-        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
-        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => {
-            return [
-                String(row[1]).replace(/<br>/g, ' ').trim(),
-                String(row[2]).replace(/<br>/g, ' ').trim(),
-                String(row[3]).replace(/<br>/g, ' ').trim(),
-                String(row[4]).replace(/<br>/g, ' ').trim(),
-                String(row[5]).replace(/<br>/g, ' ').trim(),
-                String(row[6]).replace(/<br>/g, ' ').trim(),
-                String(row[7]).replace(/<br>/g, ' ').trim(),
-                String(row[8]).replace(/<br>/g, ' ').trim(),
-                // NOVO: Adicionado o valor da coluna Volumes
-                String(row[9]).replace(/<br>/g, ' ').trim()
-            ];
-        });
+        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
+        const data = dataTable.rows({ search: 'applied' }).data().toArray().map(row => row.slice(1, 8));
         const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Agendamentos");
@@ -1215,10 +1151,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
             return;
         }
         
-        // NOVO: Adicionado "Volumes" ao array de cabeçalhos
-        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto", "Volumes"];
+        const headers = ["Senha", "Data", "Central", "Cargas", "Pedido de Compra", "Fornecedor", "Tipo de Produto", "Produto"];
         let plainTextContent = headers.join('\t') + '\n';
-        
+
         let htmlContent = '<table style="width:100%; border-collapse: collapse; margin-top: 20px;">';
         htmlContent += '<thead><tr style="background: #cc0000; color: white;">';
         headers.forEach(header => {
@@ -1228,12 +1163,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
         checkedRows.each(function() {
             const rowData = dataTable.row(this).data();
-            const values = [];
-            // MODIFICADO: Loop atualizado para pegar todos os dados, incluindo a nova coluna
-            for (let i = 1; i < rowData.length; i++) {
-                values.push($('<div>').html(rowData[i]).text().trim());
-            }
-
+            const values = [
+                rowData[1],
+                rowData[2],
+                rowData[3],
+                $(rowData[4]).text().trim(),
+                $(rowData[5]).text().trim(),
+                rowData[6],
+                rowData[7],
+                rowData[8],
+            ];
             plainTextContent += values.join('\t') + '\n';
             
             htmlContent += '<tr>';
@@ -1277,7 +1216,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 const docSnap = await getDoc(docRef);
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    // NOVO: Adicionado volumes a deletedDetails
                     deletedDetails.push({
                         senha: data.senha || null,
                         data: data.data || null,
@@ -1286,8 +1224,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                         pedidoCompra: data.pedidoCompra || null,
                         fornecedor: data.fornecedor || null,
                         tipoDeProduto: data.tipoDeProduto || null,
-                        produto: data.produto || null,
-                        volumes: data.volumes || null
+                        produto: data.produto || null
                     });
                     batch.delete(docRef);
                 }
