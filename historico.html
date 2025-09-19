@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
 <script type="module">
     import { db, auth } from "./firebase-config.js";
-    import { collection, query, getDocs, orderBy, doc, deleteDoc, addDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { collection, query, where, getDocs, orderBy, doc, deleteDoc, addDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     let historicoDataTable = null;
@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         if (user) {
             currentUserUid = user.uid;
             currentUserName = localStorage.getItem("username") || user.email;
-            carregarHistorico(); // Chama a função sem o parâmetro do usuário
+            carregarHistorico(currentUserUid);
         } else {
             carregandoEl.textContent = "Você precisa estar logado para ver o histórico.";
             window.location.href = "index.html";
@@ -141,7 +141,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         });
     };
 
-async function carregarHistorico(currentUserUid) {
+    async function carregarHistorico(currentUserUid) {
         carregandoEl.textContent = 'Carregando...';
         const q = query(collection(db, "historico-acoes"), where("userId", "==", currentUserUid), orderBy("timestamp", "desc"));
         try {
@@ -171,8 +171,8 @@ async function carregarHistorico(currentUserUid) {
                         if (detalhes.senha) {
                             isRestorable = true;
                         }
-                    } else if (acao.acao.includes("agendou a partir de rascunho")) { // NOVA CONDIÇÃO
-                        acaoDisplay = "Agendou a partir de rascunho";
+                    } else if (acao.acao.includes("agendou a partir de rascunho")) {
+                         acaoDisplay = "Agendou a partir de rascunho";
                     } else if (acao.acao.includes("agendou")) {
                         acaoDisplay = "Agendou";
                     } else if (acao.acao.includes("restaurou")) {
