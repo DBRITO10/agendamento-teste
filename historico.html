@@ -63,6 +63,9 @@
         .action-buttons-container button:hover {
             background-color: #b71c1c;
         }
+        .detalhes-tabela {
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -183,7 +186,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
                     let detalhesHTML = '';
                     if (Array.isArray(detalhes.agendamentos)) {
-                        detalhesHTML = "<ul>";
+                        detalhesHTML = `<div class="detalhes-tabela"><ul>`;
                         detalhes.agendamentos.forEach(item => {
                             detalhesHTML += `<li>
                                 <strong>Senha:</strong> ${item.senha || 'Vazio'}<br>
@@ -197,9 +200,9 @@ document.addEventListener("DOMContentLoaded", ()=>{
                                 <strong>Volumes:</strong> ${item.volumes || 'Vazio'}
                             </li>`;
                         });
-                        detalhesHTML += "</ul>";
+                        detalhesHTML += "</ul></div>";
                     } else {
-                         detalhesHTML = `
+                         detalhesHTML = `<div class="detalhes-tabela">
                             <strong>Senha:</strong> ${detalhes.senha || 'Vazio'}<br>
                             <strong>Data:</strong> ${detalhes.data || 'Vazio'}<br>
                             <strong>Central:</strong> ${detalhes.central || 'Vazio'}<br>
@@ -209,7 +212,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                             <strong>Tipo de Produto:</strong> ${detalhes.tipoDeProduto || 'Vazio'}<br>
                             <strong>Produto:</strong> ${detalhes.produto || 'Vazio'}<br>
                             <strong>Volumes:</strong> ${detalhes.volumes || 'Vazio'}
-                        `;
+                        </div>`;
                     }
 
                     dadosParaTabela.push([
@@ -238,6 +241,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 paging: true,
                 info: true,
                 order: [[1, 'desc']],
+                pageLength: 50,
                 oLanguage: {
                     sEmptyTable: "Nenhuma ação registrada.",
                     sSearch: "Buscar:",
