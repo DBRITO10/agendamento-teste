@@ -1063,7 +1063,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
             try {
                 await batch.commit();
-                await adicionarHistorico(`excluiu múltiplos rascunhos`, { agendamentos: deletedDetails });
+                await adicionarHistorico(`excluiu agendandamento(rascunhos)`, { agendamentos: deletedDetails });
                 alert(`${checkedRows.length} rascunho(s) excluído(s) com sucesso.`);
             } catch (e) {
                 console.error("Erro ao excluir rascunhos em lote:", e);
@@ -1606,7 +1606,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
 
             try {
                 await batch.commit();
-                await adicionarHistorico(`excluiu múltiplos agendamentos`, { agendamentos: deletedDetails });
+                await adicionarHistorico(`excluiu agendamento`, { agendamentos: deletedDetails });
                 alert(`${checkedRows.length} agendamento(s) excluído(s) com sucesso.`);
             } catch (e) {
                 console.error("Erro ao excluir agendamentos em lote:", e);
