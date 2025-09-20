@@ -292,7 +292,17 @@
         const checkedItems = $('.row-checkbox:checked');
         const checkedCount = checkedItems.length;
         const areAllRestorable = checkedItems.toArray().every(item => {
-            const acaoDetalhes = JSON.parse($(item).data('acaoDetalhes').replace(/'/g, '"'));
+            let acaoDetalhes = $(item).data('acaoDetalhes');
+
+            // Se for uma string, faz o parse. Senão, assume que já é um objeto.
+            if (typeof acaoDetalhes === 'string') {
+                try {
+                    acaoDetalhes = JSON.parse(acaoDetalhes.replace(/'/g, '"'));
+                } catch (e) {
+                    console.error("Erro ao fazer parse do JSON: ", e);
+                    return false;
+                }
+            }
             return acaoDetalhes.acao.includes("excluiu agendamento");
         });
 
@@ -319,9 +329,18 @@
     $('#restaurarRascunhoBtn').click(() => {
         const checkedItems = $('.row-checkbox:checked');
         const detalhesArray = checkedItems.toArray().map(item => {
-            const acaoDetalhes = JSON.parse($(item).data('acaoDetalhes').replace(/'/g, '"'));
+            let acaoDetalhes = $(item).data('acaoDetalhes');
+
+            if (typeof acaoDetalhes === 'string') {
+                try {
+                    acaoDetalhes = JSON.parse(acaoDetalhes.replace(/'/g, '"'));
+                } catch (e) {
+                    console.error("Erro ao fazer parse do JSON: ", e);
+                    return null;
+                }
+            }
             return acaoDetalhes.detalhes;
-        });
+        }).filter(item => item !== null);
         restaurarAgendamentos(detalhesArray);
     });
 
