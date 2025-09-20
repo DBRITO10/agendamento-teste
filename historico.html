@@ -53,7 +53,6 @@
             padding: 8px 15px;
             border: none;
             border-radius: 4px;
-            margin-bottom: 15px;
         }
         #deleteSelectedBtn:hover {
             background: #b71c1c;
@@ -63,30 +62,32 @@
             cursor: not-allowed;
         }
         
+        .restaurar-btn {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            width: auto;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        .restaurar-btn:hover {
+            background-color: #45a049;
+        }
+        .restaurar-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
         /* Classe para exibir detalhes de forma compacta e com fonte menor, permitindo quebra de linha */
         .detalhes-cell {
             font-size: 10px;
             white-space: normal;
             word-wrap: break-word;
             vertical-align: middle;
-        }
-
-        .restaurar-btn {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 12px;
-            margin: 4px 2px;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-
-        .restaurar-btn:hover {
-            background-color: #45a049;
         }
 
     </style>
@@ -109,7 +110,11 @@
 </header>
 
 <div class="table-container">
-    <button id="deleteSelectedBtn" class="hidden" disabled>Excluir Selecionados</button>
+    <div style="margin-bottom: 15px; display: flex; align-items: center;">
+        <button id="restaurarRascunhoBtn" class="restaurar-btn hidden" disabled>Restaurar para Rascunho</button>
+        <button id="deleteSelectedBtn" class="hidden" disabled>Excluir Selecionados</button>
+    </div>
+    
     <table id="historicoTabela" class="display" style="width:100%">
         <thead>
             <tr>
@@ -118,7 +123,6 @@
                 <th>Usuário</th>
                 <th>Ação</th>
                 <th>Detalhes</th>
-                <th>Ações</th>
             </tr>
         </thead>
         <tbody>
@@ -136,6 +140,7 @@
     let currentUserName = null;
 
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+    const restaurarRascunhoBtn = document.getElementById('restaurarRascunhoBtn');
 
     onAuthStateChanged(auth, user => {
         if (user) {
@@ -204,24 +209,16 @@
                 const dataHora = acao.timestamp ? new Date(acao.timestamp.toDate()).toLocaleString('pt-BR') : 'N/A';
                 const detalhesFormatados = formatarDetalhes(acao.detalhes);
                 
-                // Botão de restaurar
-                let acoesHtml = '';
-                if (acao.acao.includes("excluiu agendamento")) {
-                    const agendamentos = acao.detalhes.agendamentos || [acao.detalhes];
-                    agendamentos.forEach(agendamento => {
-                        const agendamentoData = JSON.stringify(agendamento).replace(/"/g, "'");
-                        acoesHtml += `<button class="restaurar-btn" onclick='restaurarAgendamento(${JSON.stringify(agendamento)})'>Restaurar</button>`;
-                    });
-                }
-
+                // Incorpora os dados no checkbox
+                const acaoDetalhesJson = JSON.stringify({ acao: acao.acao, detalhes: acao.detalhes });
+                const checkbox = `<input type="checkbox" class="row-checkbox" data-id="${acao.id}" data-acao-detalhes='${acaoDetalhesJson}'>`;
 
                 return [
-                    `<input type="checkbox" class="row-checkbox" data-id="${acao.id}">`,
+                    checkbox,
                     dataHora,
                     acao.username || 'Desconhecido',
                     acao.acao,
-                    detalhesFormatados,
-                    acoesHtml
+                    detalhesFormatados
                 ];
             });
 
@@ -232,8 +229,7 @@
                     { title: "Data/Hora" },
                     { title: "Usuário" },
                     { title: "Ação" },
-                    { title: "Detalhes", className: 'detalhes-cell' },
-                    { title: "Ações", orderable: false }
+                    { title: "Detalhes", className: 'detalhes-cell' }
                 ],
                 paging: false,
                 info: false,
@@ -248,7 +244,7 @@
     }
 
     // Função para restaurar um agendamento
-    window.restaurarAgendamento = async (detalhes) => {
+    async function restaurarAgendamento(detalhes) {
         if (!detalhes || !detalhes.senha) {
             alert('Não foi possível restaurar o agendamento. Dados inválidos.');
             return;
@@ -256,16 +252,15 @@
         
         if (confirm(`Tem certeza que deseja restaurar o agendamento com senha ${detalhes.senha}?`)) {
             try {
-                // Adiciona o agendamento na coleção 'agendamentos'
-                const docRef = await addDoc(collection(db, "agendamentos"), detalhes);
+                const agendamentoData = detalhes.agendamentos ? detalhes.agendamentos[0] : detalhes;
+                const docRef = await addDoc(collection(db, "agendamentos"), agendamentoData);
                 
-                // Adiciona a ação de restauração no histórico
                 await adicionarHistorico("restaurou agendamento", {
-                    senha: detalhes.senha,
+                    senha: agendamentoData.senha,
                     docId: docRef.id
                 });
                 
-                alert(`Agendamento com senha ${detalhes.senha} restaurado com sucesso para rascunho.`);
+                alert(`Agendamento com senha ${agendamentoData.senha} restaurado com sucesso para rascunho.`);
             } catch (e) {
                 console.error("Erro ao restaurar agendamento: ", e);
                 alert("Ocorreu um erro ao restaurar o agendamento. Tente novamente.");
@@ -276,15 +271,19 @@
     $(document).on('click', '#selectAllCheckbox', function() {
         const isChecked = $(this).prop('checked');
         $('.row-checkbox').prop('checked', isChecked);
-        toggleDeleteButton();
+        toggleActionButtons();
     });
 
     $(document).on('change', '.row-checkbox', function() {
-        toggleDeleteButton();
+        toggleActionButtons();
     });
 
-    function toggleDeleteButton() {
-        const checkedCount = $('.row-checkbox:checked').length;
+    // Função que gerencia a visibilidade dos botões
+    function toggleActionButtons() {
+        const checkedItems = $('.row-checkbox:checked');
+        const checkedCount = checkedItems.length;
+
+        // Gerencia o botão de Excluir
         if (checkedCount > 0) {
             deleteSelectedBtn.classList.remove('hidden');
             deleteSelectedBtn.disabled = false;
@@ -292,7 +291,31 @@
             deleteSelectedBtn.classList.add('hidden');
             deleteSelectedBtn.disabled = true;
         }
+
+        // Gerencia o botão de Restaurar
+        if (checkedCount === 1) {
+            const selectedCheckbox = checkedItems.first();
+            const acaoDetalhes = JSON.parse(selectedCheckbox.data('acaoDetalhes').replace(/'/g, '"'));
+            
+            if (acaoDetalhes.acao.includes("excluiu agendamento")) {
+                restaurarRascunhoBtn.classList.remove('hidden');
+                restaurarRascunhoBtn.disabled = false;
+                restaurarRascunhoBtn.dataset.detalhes = JSON.stringify(acaoDetalhes.detalhes);
+            } else {
+                restaurarRascunhoBtn.classList.add('hidden');
+                restaurarRascunhoBtn.disabled = true;
+            }
+        } else {
+            restaurarRascunhoBtn.classList.add('hidden');
+            restaurarRascunhoBtn.disabled = true;
+        }
     }
+
+    // Evento de clique para o botão de Restaurar
+    $('#restaurarRascunhoBtn').click(() => {
+        const detalhes = JSON.parse(restaurarRascunhoBtn.dataset.detalhes);
+        restaurarAgendamento(detalhes);
+    });
 
     $('#deleteSelectedBtn').click(async () => {
         const checkedItems = $('.row-checkbox:checked');
