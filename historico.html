@@ -1,396 +1,396 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Histórico de Ações</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <title>Histórico de Ações</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
 
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background-color: #fafafa; }
-        header { text-align: center; margin-bottom: 20px; }
-        h1 { color: #cc0000; font-size: 28px; margin: 10px 0 20px 0; font-weight: bold; }
-        .table-container { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
-        thead th { background-color: #cc0000; color: white; }
-        #userBar {
-            background: #E6E6E6;
-            padding: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: 6px;
-            margin-bottom: 12px;
-            flex-wrap: nowrap;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        #userBar span {
-            flex-shrink: 1;
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        #userBar button {
-            width: auto;
-            flex-shrink: 0;
-            margin-left: 10px;
-        }
-        .hidden {
-            display: none;
-        }
-        #deleteSelectedBtn {
-            background: #d32f2f;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            width: auto;
-            padding: 8px 15px;
-            border: none;
-            border-radius: 4px;
-        }
-        #deleteSelectedBtn:hover {
-            background: #b71c1c;
-        }
-        #deleteSelectedBtn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        
-        .restaurar-btn {
-            background-color: #4CAF50;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            width: auto;
-            padding: 8px 15px;
-            border: none;
-            border-radius: 4px;
-            margin-right: 10px;
-        }
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #fafafa; }
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { color: #cc0000; font-size: 28px; margin: 10px 0 20px 0; font-weight: bold; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+        thead th { background-color: #cc0000; color: white; }
+        #userBar {
+            background: #E6E6E6;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #userBar span {
+            flex-shrink: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #userBar button {
+            width: auto;
+            flex-shrink: 0;
+            margin-left: 10px;
+        }
+        .hidden {
+            display: none;
+        }
+        #deleteSelectedBtn {
+            background: #d32f2f;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            width: auto;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+        }
+        #deleteSelectedBtn:hover {
+            background: #b71c1c;
+        }
+        #deleteSelectedBtn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .restaurar-btn {
+            background-color: #4CAF50;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            width: auto;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
 
-        .restaurar-btn:hover {
-            background-color: #45a049;
-        }
-        .restaurar-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
+        .restaurar-btn:hover {
+            background-color: #45a049;
+        }
+        .restaurar-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
 
-        /* Classe para exibir detalhes de forma compacta e com fonte menor, permitindo quebra de linha */
-        .detalhes-cell {
-            font-size: 10px;
-            white-space: normal;
-            word-wrap: break-word;
-            vertical-align: middle;
-        }
+        /* Classe para exibir detalhes de forma compacta e com fonte menor, permitindo quebra de linha */
+        .detalhes-cell {
+            font-size: 10px;
+            white-space: normal;
+            word-wrap: break-word;
+            vertical-align: middle;
+        }
 
-    </style>
+    </style>
 </head>
 <body>
 <div id="userBar">
-    <button onclick="history.back()" style="
-        background: transparent; 
-        border: none; 
-        color: #333; 
-        font-size: 24px; 
-        cursor: pointer;
-        margin-right: 10px;
-    ">←</button>
-    <span id="welcomeUser" style="font-weight:bold; color:#333; flex-grow: 1;"></span>
-    <button onclick="logout()" style="background:#CC0000; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Sair</button>
+    <button onclick="history.back()" style="
+        background: transparent; 
+        border: none; 
+        color: #333; 
+        font-size: 24px; 
+        cursor: pointer;
+        margin-right: 10px;
+    ">←</button>
+    <span id="welcomeUser" style="font-weight:bold; color:#333; flex-grow: 1;"></span>
+    <button onclick="logout()" style="background:#CC0000; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Sair</button>
 </div>
 <header>
-    <h1>Histórico de Ações</h1>
+    <h1>Histórico de Ações</h1>
 </header>
 
 <div class="table-container">
-    <div style="margin-bottom: 15px; display: flex; align-items: center;">
-        <button id="restaurarRascunhoBtn" class="restaurar-btn hidden" disabled>Restaurar para Rascunho</button>
-        <button id="deleteSelectedBtn" class="hidden" disabled>Excluir Selecionados</button>
-    </div>
-    
-    <table id="historicoTabela" class="display" style="width:100%">
-        <thead>
-            <tr>
-                <th><input type="checkbox" id="selectAllCheckbox"></th>
-                <th>Data/Hora</th>
-                <th>Usuário</th>
-                <th>Ação</th>
-                <th>Detalhes</th>
-            </tr>
-        </thead>
-        <tbody>
-        </tbody>
-    </table>
+    <div style="margin-bottom: 15px; display: flex; align-items: center;">
+        <button id="restaurarRascunhoBtn" class="restaurar-btn hidden" disabled>Restaurar para Rascunho</button>
+        <button id="deleteSelectedBtn" class="hidden" disabled>Excluir Selecionados</button>
+    </div>
+    
+    <table id="historicoTabela" class="display" style="width:100%">
+        <thead>
+            <tr>
+                <th><input type="checkbox" id="selectAllCheckbox"></th>
+                <th>Data/Hora</th>
+                <th>Usuário</th>
+                <th>Ação</th>
+                <th>Detalhes</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
 </div>
 
 <script type="module">
-    import { db, auth } from "./firebase-config.js";
-    import { collection, onSnapshot, query, orderBy, doc, deleteDoc, writeBatch, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { db, auth } from "./firebase-config.js";
+    import { collection, onSnapshot, query, orderBy, doc, deleteDoc, writeBatch, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    let historicoDataTable;
-    let currentUserUid = null;
-    let currentUserName = null;
+    let historicoDataTable;
+    let currentUserUid = null;
+    let currentUserName = null;
 
-    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-    const restaurarRascunhoBtn = document.getElementById('restaurarRascunhoBtn');
+    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+    const restaurarRascunhoBtn = document.getElementById('restaurarRascunhoBtn');
 
-    onAuthStateChanged(auth, user => {
-        if (user) {
-            currentUserUid = user.uid;
-            currentUserName = localStorage.getItem("username") || user.email;
-            document.getElementById("welcomeUser").textContent = "Bem-vindo, " + currentUserName;
-            carregarHistorico();
-        } else {
-            console.log("Nenhum usuário logado. Redirecionando...");
-            window.location.href = "index.html";
-        }
-    });
+    onAuthStateChanged(auth, user => {
+        if (user) {
+            currentUserUid = user.uid;
+            currentUserName = localStorage.getItem("username") || user.email;
+            document.getElementById("welcomeUser").textContent = "Bem-vindo, " + currentUserName;
+            carregarHistorico();
+        } else {
+            console.log("Nenhum usuário logado. Redirecionando...");
+            window.location.href = "index.html";
+        }
+    });
 
-    window.logout = () => {
-        signOut(auth).then(() => {
-            window.location.href = "index.html";
-        }).catch((error) => {
-            console.error("Erro ao fazer logout: ", error);
-        });
-    };
+    window.logout = () => {
+        signOut(auth).then(() => {
+            window.location.href = "index.html";
+        }).catch((error) => {
+            console.error("Erro ao fazer logout: ", error);
+        });
+    };
 
-    function formatarDetalhes(detalhes) {
-        if (!detalhes) return "Nenhum detalhe adicional.";
+    function formatarDetalhes(detalhes) {
+        if (!detalhes) return "Nenhum detalhe adicional.";
 
-        // Ações com dados de agendamento/rascunho
-        if (detalhes.senha || (detalhes.agendamentos && detalhes.agendamentos.length > 0)) {
-            const agendamentos = detalhes.agendamentos || [detalhes];
-            const detalhesHtml = agendamentos.map(agendamento => {
-                const parts = [];
-                if (agendamento.senha) parts.push(`Senha: ${agendamento.senha}`);
-                if (agendamento.data) parts.push(`Data: ${agendamento.data}`);
-                if (agendamento.central) parts.push(`Central: ${agendamento.central}`);
-                if (agendamento.cargas) parts.push(`Cargas: ${agendamento.cargas}`);
-                if (agendamento.fornecedor) parts.push(`Fornecedor: ${agendamento.fornecedor}`);
-                if (agendamento.tipoDeProduto) parts.push(`Tipo: ${agendamento.tipoDeProduto}`);
-                if (agendamento.volumes) parts.push(`Volumes: ${agendamento.volumes}`);
-                
-                return parts.join(' | ');
-            }).join(' | ');
-            return `<span>${detalhesHtml}</span>`;
-        }
+        // Ações com dados de agendamento/rascunho
+        if (detalhes.senha || (detalhes.agendamentos && detalhes.agendamentos.length > 0)) {
+            const agendamentos = detalhes.agendamentos || [detalhes];
+            const detalhesHtml = agendamentos.map(agendamento => {
+                const parts = [];
+                if (agendamento.senha) parts.push(`Senha: ${agendamento.senha}`);
+                if (agendamento.data) parts.push(`Data: ${agendamento.data}`);
+                if (agendamento.central) parts.push(`Central: ${agendamento.central}`);
+                if (agendamento.cargas) parts.push(`Cargas: ${agendamento.cargas}`);
+                if (agendamento.fornecedor) parts.push(`Fornecedor: ${agendamento.fornecedor}`);
+                if (agendamento.tipoDeProduto) parts.push(`Tipo: ${agendamento.tipoDeProduto}`);
+                if (agendamento.volumes) parts.push(`Volumes: ${agendamento.volumes}`);
+                
+                return parts.join(' | ');
+            }).join(' | ');
+            return `<span>${detalhesHtml}</span>`;
+        }
 
-        // Ações de gerenciamento de cadastros
-        if (detalhes.categoria && detalhes.nome) {
-            return `<span>Categoria: ${detalhes.categoria} | Nome: ${detalhes.nome}</span>`;
-        }
-        
-        const jsonString = JSON.stringify(detalhes);
-        const partes = jsonString.split(/[{}":,]+/);
-        const partesFiltradas = partes.filter(p => p.trim() !== '');
+        // Ações de gerenciamento de cadastros
+        if (detalhes.categoria && detalhes.nome) {
+            return `<span>Categoria: ${detalhes.categoria} | Nome: ${detalhes.nome}</span>`;
+        }
+        
+        const jsonString = JSON.stringify(detalhes);
+        const partes = jsonString.split(/[{}":,]+/);
+        const partesFiltradas = partes.filter(p => p.trim() !== '');
 
-        return `<span>${partesFiltradas.join(' | ')}</span>`;
-    }
+        return `<span>${partesFiltradas.join(' | ')}</span>`;
+    }
 
-    function carregarHistorico() {
-        const q = query(collection(db, "historico-acoes"), orderBy("timestamp", "desc"));
-        
-        onSnapshot(q, (snapshot) => {
-            const historico = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    function carregarHistorico() {
+        const q = query(collection(db, "historico-acoes"), orderBy("timestamp", "desc"));
+        
+        onSnapshot(q, (snapshot) => {
+            const historico = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            if (historicoDataTable) {
-                historicoDataTable.destroy();
-            }
+            if (historicoDataTable) {
+                historicoDataTable.destroy();
+            }
 
-            const dadosParaTabela = historico.map(acao => {
-                const dataHora = acao.timestamp ? new Date(acao.timestamp.toDate()).toLocaleString('pt-BR') : 'N/A';
-                const detalhesFormatados = formatarDetalhes(acao.detalhes);
-                
-                // Incorpora os dados no checkbox
-                const acaoDetalhesJson = JSON.stringify({ acao: acao.acao, detalhes: acao.detalhes });
-                const checkbox = `<input type="checkbox" class="row-checkbox" data-id="${acao.id}" data-acao-detalhes='${acaoDetalhesJson}'>`;
+            const dadosParaTabela = historico.map(acao => {
+                const dataHora = acao.timestamp ? new Date(acao.timestamp.toDate()).toLocaleString('pt-BR') : 'N/A';
+                const detalhesFormatados = formatarDetalhes(acao.detalhes);
+                
+                // Incorpora os dados no checkbox
+                const acaoDetalhesJson = JSON.stringify({ acao: acao.acao, detalhes: acao.detalhes });
+                const checkbox = `<input type="checkbox" class="row-checkbox" data-id="${acao.id}" data-acao-detalhes='${acaoDetalhesJson}'>`;
 
-                return [
-                    checkbox,
-                    dataHora,
-                    acao.username || 'Desconhecido',
-                    acao.acao,
-                    detalhesFormatados
-                ];
-            });
+                return [
+                    checkbox,
+                    dataHora,
+                    acao.username || 'Desconhecido',
+                    acao.acao,
+                    detalhesFormatados
+                ];
+            });
 
-            historicoDataTable = $('#historicoTabela').DataTable({
-                data: dadosParaTabela,
-                columns: [
-                    { title: "<input type='checkbox' id='selectAllCheckbox'>" },
-                    { title: "Data/Hora" },
-                    { title: "Usuário" },
-                    { title: "Ação" },
-                    { title: "Detalhes", className: 'detalhes-cell' }
-                ],
-                paging: false,
-                info: false,
-                searching: true,
-                order: [[1, 'desc']],
-                oLanguage: {
-                    sEmptyTable: "Nenhum registro de histórico encontrado.",
-                    sSearch: "Buscar:"
-                },
-            });
-        });
-    }
+            historicoDataTable = $('#historicoTabela').DataTable({
+                data: dadosParaTabela,
+                columns: [
+                    { title: "<input type='checkbox' id='selectAllCheckbox'>" },
+                    { title: "Data/Hora" },
+                    { title: "Usuário" },
+                    { title: "Ação" },
+                    { title: "Detalhes", className: 'detalhes-cell' }
+                ],
+                paging: false,
+                info: false,
+                searching: true,
+                order: [[1, 'desc']],
+                oLanguage: {
+                    sEmptyTable: "Nenhum registro de histórico encontrado.",
+                    sSearch: "Buscar:"
+                },
+            });
+        });
+    }
 
-    // Função para restaurar múltiplos agendamentos
-    async function restaurarAgendamentos(detalhesArray) {
-        if (!detalhesArray || detalhesArray.length === 0) {
-            alert('Nenhum agendamento para restaurar. Dados inválidos.');
-            return;
-        }
+    // Função para restaurar múltiplos agendamentos
+    async function restaurarAgendamentos(detalhesArray) {
+        if (!detalhesArray || detalhesArray.length === 0) {
+            alert('Nenhum agendamento para restaurar. Dados inválidos.');
+            return;
+        }
 
-        if (confirm(`Tem certeza que deseja restaurar ${detalhesArray.length} agendamento(s) para rascunho?`)) {
-            const batch = writeBatch(db);
-            const restoredDetails = [];
-            let historicoDetails;
+        if (confirm(`Tem certeza que deseja restaurar ${detalhesArray.length} agendamento(s) para rascunho?`)) {
+            const batch = writeBatch(db);
+            const restoredDetails = [];
+            let historicoDetails;
 
-            detalhesArray.forEach(item => {
-                const agendamentoData = item.agendamentos ? item.agendamentos[0] : item;
-                if (agendamentoData.senha) {
-                    const newDocRef = doc(collection(db, "agendamentos-rascunho"));
-                    batch.set(newDocRef, agendamentoData);
-                    restoredDetails.push({ senha: agendamentoData.senha, docId: newDocRef.id });
-                }
-            });
+            detalhesArray.forEach(item => {
+                const agendamentoData = item.agendamentos ? item.agendamentos[0] : item;
+                if (agendamentoData.senha) {
+                    const newDocRef = doc(collection(db, "agendamentos-rascunho"));
+                    batch.set(newDocRef, agendamentoData);
+                    restoredDetails.push({ senha: agendamentoData.senha, docId: newDocRef.id });
+                }
+            });
 
-            try {
-                await batch.commit();
-                alert(`${restoredDetails.length} agendamento(s) restaurado(s) com sucesso para rascunho.`);
-                
-                historicoDetails = { restoredItems: restoredDetails };
-                await adicionarHistorico("restaurou agendamentos em lote", historicoDetails);
-            } catch (e) {
-                console.error("Erro ao restaurar agendamentos em lote: ", e);
-                alert("Ocorreu um erro ao restaurar os agendamentos. Tente novamente.");
-            }
-        }
-    };
+            try {
+                await batch.commit();
+                alert(`${restoredDetails.length} agendamento(s) restaurado(s) com sucesso para rascunho.`);
+                
+                historicoDetails = { restoredItems: restoredDetails };
+                await adicionarHistorico("restaurou agendamentos em lote", historicoDetails);
+            } catch (e) {
+                console.error("Erro ao restaurar agendamentos em lote: ", e);
+                alert("Ocorreu um erro ao restaurar os agendamentos. Tente novamente.");
+            }
+        }
+    };
 
-    $(document).on('click', '#selectAllCheckbox', function() {
-        const isChecked = $(this).prop('checked');
-        $('.row-checkbox').prop('checked', isChecked);
-        toggleActionButtons();
-    });
+    $(document).on('click', '#selectAllCheckbox', function() {
+        const isChecked = $(this).prop('checked');
+        $('.row-checkbox').prop('checked', isChecked);
+        toggleActionButtons();
+    });
 
-    $(document).on('change', '.row-checkbox', function() {
-        toggleActionButtons();
-    });
+    $(document).on('change', '.row-checkbox', function() {
+        toggleActionButtons();
+    });
 
-    // Função que gerencia a visibilidade dos botões
-    function toggleActionButtons() {
-        const checkedItems = $('.row-checkbox:checked');
-        const checkedCount = checkedItems.length;
-        const areAllRestorable = checkedItems.toArray().every(item => {
-            let acaoDetalhes = $(item).data('acaoDetalhes');
+    // Função que gerencia a visibilidade dos botões
+    function toggleActionButtons() {
+        const checkedItems = $('.row-checkbox:checked');
+        const checkedCount = checkedItems.length;
+        const areAllRestorable = checkedItems.toArray().every(item => {
+            let acaoDetalhes = $(item).data('acaoDetalhes');
 
-            // Se for uma string, faz o parse. Senão, assume que já é um objeto.
-            if (typeof acaoDetalhes === 'string') {
-                try {
-                    acaoDetalhes = JSON.parse(acaoDetalhes.replace(/'/g, '"'));
-                } catch (e) {
-                    console.error("Erro ao fazer parse do JSON: ", e);
-                    return false;
-                }
-            }
-            return acaoDetalhes.acao.includes("excluiu agendamento");
-        });
+            // Se for uma string, faz o parse. Senão, assume que já é um objeto.
+            if (typeof acaoDetalhes === 'string') {
+                try {
+                    acaoDetalhes = JSON.parse(acaoDetalhes.replace(/'/g, '"'));
+                } catch (e) {
+                    console.error("Erro ao fazer parse do JSON: ", e);
+                    return false;
+                }
+            }
+            return acaoDetalhes.acao.includes("excluiu");
+        });
 
-        // Gerencia o botão de Excluir
-        if (checkedCount > 0) {
-            deleteSelectedBtn.classList.remove('hidden');
-            deleteSelectedBtn.disabled = false;
-        } else {
-            deleteSelectedBtn.classList.add('hidden');
-            deleteSelectedBtn.disabled = true;
-        }
+        // Gerencia o botão de Excluir
+        if (checkedCount > 0) {
+            deleteSelectedBtn.classList.remove('hidden');
+            deleteSelectedBtn.disabled = false;
+        } else {
+            deleteSelectedBtn.classList.add('hidden');
+            deleteSelectedBtn.disabled = true;
+        }
 
-        // Gerencia o botão de Restaurar
-        if (checkedCount > 0 && areAllRestorable) {
-            restaurarRascunhoBtn.classList.remove('hidden');
-            restaurarRascunhoBtn.disabled = false;
-        } else {
-            restaurarRascunhoBtn.classList.add('hidden');
-            restaurarRascunhoBtn.disabled = true;
-        }
-    }
+        // Gerencia o botão de Restaurar
+        if (checkedCount > 0 && areAllRestorable) {
+            restaurarRascunhoBtn.classList.remove('hidden');
+            restaurarRascunhoBtn.disabled = false;
+        } else {
+            restaurarRascunhoBtn.classList.add('hidden');
+            restaurarRascunhoBtn.disabled = true;
+        }
+    }
 
-    // Evento de clique para o botão de Restaurar
-    $('#restaurarRascunhoBtn').click(() => {
-        const checkedItems = $('.row-checkbox:checked');
-        const detalhesArray = checkedItems.toArray().map(item => {
-            let acaoDetalhes = $(item).data('acaoDetalhes');
+    // Evento de clique para o botão de Restaurar
+    $('#restaurarRascunhoBtn').click(() => {
+        const checkedItems = $('.row-checkbox:checked');
+        const detalhesArray = checkedItems.toArray().map(item => {
+            let acaoDetalhes = $(item).data('acaoDetalhes');
 
-            if (typeof acaoDetalhes === 'string') {
-                try {
-                    acaoDetalhes = JSON.parse(acaoDetalhes.replace(/'/g, '"'));
-                } catch (e) {
-                    console.error("Erro ao fazer parse do JSON: ", e);
-                    return null;
-                }
-            }
-            return acaoDetalhes.detalhes;
-        }).filter(item => item !== null);
-        restaurarAgendamentos(detalhesArray);
-    });
+            if (typeof acaoDetalhes === 'string') {
+                try {
+                    acaoDetalhes = JSON.parse(acaoDetalhes.replace(/'/g, '"'));
+                } catch (e) {
+                    console.error("Erro ao fazer parse do JSON: ", e);
+                    return null;
+                }
+            }
+            return acaoDetalhes.detalhes;
+        }).filter(item => item !== null);
+        restaurarAgendamentos(detalhesArray);
+    });
 
-    $('#deleteSelectedBtn').click(async () => {
-        const checkedItems = $('.row-checkbox:checked');
-        if (checkedItems.length === 0) {
-            alert('Por favor, selecione pelo menos um registro para excluir.');
-            return;
-        }
+    $('#deleteSelectedBtn').click(async () => {
+        const checkedItems = $('.row-checkbox:checked');
+        if (checkedItems.length === 0) {
+            alert('Por favor, selecione pelo menos um registro para excluir.');
+            return;
+        }
 
-        if (confirm(`Tem certeza que deseja excluir permanentemente ${checkedItems.length} registro(s) do histórico?`)) {
-            const batch = writeBatch(db);
-            const deletedIds = [];
+        if (confirm(`Tem certeza que deseja excluir permanentemente ${checkedItems.length} registro(s) do histórico?`)) {
+            const batch = writeBatch(db);
+            const deletedIds = [];
 
-            checkedItems.each(function() {
-                const id = $(this).data('id');
-                const docRef = doc(db, "historico-acoes", id);
-                batch.delete(docRef);
-                deletedIds.push(id);
-            });
+            checkedItems.each(function() {
+                const id = $(this).data('id');
+                const docRef = doc(db, "historico-acoes", id);
+                batch.delete(docRef);
+                deletedIds.push(id);
+            });
 
-            try {
-                await batch.commit();
-                alert(`${deletedIds.length} registro(s) excluído(s) permanentemente do histórico.`);
-            } catch (e) {
-                console.error("Erro ao excluir registros do histórico: ", e);
-                alert("Ocorreu um erro ao excluir os registros. Tente novamente.");
-            } finally {
-                carregarHistorico();
-            }
-        }
-    });
+            try {
+                await batch.commit();
+                alert(`${deletedIds.length} registro(s) excluído(s) permanentemente do histórico.`);
+            } catch (e) {
+                console.error("Erro ao excluir registros do histórico: ", e);
+                alert("Ocorreu um erro ao excluir os registros. Tente novamente.");
+            } finally {
+                carregarHistorico();
+            }
+        }
+    });
 
-    async function adicionarHistorico(acao, detalhes) {
-        if (!currentUserUid) {
-            console.error("Não foi possível adicionar ao histórico. Usuário não logado.");
-            return;
-        }
-        try {
-            await addDoc(collection(db, "historico-acoes"), {
-                userId: currentUserUid,
-                username: currentUserName,
-                acao: acao,
-                detalhes: detalhes,
-                timestamp: new Date()
-            });
-        } catch (e) {
-            console.error("Erro ao adicionar histórico: ", e);
-        }
-    }
+    async function adicionarHistorico(acao, detalhes) {
+        if (!currentUserUid) {
+            console.error("Não foi possível adicionar ao histórico. Usuário não logado.");
+            return;
+        }
+        try {
+            await addDoc(collection(db, "historico-acoes"), {
+                userId: currentUserUid,
+                username: currentUserName,
+                acao: acao,
+                detalhes: detalhes,
+                timestamp: new Date()
+            });
+        } catch (e) {
+            console.error("Erro ao adicionar histórico: ", e);
+        }
+    }
 </script>
 
 </body>
