@@ -41,94 +41,110 @@
             flex-shrink: 0;
             margin-left: 10px;
         }
-        .action-buttons-container {
-            margin-bottom: 15px;
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-        .action-buttons-container button {
-            background-color: #d32f2f;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
+        .hidden {
             display: none;
         }
-        .action-buttons-container button.visible {
+        #deleteSelectedBtn {
+            background: #d32f2f;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            width: auto;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        #deleteSelectedBtn:hover {
+            background: #b71c1c;
+        }
+        #deleteSelectedBtn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        /* Classe para exibir detalhes de forma compacta e com fonte menor, permitindo quebra de linha */
+        .detalhes-cell {
+            font-size: 10px;
+            white-space: normal;
+            word-wrap: break-word;
+            vertical-align: middle;
+        }
+
+        .restaurar-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            text-align: center;
+            text-decoration: none;
             display: inline-block;
+            font-size: 12px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
         }
-        .action-buttons-container button:hover {
-            background-color: #b71c1c;
+
+        .restaurar-btn:hover {
+            background-color: #45a049;
         }
+
     </style>
 </head>
 <body>
-
 <div id="userBar">
-    <button onclick="window.location.href = 'gerenciamento.html'" style="
-        background: transparent;
-        border: none;
-        color: #333;
-        font-size: 24px;
+    <button onclick="history.back()" style="
+        background: transparent; 
+        border: none; 
+        color: #333; 
+        font-size: 24px; 
         cursor: pointer;
         margin-right: 10px;
     ">←</button>
     <span id="welcomeUser" style="font-weight:bold; color:#333; flex-grow: 1;"></span>
     <button onclick="logout()" style="background:#CC0000; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Sair</button>
 </div>
-<script>
-const username = localStorage.getItem("username") || "Usuário";
-document.addEventListener("DOMContentLoaded", ()=>{
-    document.getElementById("welcomeUser").textContent = "Bem-vindo, " + username;
-});
-</script>
-
 <header>
     <h1>Histórico de Ações</h1>
 </header>
 
-<div class="action-buttons-container">
-    <button id="restoreSelectedBtn">Restaurar Selecionados</button>
-    <button id="deleteSelectedBtn">Excluir Selecionados</button>
-</div>
-
 <div class="table-container">
+    <button id="deleteSelectedBtn" class="hidden" disabled>Excluir Selecionados</button>
     <table id="historicoTabela" class="display" style="width:100%">
         <thead>
             <tr>
                 <th><input type="checkbox" id="selectAllCheckbox"></th>
-                <th>Data</th>
+                <th>Data/Hora</th>
                 <th>Usuário</th>
                 <th>Ação</th>
                 <th>Detalhes</th>
+                <th>Ações</th>
             </tr>
         </thead>
         <tbody>
         </tbody>
     </table>
-    <p id="carregando" style="text-align: center;">Carregando...</p>
 </div>
 
 <script type="module">
     import { db, auth } from "./firebase-config.js";
-    import { collection, query, getDocs, orderBy, doc, deleteDoc, addDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { collection, onSnapshot, query, orderBy, doc, deleteDoc, writeBatch, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    let historicoDataTable = null;
-    const carregandoEl = document.getElementById('carregando');
-    let currentUserName = null;
+    let historicoDataTable;
     let currentUserUid = null;
+    let currentUserName = null;
+
+    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
 
     onAuthStateChanged(auth, user => {
         if (user) {
             currentUserUid = user.uid;
             currentUserName = localStorage.getItem("username") || user.email;
+            document.getElementById("welcomeUser").textContent = "Bem-vindo, " + currentUserName;
             carregarHistorico();
         } else {
-            carregandoEl.textContent = "Você precisa estar logado para ver o histórico.";
+            console.log("Nenhum usuário logado. Redirecionando...");
             window.location.href = "index.html";
         }
     });
@@ -141,220 +157,147 @@ document.addEventListener("DOMContentLoaded", ()=>{
         });
     };
 
-    async function carregarHistorico() {
-        carregandoEl.textContent = 'Carregando...';
+    function formatarDetalhes(detalhes) {
+        if (!detalhes) return "Nenhum detalhe adicional.";
+
+        // Ações com dados de agendamento/rascunho
+        if (detalhes.senha || (detalhes.agendamentos && detalhes.agendamentos.length > 0)) {
+            const agendamentos = detalhes.agendamentos || [detalhes];
+            const detalhesHtml = agendamentos.map(agendamento => {
+                const parts = [];
+                if (agendamento.senha) parts.push(`Senha: ${agendamento.senha}`);
+                if (agendamento.data) parts.push(`Data: ${agendamento.data}`);
+                if (agendamento.central) parts.push(`Central: ${agendamento.central}`);
+                if (agendamento.cargas) parts.push(`Cargas: ${agendamento.cargas}`);
+                if (agendamento.fornecedor) parts.push(`Fornecedor: ${agendamento.fornecedor}`);
+                if (agendamento.tipoDeProduto) parts.push(`Tipo: ${agendamento.tipoDeProduto}`);
+                if (agendamento.volumes) parts.push(`Volumes: ${agendamento.volumes}`);
+                
+                return parts.join(' | ');
+            }).join(' | ');
+            return `<span>${detalhesHtml}</span>`;
+        }
+
+        // Ações de gerenciamento de cadastros
+        if (detalhes.categoria && detalhes.nome) {
+            return `<span>Categoria: ${detalhes.categoria} | Nome: ${detalhes.nome}</span>`;
+        }
+        
+        const jsonString = JSON.stringify(detalhes);
+        const partes = jsonString.split(/[{}":,]+/);
+        const partesFiltradas = partes.filter(p => p.trim() !== '');
+
+        return `<span>${partesFiltradas.join(' | ')}</span>`;
+    }
+
+    function carregarHistorico() {
         const q = query(collection(db, "historico-acoes"), orderBy("timestamp", "desc"));
-        try {
-            const snapshot = await getDocs(q);
-            const dadosParaTabela = [];
-
-            if (snapshot.empty) {
-                carregandoEl.textContent = 'Nenhuma ação registrada.';
-            } else {
-                carregandoEl.style.display = 'none';
-                snapshot.forEach(doc => {
-                    const acao = doc.data();
-                    const dataFormatada = new Date(acao.timestamp.seconds * 1000).toLocaleString('pt-BR');
-
-                    let acaoDisplay = acao.acao;
-                    let isRestorable = false;
-
-                    const detalhes = acao.detalhes || {};
-
-                    if (acao.acao.includes("excluiu")) {
-                        acaoDisplay = "Excluiu";
-                        if (detalhes.senha || (detalhes.agendamentos && detalhes.agendamentos.length > 0)) {
-                             isRestorable = true;
-                        }
-                    } else if (acao.acao.includes("moveu um agendamento para rascunho")) {
-                        acaoDisplay = "Moveu para Rascunho";
-                        if (detalhes.senha) {
-                            isRestorable = true;
-                        }
-                    } else if (acao.acao.includes("agendou a partir de rascunho")) {
-                         acaoDisplay = "Agendou a partir de rascunho";
-                    } else if (acao.acao.includes("agendou")) {
-                        acaoDisplay = "Agendou";
-                    } else if (acao.acao.includes("restaurou")) {
-                         acaoDisplay = "Restaurou";
-                    } else if (acao.acao.includes("atualizou")) {
-                        acaoDisplay = "Atualizou";
-                    }
-
-                    let detalhesHTML = '';
-                    if (Array.isArray(detalhes.agendamentos)) {
-                        detalhesHTML = "<ul>";
-                        detalhes.agendamentos.forEach(item => {
-                            detalhesHTML += `<li>
-                                <strong>Senha:</strong> ${item.senha || 'Vazio'}<br>
-                                <strong>Data:</strong> ${item.data || 'Vazio'}<br>
-                                <strong>Central:</strong> ${item.central || 'Vazio'}<br>
-                                <strong>Cargas:</strong> ${item.cargas || 'Vazio'}<br>
-                                <strong>Pedido de Compra:</strong> ${item.pedidoCompra || 'Vazio'}<br>
-                                <strong>Fornecedor:</strong> ${item.fornecedor || 'Vazio'}<br>
-                                <strong>Tipo de Produto:</strong> ${item.tipoDeProduto || 'Vazio'}<br>
-                                <strong>Produto:</strong> ${item.produto || 'Vazio'}<br>
-                                <strong>Volumes:</strong> ${item.volumes || 'Vazio'}
-                            </li>`;
-                        });
-                        detalhesHTML += "</ul>";
-                    } else {
-                         detalhesHTML = `
-                            <strong>Senha:</strong> ${detalhes.senha || 'Vazio'}<br>
-                            <strong>Data:</strong> ${detalhes.data || 'Vazio'}<br>
-                            <strong>Central:</strong> ${detalhes.central || 'Vazio'}<br>
-                            <strong>Cargas:</strong> ${detalhes.cargas || 'Vazio'}<br>
-                            <strong>Pedido de Compra:</strong> ${detalhes.pedidoCompra || 'Vazio'}<br>
-                            <strong>Fornecedor:</strong> ${detalhes.fornecedor || 'Vazio'}<br>
-                            <strong>Tipo de Produto:</strong> ${detalhes.tipoDeProduto || 'Vazio'}<br>
-                            <strong>Produto:</strong> ${detalhes.produto || 'Vazio'}<br>
-                            <strong>Volumes:</strong> ${detalhes.volumes || 'Vazio'}
-                        `;
-                    }
-
-                    dadosParaTabela.push([
-                        `<input type="checkbox" class="historico-checkbox" data-id="${doc.id}" data-restorable="${isRestorable}" data-details='${JSON.stringify(detalhes)}'>`,
-                        dataFormatada,
-                        acao.username || "Desconhecido",
-                        acaoDisplay,
-                        detalhesHTML
-                    ]);
-                });
-            }
+        
+        onSnapshot(q, (snapshot) => {
+            const historico = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             if (historicoDataTable) {
                 historicoDataTable.destroy();
             }
 
+            const dadosParaTabela = historico.map(acao => {
+                const dataHora = acao.timestamp ? new Date(acao.timestamp.toDate()).toLocaleString('pt-BR') : 'N/A';
+                const detalhesFormatados = formatarDetalhes(acao.detalhes);
+                
+                // Botão de restaurar
+                let acoesHtml = '';
+                if (acao.acao.includes("excluiu agendamento")) {
+                    const agendamentos = acao.detalhes.agendamentos || [acao.detalhes];
+                    agendamentos.forEach(agendamento => {
+                        const agendamentoData = JSON.stringify(agendamento).replace(/"/g, "'");
+                        acoesHtml += `<button class="restaurar-btn" onclick='restaurarAgendamento(${JSON.stringify(agendamento)})'>Restaurar</button>`;
+                    });
+                }
+
+
+                return [
+                    `<input type="checkbox" class="row-checkbox" data-id="${acao.id}">`,
+                    dataHora,
+                    acao.username || 'Desconhecido',
+                    acao.acao,
+                    detalhesFormatados,
+                    acoesHtml
+                ];
+            });
+
             historicoDataTable = $('#historicoTabela').DataTable({
                 data: dadosParaTabela,
                 columns: [
                     { title: "<input type='checkbox' id='selectAllCheckbox'>" },
-                    { title: "Data" },
+                    { title: "Data/Hora" },
                     { title: "Usuário" },
                     { title: "Ação" },
-                    { title: "Detalhes" }
+                    { title: "Detalhes", className: 'detalhes-cell' },
+                    { title: "Ações", orderable: false }
                 ],
-                paging: true,
-                info: true,
+                paging: false,
+                info: false,
+                searching: true,
                 order: [[1, 'desc']],
                 oLanguage: {
-                    sEmptyTable: "Nenhuma ação registrada.",
-                    sSearch: "Buscar:",
-                    sInfo: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                    sInfoEmpty: "Mostrando 0 a 0 de 0 registros"
-                }
+                    sEmptyTable: "Nenhum registro de histórico encontrado.",
+                    sSearch: "Buscar:"
+                },
             });
-
-            $('#selectAllCheckbox').on('click', function() {
-                const isChecked = $(this).prop('checked');
-                $('.historico-checkbox').prop('checked', isChecked);
-                toggleButtons();
-            });
-
-            $(document).on('change', '.historico-checkbox', function() {
-                toggleButtons();
-            });
-
-        } catch (e) {
-            console.error("Erro ao carregar histórico: ", e);
-            carregandoEl.textContent = 'Ocorreu um erro ao carregar o histórico. Tente novamente mais tarde.';
-        }
+        });
     }
 
-    function toggleButtons() {
-        const checkedCount = $('.historico-checkbox:checked').length;
-        const restoreButton = $('#restoreSelectedBtn');
-        const deleteButton = $('#deleteSelectedBtn');
-
-        if (checkedCount > 0) {
-            let hasRestorableItem = false;
-            $('.historico-checkbox:checked').each(function() {
-                if ($(this).data('restorable')) {
-                    hasRestorableItem = true;
-                }
-            });
-            restoreButton.toggleClass('visible', hasRestorableItem);
-            deleteButton.addClass('visible');
-        } else {
-            restoreButton.removeClass('visible');
-            deleteButton.removeClass('visible');
-        }
-    }
-
-    $('#restoreSelectedBtn').on('click', async () => {
-        const checkedItems = $('.historico-checkbox:checked');
-        if (checkedItems.length === 0) {
-            alert('Por favor, selecione pelo menos um item para restaurar.');
+    // Função para restaurar um agendamento
+    window.restaurarAgendamento = async (detalhes) => {
+        if (!detalhes || !detalhes.senha) {
+            alert('Não foi possível restaurar o agendamento. Dados inválidos.');
             return;
         }
-
-        const batch = writeBatch(db);
-        let restoredCount = 0;
-        let restoredDetails = [];
-        let canRestore = false;
-
-        for (const item of checkedItems) {
-            const isRestorable = $(item).data('restorable');
-            if (isRestorable) {
-                canRestore = true;
-                const details = $(item).data('details');
-
-                let itemsToRestore = [];
-                if (Array.isArray(details.agendamentos)) {
-                    itemsToRestore = details.agendamentos;
-                } else if (typeof details === 'object' && details !== null && details.senha) {
-                    itemsToRestore.push(details);
-                }
-
-                for (const singleDetail of itemsToRestore) {
-                    if (singleDetail && singleDetail.senha) {
-                        const newRascunhoRef = doc(collection(db, "agendamentos-rascunho"));
-
-                        const newRascunhoData = {
-                            userId: currentUserUid,
-                            senha: singleDetail.senha || null,
-                            data: singleDetail.data || null,
-                            central: singleDetail.central || null,
-                            cargas: singleDetail.cargas || null,
-                            pedidoCompra: singleDetail.pedidoCompra || null,
-                            fornecedor: singleDetail.fornecedor || null,
-                            tipoDeProduto: singleDetail.tipoDeProduto || null,
-                            produto: singleDetail.produto || null,
-                            volumes: singleDetail.volumes || null,
-                            timestamp: new Date()
-                        };
-                        batch.set(newRascunhoRef, newRascunhoData);
-                        restoredDetails.push(newRascunhoData);
-                        restoredCount++;
-                    }
-                }
-            }
-        }
-
-        if (!canRestore) {
-             alert('Nenhum item selecionado pode ser restaurado. Apenas exclusões podem ser restauradas.');
-             return;
-        }
-
-        if (confirm(`Tem certeza que deseja restaurar ${restoredCount} agendamento(s) para os rascunhos?`)) {
+        
+        if (confirm(`Tem certeza que deseja restaurar o agendamento com senha ${detalhes.senha}?`)) {
             try {
-                await batch.commit();
-                await adicionarHistorico(`restaurou ${restoredCount} agendamento(s) do histórico`, { agendamentos: restoredDetails });
-                alert(`${restoredCount} agendamento(s) restaurado(s) para os rascunhos com sucesso!`);
+                // Adiciona o agendamento na coleção 'agendamentos'
+                const docRef = await addDoc(collection(db, "agendamentos"), detalhes);
+                
+                // Adiciona a ação de restauração no histórico
+                await adicionarHistorico("restaurou agendamento", {
+                    senha: detalhes.senha,
+                    docId: docRef.id
+                });
+                
+                alert(`Agendamento com senha ${detalhes.senha} restaurado com sucesso para rascunho.`);
             } catch (e) {
-                console.error("Erro ao restaurar agendamentos: ", e);
-                alert("Ocorreu um erro ao restaurar os agendamentos. Tente novamente.");
-            } finally {
-                carregarHistorico();
+                console.error("Erro ao restaurar agendamento: ", e);
+                alert("Ocorreu um erro ao restaurar o agendamento. Tente novamente.");
             }
         }
+    };
+
+    $(document).on('click', '#selectAllCheckbox', function() {
+        const isChecked = $(this).prop('checked');
+        $('.row-checkbox').prop('checked', isChecked);
+        toggleDeleteButton();
     });
 
-    $('#deleteSelectedBtn').on('click', async () => {
-        const checkedItems = $('.historico-checkbox:checked');
+    $(document).on('change', '.row-checkbox', function() {
+        toggleDeleteButton();
+    });
+
+    function toggleDeleteButton() {
+        const checkedCount = $('.row-checkbox:checked').length;
+        if (checkedCount > 0) {
+            deleteSelectedBtn.classList.remove('hidden');
+            deleteSelectedBtn.disabled = false;
+        } else {
+            deleteSelectedBtn.classList.add('hidden');
+            deleteSelectedBtn.disabled = true;
+        }
+    }
+
+    $('#deleteSelectedBtn').click(async () => {
+        const checkedItems = $('.row-checkbox:checked');
         if (checkedItems.length === 0) {
-            alert('Por favor, selecione pelo menos um item para excluir.');
+            alert('Por favor, selecione pelo menos um registro para excluir.');
             return;
         }
 
