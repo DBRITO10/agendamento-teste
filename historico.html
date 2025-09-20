@@ -243,27 +243,36 @@
         });
     }
 
-    // Função para restaurar um agendamento
-    async function restaurarAgendamento(detalhes) {
-        if (!detalhes || !detalhes.senha) {
-            alert('Não foi possível restaurar o agendamento. Dados inválidos.');
+    // Função para restaurar múltiplos agendamentos
+    async function restaurarAgendamentos(detalhesArray) {
+        if (!detalhesArray || detalhesArray.length === 0) {
+            alert('Nenhum agendamento para restaurar. Dados inválidos.');
             return;
         }
-        
-        if (confirm(`Tem certeza que deseja restaurar o agendamento com senha ${detalhes.senha}?`)) {
+
+        if (confirm(`Tem certeza que deseja restaurar ${detalhesArray.length} agendamento(s) para rascunho?`)) {
+            const batch = writeBatch(db);
+            const restoredDetails = [];
+            let historicoDetails;
+
+            detalhesArray.forEach(item => {
+                const agendamentoData = item.agendamentos ? item.agendamentos[0] : item;
+                if (agendamentoData.senha) {
+                    const newDocRef = doc(collection(db, "agendamentos-rascunho"));
+                    batch.set(newDocRef, agendamentoData);
+                    restoredDetails.push({ senha: agendamentoData.senha, docId: newDocRef.id });
+                }
+            });
+
             try {
-                const agendamentoData = detalhes.agendamentos ? detalhes.agendamentos[0] : detalhes;
-                const docRef = await addDoc(collection(db, "agendamentos"), agendamentoData);
+                await batch.commit();
+                alert(`${restoredDetails.length} agendamento(s) restaurado(s) com sucesso para rascunho.`);
                 
-                await adicionarHistorico("restaurou agendamento", {
-                    senha: agendamentoData.senha,
-                    docId: docRef.id
-                });
-                
-                alert(`Agendamento com senha ${agendamentoData.senha} restaurado com sucesso para rascunho.`);
+                historicoDetails = { restoredItems: restoredDetails };
+                await adicionarHistorico("restaurou agendamentos em lote", historicoDetails);
             } catch (e) {
-                console.error("Erro ao restaurar agendamento: ", e);
-                alert("Ocorreu um erro ao restaurar o agendamento. Tente novamente.");
+                console.error("Erro ao restaurar agendamentos em lote: ", e);
+                alert("Ocorreu um erro ao restaurar os agendamentos. Tente novamente.");
             }
         }
     };
@@ -282,6 +291,10 @@
     function toggleActionButtons() {
         const checkedItems = $('.row-checkbox:checked');
         const checkedCount = checkedItems.length;
+        const areAllRestorable = checkedItems.toArray().every(item => {
+            const acaoDetalhes = JSON.parse($(item).data('acaoDetalhes').replace(/'/g, '"'));
+            return acaoDetalhes.acao.includes("excluiu agendamento");
+        });
 
         // Gerencia o botão de Excluir
         if (checkedCount > 0) {
@@ -293,18 +306,9 @@
         }
 
         // Gerencia o botão de Restaurar
-        if (checkedCount === 1) {
-            const selectedCheckbox = checkedItems.first();
-            const acaoDetalhes = JSON.parse(selectedCheckbox.data('acaoDetalhes').replace(/'/g, '"'));
-            
-            if (acaoDetalhes.acao.includes("excluiu agendamento")) {
-                restaurarRascunhoBtn.classList.remove('hidden');
-                restaurarRascunhoBtn.disabled = false;
-                restaurarRascunhoBtn.dataset.detalhes = JSON.stringify(acaoDetalhes.detalhes);
-            } else {
-                restaurarRascunhoBtn.classList.add('hidden');
-                restaurarRascunhoBtn.disabled = true;
-            }
+        if (checkedCount > 0 && areAllRestorable) {
+            restaurarRascunhoBtn.classList.remove('hidden');
+            restaurarRascunhoBtn.disabled = false;
         } else {
             restaurarRascunhoBtn.classList.add('hidden');
             restaurarRascunhoBtn.disabled = true;
@@ -313,8 +317,12 @@
 
     // Evento de clique para o botão de Restaurar
     $('#restaurarRascunhoBtn').click(() => {
-        const detalhes = JSON.parse(restaurarRascunhoBtn.dataset.detalhes);
-        restaurarAgendamento(detalhes);
+        const checkedItems = $('.row-checkbox:checked');
+        const detalhesArray = checkedItems.toArray().map(item => {
+            const acaoDetalhes = JSON.parse($(item).data('acaoDetalhes').replace(/'/g, '"'));
+            return acaoDetalhes.detalhes;
+        });
+        restaurarAgendamentos(detalhesArray);
     });
 
     $('#deleteSelectedBtn').click(async () => {
